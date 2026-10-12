@@ -2,7 +2,7 @@ import { useEffect } from "preact/hooks";
 import { useSignal } from "@preact/signals";
 import { createClient } from "@supabase/supabase-js";
 import AuthCardLayout from "./AuthCardLayout";
-import { clearSupabaseBrowserStorage } from "./auth-storage";
+import { clearSupabaseBrowserStorage } from "../lib/auth-storage";
 import { type Locale, t as translate } from "../lib/i18n";
 
 interface AuthCallbackProps {

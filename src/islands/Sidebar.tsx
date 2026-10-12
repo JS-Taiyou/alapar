@@ -10,7 +10,7 @@ import type {
   User,
 } from "../lib/types";
 import { cache } from "../lib/cache";
-import { clearSupabaseBrowserStorage } from "./auth-storage";
+import { clearSupabaseBrowserStorage } from "../lib/auth-storage";
 import EntityManager from "./EntityManager";
 import DefaultSplitConfig from "./DefaultSplitConfig";
 import LocaleToggle from "./LocaleToggle";
