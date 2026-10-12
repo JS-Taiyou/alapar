@@ -123,19 +123,32 @@ cachea queries) y camino natural al push propio (Durable Objects) si algún
 día se sustituye Supabase Realtime. Ver discusión: comparativa con Netlify
 (Blobs) y Hetzner en la conversación de planeación.
 
-Trabajo técnico de la migración (pendiente):
+Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deploy**):
 
-- Cambiar adapter `@astrojs/netlify` → `@astrojs/cloudflare`; `wrangler.toml`
-  con `nodejs_compat`.
-- Verificar `pg` + TLS bajo `nodejs_compat` (el pool con
-  `ssl: { rejectUnauthorized: false }` es el caso simple, pero probarlo
-  empíricamente en staging antes de comprometer el dominio).
-- Configurar **Hyperdrive** apuntando a Supabase Postgres (esto reemplaza el
-  patrón instancias×pool del serverless; mantener el `max` del pool bajo).
-- Mover secrets (`DATABASE_URL`/Hyperdrive id, `SUPABASE_*`, `VAPID_*`,
-  `POLAR_*`, `CSRF`) a `wrangler secret` / vars de entorno del Worker.
-- CI: deploy con `wrangler deploy` desde GitHub Actions (o Workers Builds).
-- Smoke post-deploy en `*.workers.dev` ANTES del cutover de dominio.
+- ✅ Adapter `@astrojs/netlify` → `@astrojs/cloudflare` (con
+  `platformProxy` para simular bindings en `astro dev`); `netlify.toml`
+  eliminado. El adapter genera `dist/server/wrangler.json` al construir
+  (hereda el `wrangler.toml` raíz; auto-provisiona el KV de SESSION —
+  no usamos Astro sessions, es inofensivo).
+- ✅ **Env vars, patrón estándar Workers**: vars no-secretas en
+  `wrangler.toml [vars]` (SUPABASE_URL/ANON_KEY — públicas por diseño);
+  secrets con `wrangler secret put`; `.dev.vars` para local (ver
+  `.dev.vars.example`). `lib/env.ts` no cambió: con `nodejs_compat` los
+  vars/secrets textuales poblan `process.env`.
+- ✅ **Hyperdrive cableado**: `lib/db.ts` construye el pool de forma lazy
+  con precedencia runtime-registration > `DATABASE_URL` > fallback local;
+  el middleware (primero en la secuencia) registra
+  `HYPERDRIVE.connectionString` una vez por aislado. Sin la binding
+  activada, el fallback es conexión directa al pooler de Supabase.
+- ✅ CI: job `deploy` manual (`workflow_dispatch`) que construye y corre
+  `wrangler deploy -c dist/server/wrangler.json` (requiere secrets de repo
+  `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
+- ⬜ Crear el Hyperdrive real (`wrangler hyperdrive create alapar-db
+  --connection-string=…`) y descomentar la binding en `wrangler.toml`.
+- ⬜ Subir los secrets (`wrangler secret put …`) y rellenar las vars
+  públicas de `wrangler.toml`.
+- ⬜ Verificar `pg` + TLS bajo `nodejs_compat` empíricamente y smoke
+  post-deploy en `*.workers.dev` ANTES del cutover de dominio.
 
 ## Pendiente — cutover de dominio (Workers)
 

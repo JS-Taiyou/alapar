@@ -8,22 +8,52 @@ import { env, isDev } from "./env";
  * only enabled for remote hosts; the local container doesn't support it.
  */
 const LOCAL_FALLBACK = "postgresql://alapar:alapar@localhost:5432/alapar";
-const connectionString = env("DATABASE_URL") ?? LOCAL_FALLBACK;
-const isLocal = /@(localhost|127\.0\.0\.1)(:|\/|$)/.test(connectionString);
 
-if (isDev && !env("DATABASE_URL")) {
-  console.log(`[DB] DATABASE_URL unset — using local fallback ${LOCAL_FALLBACK}`);
+/**
+ * The pool is built lazily on first use, from (in precedence order):
+ *
+ *   1. the runtime-registered connection string — on Cloudflare Workers the
+ *      middleware reads the HYPERDRIVE binding once per isolate and calls
+ *      {@link setRuntimeConnectionString} with `hyperdrive.connectionString`
+ *      (bindings are objects, so a plain env read can't see them)
+ *   2. `DATABASE_URL` (dev, tests, any plain-Node runtime; on Workers this
+ *      is the direct-to-pooler path when Hyperdrive isn't configured)
+ *   3. the local fallback above
+ *
+ * Nothing may read the connection string at module scope: on Workers the
+ * Hyperdrive binding only exists per-request.
+ */
+let runtimeConnectionString: string | null = null;
+let pool: pg.Pool | null = null;
+
+export function setRuntimeConnectionString(connectionString: string): void {
+  if (pool) return; // already built — the registration came too late
+  runtimeConnectionString = connectionString;
 }
 
-const pool = new pg.Pool({
-  connectionString,
-  ssl: isLocal ? false : { rejectUnauthorized: false },
-  max: 3,
-  connectionTimeoutMillis: 5000,
-  idleTimeoutMillis: 10000,
-});
+function resolveConnectionString(): string {
+  const fromEnv = env("DATABASE_URL");
+  if (isDev && !runtimeConnectionString && !fromEnv) {
+    console.log(`[DB] DATABASE_URL unset — using local fallback ${LOCAL_FALLBACK}`);
+  }
+  return runtimeConnectionString ?? fromEnv ?? LOCAL_FALLBACK;
+}
 
-export function getPool() {
+function isLocalHost(connectionString: string): boolean {
+  return /@(localhost|127\.0\.0\.1)(:|\/|$)/.test(connectionString);
+}
+
+export function getPool(): pg.Pool {
+  pool ??= (() => {
+    const connectionString = resolveConnectionString();
+    return new pg.Pool({
+      connectionString,
+      ssl: isLocalHost(connectionString) ? false : { rejectUnauthorized: false },
+      max: 3,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+    });
+  })();
   return pool;
 }
 
@@ -68,7 +98,7 @@ async function runLogged(
  * `query` inside would escape the transaction.
  */
 export async function withTransaction<T>(fn: (q: QueryFn) => Promise<T>): Promise<T> {
-  const client: PoolClient = await pool.connect();
+  const client: PoolClient = await getPool().connect();
   const q: QueryFn = (text, params) => runLogged(client.query.bind(client), text, params);
   try {
     await client.query("BEGIN");
@@ -99,5 +129,6 @@ export function query(
   text: string,
   params?: unknown[],
 ): Promise<QueryResult<Record<string, unknown>>> {
-  return runLogged(pool.query.bind(pool), text, params);
+  const activePool = getPool();
+  return runLogged(activePool.query.bind(activePool), text, params);
 }

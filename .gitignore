@@ -33,3 +33,4 @@ gui-test-screenshots/
 
 # Local Netlify folder
 .netlify
+.wrangler/

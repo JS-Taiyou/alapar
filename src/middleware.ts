@@ -2,7 +2,7 @@ import { defineMiddleware, sequence } from "astro:middleware";
 import { createUserFromSupabase, resolveUserState } from "@/lib/store";
 import { getUserFromRequest, setAuthCookies } from "@/lib/supabase";
 import { getCookie } from "@/lib/auth-cookies";
-import { query } from "@/lib/db";
+import { query, setRuntimeConnectionString } from "@/lib/db";
 import { needsFullState, routeGuard } from "@/lib/routing";
 import { resolveLocale } from "@/lib/i18n";
 import { getRegistryPlan, USER_PRO_SQL } from "@/lib/entitlements";
@@ -12,6 +12,21 @@ import { isDev } from "@/lib/env";
 function devLog(...args: unknown[]) {
   if (isDev) console.log("[MW]", ...args);
 }
+
+// Cloudflare Workers: resource bindings (Hyperdrive, KV, DO…) are objects on
+// the request-scoped `env`, not strings in process.env — lib/db.ts can't see
+// them at module scope. Register the Hyperdrive connection string here, once
+// per isolate, before any query runs. On any other runtime locals.runtime is
+// undefined and this is a no-op (db falls back to DATABASE_URL / local).
+const registerRuntimeBindings = defineMiddleware(async (context, next) => {
+  const runtimeEnv = (context.locals as { runtime?: { env?: Record<string, unknown> } } | undefined)
+    ?.runtime?.env;
+  const hyperdrive = runtimeEnv?.HYPERDRIVE as { connectionString?: string } | undefined;
+  if (hyperdrive?.connectionString) {
+    setRuntimeConnectionString(hyperdrive.connectionString);
+  }
+  return next();
+});
 
 // The decision logic lives in lib/csrf.ts (unit-testable); the exempt path
 // list and its Polar rationale are documented there.
@@ -37,9 +52,8 @@ const securityHeaders = defineMiddleware(async (_context, next) => {
 
 // Minimal per-IP sliding-window rate limit for the most abuse-prone public
 // endpoints (invite acceptance + auth endpoints).
-// Caveat: on Netlify each function instance keeps its own Map, so the limit
-// is per-function-instance rather than global — a first-line throttle, not a
-// hard cap.
+// Caveat: on Workers each isolate keeps its own Map, so the limit is
+// per-isolate rather than global — a first-line throttle, not a hard cap.
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 20;
 const rateLimitHits = new Map<string, number[]>();
@@ -269,4 +283,11 @@ const guard = defineMiddleware(async (context, next) => {
   return await next();
 });
 
-export const onRequest = sequence(csrf, securityHeaders, rateLimit, authState, guard);
+export const onRequest = sequence(
+  registerRuntimeBindings,
+  csrf,
+  securityHeaders,
+  rateLimit,
+  authState,
+  guard,
+);

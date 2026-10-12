@@ -1,0 +1,31 @@
+# Cloudflare Workers bindings config — the single source the build inherits.
+# Do NOT set `main` or `[assets]` here: @astrojs/cloudflare generates
+# dist/server/wrangler.json at build time (entry, assets, auto-provisioned
+# SESSION KV binding) merging whatever this file declares.
+#
+# Deploy: npm run build && wrangler deploy -c dist/server/wrangler.json
+#
+# Secrets (never in this file — `wrangler secret put <NAME>`):
+#   SUPABASE_SERVICE_ROLE_KEY, VAPID_*, POLAR_* (see .env.example)
+# Local dev: copy .dev.vars.example to .dev.vars — the adapter's platformProxy
+# (enabled in astro.config.mjs) loads it into locals.runtime.env on `astro dev`.
+
+name = "alapar"
+compatibility_date = "2025-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Non-secret vars: public by design (the anon key is protected by RLS and is
+# shipped to the browser anyway). With nodejs_compat these also populate
+# process.env, which is how src/lib/env.ts reads them.
+[vars]
+SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"
+SUPABASE_ANON_KEY = "YOUR-SUPABASE-ANON-KEY"
+
+# Hyperdrive: bounded connection pool + query cache in front of the Supabase
+# Postgres. The middleware reads HYPERDRIVE.connectionString once per isolate
+# and registers it with lib/db.ts (which builds its pg.Pool lazily).
+# Create it first: `wrangler hyperdrive create alapar-db --connection-string=...`
+# then uncomment with the returned id.
+# [[hyperdrive]]
+# binding = "HYPERDRIVE"
+# id = "REPLACE_WITH_HYPERDRIVE_ID"

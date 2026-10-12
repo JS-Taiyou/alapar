@@ -1,0 +1,20 @@
+# Local secrets for `astro dev` with the Cloudflare adapter's platformProxy
+# (wrangler loads this file into locals.runtime.env / process.env).
+# Copy to .dev.vars and fill in. NEVER commit the real .dev.vars.
+
+# Only needed when exercising Supabase-backed flows locally; without it the
+# app falls back to the docker-compose Postgres (see lib/db.ts).
+# DATABASE_URL=postgresql://alapar:alapar@localhost:5432/alapar
+
+SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+SUPABASE_ANON_KEY=YOUR-SUPABASE-ANON-KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR-SUPABASE-SERVICE-ROLE-KEY
+
+VAPID_PUBLIC_KEY=YOUR_VAPID_PUBLIC_KEY
+VAPID_PRIVATE_KEY=YOUR_VAPID_PRIVATE_KEY
+VAPID_SUBJECT=mailto:you@example.com
+
+# Polar billing (see .env.example for the full list)
+# POLAR_ACCESS_TOKEN=...
+# POLAR_PRODUCT_MONTHLY=...
+# POLAR_PRODUCT_YEARLY=...
