@@ -538,19 +538,24 @@ export default function TransactionModal(props: TransactionModalProps) {
       const prevTransactions = transactions;
       const prevTps = transactionPayments;
 
-      if (wasEditing) {
-        props.onTransactionsChange(transactions.map((t) => (t.id === wasEditing ? optimistic : t)));
-      } else {
-        props.onTransactionsChange([optimistic, ...transactions]);
-      }
-
+      // The optimistic arrays are captured on purpose: every later mutation
+      // inside this async handler (demo id swap, server merge) must build on
+      // them — the `transactions`/`transactionPayments` props stay frozen at
+      // the pre-optimistic render (the signals version re-read `.value` live).
+      const optimisticTransactions = wasEditing
+        ? transactions.map((t) => (t.id === wasEditing ? optimistic : t))
+        : [optimistic, ...transactions];
+      let optimisticTps = transactionPayments;
       if (optimisticTpEntries.length > 0) {
         const otherTps = transactionPayments.filter((tp) => tp.pagoId !== optimisticId);
-        props.onTransactionPaymentsChange([...otherTps, ...optimisticTpEntries]);
+        optimisticTps = [...otherTps, ...optimisticTpEntries];
       } else if (wasEditing) {
-        props.onTransactionPaymentsChange(
-          transactionPayments.filter((tp) => tp.pagoId !== wasEditing),
-        );
+        optimisticTps = transactionPayments.filter((tp) => tp.pagoId !== wasEditing);
+      }
+
+      props.onTransactionsChange(optimisticTransactions);
+      if (optimisticTpEntries.length > 0 || wasEditing) {
+        props.onTransactionPaymentsChange(optimisticTps);
       }
 
       props.onClose();
@@ -560,13 +565,13 @@ export default function TransactionModal(props: TransactionModalProps) {
         if (!wasEditing) {
           const serverId = crypto.randomUUID();
           props.onTransactionsChange(
-            transactions.map((t) =>
+            optimisticTransactions.map((t) =>
               t.id === optimisticId ? { ...optimistic, id: serverId, createdAt: new Date() } : t,
             ),
           );
           if (optimisticTpEntries.length > 0) {
             props.onTransactionPaymentsChange(
-              transactionPayments.map((tp) =>
+              optimisticTps.map((tp) =>
                 tp.pagoId === optimisticId ? { ...tp, pagoId: serverId } : tp,
               ),
             );
@@ -645,7 +650,7 @@ export default function TransactionModal(props: TransactionModalProps) {
       const serverCreatedAt =
         typeof savedTx.createdAt === "string" ? new Date(savedTx.createdAt) : savedTx.createdAt;
       props.onTransactionsChange(
-        transactions.map((t) =>
+        optimisticTransactions.map((t) =>
           t.id === (wasEditing ?? optimisticId)
             ? {
                 ...savedTx,
@@ -659,7 +664,7 @@ export default function TransactionModal(props: TransactionModalProps) {
         const serverId = savedTx.id as string;
         if (serverId && serverId !== optimisticId) {
           props.onTransactionPaymentsChange(
-            transactionPayments.map((tp) =>
+            optimisticTps.map((tp) =>
               tp.pagoId === optimisticId ? { ...tp, pagoId: serverId } : tp,
             ),
           );

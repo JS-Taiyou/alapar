@@ -18,21 +18,25 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  let client: SupabaseClient;
-  try {
-    client = createClient(props.supabaseUrl, props.supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-  } catch {
-    setError(t("common.error_unknown"));
-  }
+  // Created once; null when the Supabase config is missing/invalid (the
+  // error banner below renders instead — state may not be set during render).
+  const [client] = useState<SupabaseClient | null>(() => {
+    try {
+      return createClient(props.supabaseUrl, props.supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      });
+    } catch {
+      return null;
+    }
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!client) return;
     setError("");
     setLoading(true);
 
@@ -77,9 +81,9 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
         />
       </div>
 
-      {error && (
+      {(error || !client) && (
         <div className="text-sm text-red-300 bg-red-500/20 border border-red-500/30 rounded-custom px-4 py-2">
-          {error}
+          {error || t("common.error_unknown")}
         </div>
       )}
 

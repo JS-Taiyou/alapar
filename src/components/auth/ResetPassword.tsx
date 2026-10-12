@@ -21,22 +21,26 @@ export default function ResetPassword(props: ResetPasswordProps) {
   const [loading, setLoading] = useState(false);
   const [sessionReady, setSessionReady] = useState(false);
 
-  let client: SupabaseClient;
-  try {
-    // The recovery session from setSession() lives only in memory — it is
-    // used once to call updateUser() and never persisted to browser storage.
-    client = createClient(props.supabaseUrl, props.supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-  } catch {
-    setError(t("common.error_unknown"));
-  }
+  // Created once; null when the Supabase config is missing/invalid (the
+  // error card below renders instead — state may not be set during render).
+  // The recovery session from setSession() lives only in memory — it is
+  // used once to call updateUser() and never persisted to browser storage.
+  const [client] = useState<SupabaseClient | null>(() => {
+    try {
+      return createClient(props.supabaseUrl, props.supabaseAnonKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
+        },
+      });
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
+    if (!client) return;
     const hash = globalThis.location.hash.substring(1);
     const params = new URLSearchParams(hash);
     const accessToken = params.get("access_token");
@@ -68,6 +72,7 @@ export default function ResetPassword(props: ResetPasswordProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!client) return;
     setError("");
 
     if (password.length < 6) {
@@ -97,11 +102,11 @@ export default function ResetPassword(props: ResetPasswordProps) {
     setLoading(false);
   }
 
-  if (error && !sessionReady) {
+  if ((error || !client) && !sessionReady) {
     return (
       <div className="space-y-4">
         <div className="text-sm text-red-300 bg-red-500/20 border border-red-500/30 rounded-custom px-4 py-3 text-center">
-          {error}
+          {error || t("common.error_unknown")}
         </div>
         <a
           href="/forgot-password"
