@@ -1,8 +1,8 @@
 ---
 import Base from "@/layouts/Base.astro";
 import FeatureList from "@/components/FeatureList.astro";
-import LocaleToggle from "@/islands/LocaleToggle";
-import BillingActions from "@/islands/BillingActions";
+import LocaleToggle from "@/components/ui/LocaleToggle";
+import BillingActions from "@/components/billing/BillingActions";
 import { FREE_LIMITS } from "@/lib/entitlements";
 import { getPrices, getPricingSessionState } from "@/lib/pricing";
 import { formatDate, t as translate } from "@/lib/i18n";

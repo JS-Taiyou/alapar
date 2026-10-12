@@ -1,69 +1,19 @@
 ---
 import Base from "@/layouts/Base.astro";
-import Sidebar from "@/islands/Sidebar";
-import { getTransactionCounts } from "@/lib/store";
-import {
-  getCachedTransactionCounts,
-  setCachedTransactionCounts,
-} from "@/lib/server-cache";
-import { initials } from "@/lib/format";
 
 /**
- * Shared dashboard chrome (port of routes/dashboard/_layout.tsx): sidebar
- * island + content column. Pages under /dashboard/ wrap themselves in this
- * layout; the middleware has already populated Astro.locals.
+ * Shared dashboard chrome: Base layout + content column. The sidebar used to
+ * be mounted here as its own island; /dashboard now hydrates a single
+ * DashboardShell (sidebar + content, one React tree), while server-rendered
+ * pages (history) mount the standalone SidebarIsland themselves.
  */
 interface Props {
   title?: string;
 }
 
 const { title = "A la par - Dashboard" } = Astro.props;
-
-const user = Astro.locals.user;
-const userName = user?.name ?? "Usuario";
-const userInitials = initials(userName);
-
-const deletableRegistryIds = new Set<string>();
-if (Astro.locals.registries.length > 0) {
-  const registryIds = Astro.locals.registries.map((r) => r.id);
-  const { counts, hit } = getCachedTransactionCounts(registryIds);
-  let finalCounts = counts;
-  if (!hit) {
-    finalCounts = await getTransactionCounts(registryIds);
-    void setCachedTransactionCounts(finalCounts);
-  }
-  for (const r of Astro.locals.registries) {
-    if ((finalCounts.get(r.id) ?? 0) === 0) deletableRegistryIds.add(r.id);
-  }
-}
-
-const sidebarCollapsed = Astro.request.headers.get("cookie")
-  ?.split(";")
-  .some((c) => c.trim() === "sidebar-collapsed=true") ?? false;
 ---
 
 <Base title={title}>
-  <div class="flex h-screen overflow-hidden">
-    <Sidebar
-      registries={Astro.locals.registries}
-      activeRegistryId={Astro.locals.activeRegistry?.id ?? ""}
-      userName={userName}
-      userInitials={userInitials}
-      userPro={user?.pro ?? null}
-      isOwner={Astro.locals.isOwner}
-      ownerRegistryIds={Astro.locals.ownerRegistryIds}
-      entities={Astro.locals.entities}
-      registryUsers={Astro.locals.registryUsers}
-      defaultSplit={Astro.locals.activeRegistry?.defaultSplit ?? null}
-      deletableRegistryIds={deletableRegistryIds}
-      initialCollapsed={sidebarCollapsed}
-      locale={Astro.locals.locale}
-      showUpgrade={Astro.locals.activeRegistryPlan !== null &&
-        !Astro.locals.activeRegistryPlan.isPro}
-      client:load
-    />
-    <div class="flex-1 flex flex-col min-w-0">
-      <slot />
-    </div>
-  </div>
+  <slot />
 </Base>

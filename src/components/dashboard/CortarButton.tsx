@@ -1,5 +1,6 @@
-import { useSignal } from "@preact/signals";
-import Modal from "./Modal";
+/** @jsxImportSource react */
+import { useState } from "react";
+import Modal from "../ui/Modal";
 
 interface CortarButtonProps {
   hasTransactions: boolean;
@@ -8,15 +9,15 @@ interface CortarButtonProps {
 }
 
 export default function CortarButton(props: CortarButtonProps) {
-  const loading = useSignal(false);
-  const showModal = useSignal(false);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const canCut = props.hasTransactions;
 
   if (props.isDemo) return null;
 
   async function handleCortar() {
-    if (!canCut || loading.value) return;
-    loading.value = true;
+    if (!canCut || loading) return;
+    setLoading(true);
     try {
       const res = await fetch("/api/exercises", {
         method: "POST",
@@ -24,13 +25,13 @@ export default function CortarButton(props: CortarButtonProps) {
         body: JSON.stringify({ registryId: props.registryId }),
       });
       if (!res.ok) {
-        loading.value = false;
+        setLoading(false);
         alert("No se pudo cortar el ejercicio. Inténtalo de nuevo.");
         return;
       }
       globalThis.location.reload();
     } catch {
-      loading.value = false;
+      setLoading(false);
       alert("Error de conexión al cortar el ejercicio.");
     }
   }
@@ -40,43 +41,43 @@ export default function CortarButton(props: CortarButtonProps) {
       <button
         type="button"
         onClick={() => {
-          if (canCut) showModal.value = true;
+          if (canCut) setShowModal(true);
         }}
         disabled={!canCut}
-        class={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-custom font-semibold text-white shadow-lg transition-opacity ${
+        className={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-custom font-semibold text-white shadow-lg transition-opacity ${
           canCut ? "bg-primary hover:opacity-90" : "bg-slate-700 opacity-50 cursor-not-allowed"
         }`}
       >
         Cortar
       </button>
 
-      {showModal.value && (
+      {showModal && (
         <Modal
-          onClose={() => (showModal.value = false)}
+          onClose={() => setShowModal(false)}
           title="Cortar ejercicio"
           subtitle="Esta acción cerrará el periodo actual y no se puede deshacer."
           footer={
-            <div class="ml-auto flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => (showModal.value = false)}
-                class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleCortar}
-                disabled={loading.value}
-                class="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
+                disabled={loading}
+                className="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
               >
-                {loading.value ? "Cortando..." : "Cortar"}
+                {loading ? "Cortando..." : "Cortar"}
               </button>
             </div>
           }
         >
-          <div class="p-6">
-            <p class="text-sm text-zinc-300">
+          <div className="p-6">
+            <p className="text-sm text-zinc-300">
               Se crearán transacciones de ajuste para los saldos pendientes entre los miembros del
               registro.
             </p>

@@ -1,5 +1,6 @@
-import { type Locale, t } from "../lib/i18n";
-import type { User } from "../lib/types";
+/** @jsxImportSource react */
+import { type Locale, t } from "../../lib/i18n";
+import type { User } from "../../lib/types";
 
 /**
  * The golden crown shown next to a Pro user's name.
@@ -24,7 +25,7 @@ export default function ProBadge(props: {
   const title = t(props.locale ?? "es", founding ? "pro.crown_founding" : "pro.crown_sub");
   const crown = (
     <svg
-      class={`${props.size === "md" ? "w-4 h-4" : "w-3.5 h-3.5"} text-amber-400 shrink-0`}
+      className={`${props.size === "md" ? "w-4 h-4" : "w-3.5 h-3.5"} text-amber-400 shrink-0`}
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"
@@ -34,7 +35,7 @@ export default function ProBadge(props: {
   );
   if (founding || props.linked === false) {
     return (
-      <span title={title} class="inline-flex items-center" aria-label={title}>
+      <span title={title} className="inline-flex items-center" aria-label={title}>
         {crown}
       </span>
     );
@@ -44,7 +45,7 @@ export default function ProBadge(props: {
       href="/pricing"
       title={title}
       aria-label={title}
-      class="inline-flex items-center hover:opacity-75 transition-opacity"
+      className="inline-flex items-center hover:opacity-75 transition-opacity"
     >
       {crown}
     </a>

@@ -1,5 +1,6 @@
 ---
 import Dashboard from "@/layouts/Dashboard.astro";
+import SidebarIsland from "@/components/dashboard/SidebarIsland.astro";
 import TransactionCard from "@/components/history/TransactionCard.astro";
 import {
   getExerciseById,
@@ -89,8 +90,10 @@ const title = exercise
 ---
 
 <Dashboard title={title}>
-  {!exercise
-    ? (
+  <div class="flex h-screen overflow-hidden">
+    <SidebarIsland />
+    {!exercise
+      ? (
       <div class="flex-1 flex items-center justify-center">
         <div class="text-center">
           <h1 class="text-2xl font-bold text-white mb-2">
@@ -102,7 +105,7 @@ const title = exercise
         </div>
       </div>
     )
-    : (
+      : (
       <main class="flex-1 overflow-y-auto custom-scrollbar">
         <div class="max-w-2xl mx-auto px-4 py-8">
           <header class="mb-8 flex items-center gap-4">
@@ -159,4 +162,5 @@ const title = exercise
         </div>
       </main>
     )}
+  </div>
 </Dashboard>

@@ -1,0 +1,13 @@
+---
+import Sidebar from "@/components/dashboard/Sidebar";
+import { getSidebarServerProps } from "@/lib/sidebar-props";
+
+/**
+ * Standalone sidebar mount for server-rendered dashboard pages (history).
+ * Without a shell to broadcast to, switching registries records the choice
+ * and lands on /dashboard.
+ */
+const sidebarProps = await getSidebarServerProps(Astro);
+---
+
+<Sidebar {...sidebarProps} client:load />

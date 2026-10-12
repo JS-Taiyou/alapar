@@ -1,6 +1,7 @@
 ---
 import Dashboard from "@/layouts/Dashboard.astro";
-import DashboardHome from "@/islands/DashboardHome";
+import DashboardShell from "@/components/dashboard/DashboardShell";
+import { getSidebarServerProps } from "@/lib/sidebar-props";
 import {
   calculateBalance,
   calculatePairwiseBreakdown,
@@ -73,10 +74,13 @@ if (registryId && userId) {
   lastModified = Astro.locals.activeRegistry?.lastModified?.toISOString() ??
     null;
 }
+
+const sidebarProps = await getSidebarServerProps(Astro);
 ---
 
 <Dashboard title="A la par - Dashboard">
-  <DashboardHome
+  <DashboardShell
+    {...sidebarProps}
     transactions={transactions}
     transactionPayments={transactionPayments}
     balance={balance}
@@ -84,18 +88,11 @@ if (registryId && userId) {
     spawnCandidates={spawnCandidates}
     balanceBreakdown={balanceBreakdown}
     participants={Astro.locals.participants}
-    entities={Astro.locals.entities.map((e) => ({
-      id: e.id,
-      name: e.name,
-      color: e.color,
-    }))}
     registryId={registryId ?? ""}
-    defaultSplit={Astro.locals.activeRegistry?.defaultSplit ?? null}
     lastModified={lastModified}
     supabaseUrl={getSupabaseUrl()}
     supabaseAnonKey={getSupabaseAnonKey()}
     hasTransactions={transactions.length > 0}
-    locale={Astro.locals.locale}
     client:load
   />
 </Dashboard>

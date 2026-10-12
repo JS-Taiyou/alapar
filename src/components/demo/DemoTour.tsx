@@ -1,8 +1,8 @@
-import { useEffect, useState } from "preact/hooks";
-import { useSignal } from "@preact/signals";
+/** @jsxImportSource react */
+import { useEffect, useState } from "react";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import { type Locale, tt } from "../lib/i18n";
+import { type Locale, tt } from "../../lib/i18n";
 
 /**
  * Guided tour island for the /demo page, powered by driver.js (MIT, zero deps).
@@ -30,10 +30,9 @@ interface DemoTourProps {
   locale?: Locale;
 }
 
-// driver.js is client-side only; lazy-import inside useEffect to avoid SSR.
 export default function DemoTour(props: DemoTourProps) {
   const t = tt(props.locale ?? "es");
-  const showMenu = useSignal(false);
+  const [showMenu, setShowMenu] = useState(false);
   const [tourActive, setTourActive] = useState(false);
 
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function DemoTour(props: DemoTourProps) {
     const seen = localStorage.getItem("demo-tour-seen");
     if (!seen) {
       // Small delay so the page finishes rendering.
-      const timer = setTimeout(() => (showMenu.value = true), 800);
+      const timer = setTimeout(() => setShowMenu(true), 800);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -77,13 +76,13 @@ export default function DemoTour(props: DemoTourProps) {
     return new Promise((resolve) => {
       const fab = visibleFab(base) as HTMLElement | null;
       fab?.click();
-      // Wait for Preact to render the modal.
+      // Wait for React to render the modal.
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
   }
 
   function startQuickTour() {
-    showMenu.value = false;
+    setShowMenu(false);
     setTourActive(true);
     markSeen();
 
@@ -147,7 +146,7 @@ export default function DemoTour(props: DemoTourProps) {
   }
 
   function startFullTour() {
-    showMenu.value = false;
+    setShowMenu(false);
     setTourActive(true);
     markSeen();
 
@@ -270,44 +269,44 @@ export default function DemoTour(props: DemoTourProps) {
       {/* Floating tour button */}
       <button
         type="button"
-        onClick={() => (showMenu.value = !showMenu.value)}
-        class="fixed bottom-8 left-8 z-50 w-14 h-14 bg-primary hover:bg-primary-light text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        onClick={() => setShowMenu(!showMenu)}
+        className="fixed bottom-8 left-8 z-50 w-14 h-14 bg-primary hover:bg-primary-light text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
         title={t("tour.button_title")}
       >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
           />
         </svg>
       </button>
 
       {/* Tour selection menu */}
-      {showMenu.value && (
+      {showMenu && (
         <>
           {/* Backdrop */}
-          <div class="fixed inset-0 z-40" onClick={() => (showMenu.value = false)} />
+          <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
           {/* Menu card */}
-          <div class="fixed bottom-24 left-8 z-50 bg-surface border border-border-custom rounded-custom shadow-2xl p-4 w-72 animate-fade-up">
-            <h3 class="text-sm font-bold text-zinc-200 mb-3">{t("tour.menu_title")}</h3>
-            <p class="text-xs text-zinc-400 mb-4">{t("tour.menu_desc")}</p>
+          <div className="fixed bottom-24 left-8 z-50 bg-surface border border-border-custom rounded-custom shadow-2xl p-4 w-72 animate-fade-up">
+            <h3 className="text-sm font-bold text-zinc-200 mb-3">{t("tour.menu_title")}</h3>
+            <p className="text-xs text-zinc-400 mb-4">{t("tour.menu_desc")}</p>
             <button
               type="button"
               onClick={startQuickTour}
-              class="w-full mb-2 px-4 py-3 bg-primary hover:bg-primary-light text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
+              className="w-full mb-2 px-4 py-3 bg-primary hover:bg-primary-light text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
             >
-              <span class="block font-bold">{t("tour.quick_title")}</span>
-              <span class="block text-xs opacity-80 mt-0.5">{t("tour.quick_sub")}</span>
+              <span className="block font-bold">{t("tour.quick_title")}</span>
+              <span className="block text-xs opacity-80 mt-0.5">{t("tour.quick_sub")}</span>
             </button>
             <button
               type="button"
               onClick={startFullTour}
-              class="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
+              className="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
             >
-              <span class="block font-bold">{t("tour.full_title")}</span>
-              <span class="block text-xs opacity-60 mt-0.5">{t("tour.full_sub")}</span>
+              <span className="block font-bold">{t("tour.full_title")}</span>
+              <span className="block text-xs opacity-60 mt-0.5">{t("tour.full_sub")}</span>
             </button>
           </div>
         </>

@@ -1,5 +1,6 @@
 ---
 import Dashboard from "@/layouts/Dashboard.astro";
+import SidebarIsland from "@/components/dashboard/SidebarIsland.astro";
 import ExerciseCard from "@/components/history/ExerciseCard.astro";
 import PaywallCard from "@/components/history/PaywallCard.astro";
 import SearchBar from "@/components/dashboard/SearchBar";
@@ -90,7 +91,9 @@ if (registryId) {
 ---
 
 <Dashboard title="A la par - Histórico de Cortes">
-  <main class="flex-1 overflow-y-auto custom-scrollbar">
+  <div class="flex h-screen overflow-hidden">
+    <SidebarIsland />
+    <main class="flex-1 overflow-y-auto custom-scrollbar">
     <div class="max-w-2xl mx-auto px-4 py-8">
       <header class="mb-8 flex items-center justify-between">
         <div class="flex items-center gap-4">
@@ -202,5 +205,6 @@ if (registryId) {
         </p>
       </footer>
     </div>
-  </main>
+    </main>
+  </div>
 </Dashboard>

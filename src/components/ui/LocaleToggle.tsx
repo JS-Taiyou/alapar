@@ -1,4 +1,5 @@
-import type { Locale } from "../lib/i18n";
+/** @jsxImportSource react */
+import type { Locale } from "../../lib/i18n";
 
 /**
  * A compact ES/EN language toggle styled as a segmented control. Sends a
@@ -10,11 +11,11 @@ import type { Locale } from "../lib/i18n";
  */
 export default function LocaleToggle({
   locale,
-  class: className,
+  className,
   full,
 }: {
   locale: Locale;
-  class?: string;
+  className?: string;
   full?: boolean;
 }) {
   function switchLocale(newLocale: Locale) {
@@ -34,7 +35,7 @@ export default function LocaleToggle({
     <div
       role="group"
       aria-label="Idioma / Language"
-      class={`inline-flex items-center gap-0.5 rounded-custom border border-white/10 bg-surface/80 p-0.5 backdrop-blur-sm ${
+      className={`inline-flex items-center gap-0.5 rounded-custom border border-white/10 bg-surface/80 p-0.5 backdrop-blur-sm ${
         full ? "w-full" : ""
       } ${className ?? ""}`}
     >
@@ -44,7 +45,7 @@ export default function LocaleToggle({
           type="button"
           aria-pressed={locale === l}
           onClick={() => switchLocale(l)}
-          class={`px-2.5 py-1 rounded-[6px] text-[11px] font-semibold tracking-widest uppercase transition-colors ${
+          className={`px-2.5 py-1 rounded-[6px] text-[11px] font-semibold tracking-widest uppercase transition-colors ${
             full ? "flex-1" : ""
           } ${
             locale === l

@@ -1,53 +1,33 @@
-import { type Signal, useComputed, useSignal, useSignalEffect } from "@preact/signals";
-import type {
-  BalanceBreakdownEntry,
-  DefaultSplit,
-  Participant,
-  SpawnCandidate,
-  TransactionPayment,
-} from "../lib/types";
-import { type EnrichedTransaction, entitiesChanged, registrySwitch } from "./shared-signals";
-import { rowToEnrichedTransaction } from "../lib/rows";
-import ProBadge from "./ProBadge";
+/** @jsxImportSource react */
+import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import type { EnrichedTransaction, Participant, TransactionPayment } from "../../lib/types";
+import { rowToEnrichedTransaction } from "../../lib/rows";
+import ProBadge from "../ui/ProBadge";
 
-function dedupById<T extends { id: string }>(items: T[]): T[] {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
-}
-import { calculateBalance, calculatePairwiseBreakdown } from "../lib/calculations";
 import {
   resubscribe,
   setOnResync,
   setupRealtimeConfig,
   subscribeToRegistry,
   unsubscribeAll,
-} from "../lib/realtime";
-import { isAuthFailure, redirectToLogin } from "../lib/auth-client";
-import { requestNotificationPermission, subscribeToPush } from "../lib/notifications";
-import { cache } from "../lib/cache";
+} from "../../lib/realtime";
+import { isAuthFailure, redirectToLogin } from "../../lib/auth-client";
+import { requestNotificationPermission, subscribeToPush } from "../../lib/notifications";
+import { cache } from "../../lib/cache";
 import TransactionModal from "./TransactionModal";
-import { formatMoney, initials } from "../lib/format";
-import { formatDate, formatTime, type Locale, t as translate } from "../lib/i18n";
+import {
+  type DashboardAction,
+  type DashboardState,
+  type RegistrySnapshot,
+} from "./dashboard-store";
+import { formatMoney, initials } from "../../lib/format";
+import { formatDate, formatTime, type Locale, t as translate } from "../../lib/i18n";
 
 let lastPushSubscribedRegistry: string | null = null;
 
 interface TransactionListProps {
-  transactions: Signal<EnrichedTransaction[]>;
-  users: Signal<Participant[]>;
-  currentUserId: Signal<string>;
-  registryId: Signal<string>;
-  balance: Signal<number>;
-  balanceEntries: Signal<BalanceBreakdownEntry[]>;
-  defaultSplit: Signal<DefaultSplit | null>;
-  spawnCandidates: Signal<SpawnCandidate[]>;
-  lastModified: Signal<string | null>;
-  entityIds: Signal<Set<string>>;
-  entities: Signal<{ id: string; name: string; color: string }[]>;
-  transactionPayments: Signal<TransactionPayment[]>;
+  state: DashboardState;
+  dispatch: Dispatch<DashboardAction>;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
   isDemo?: boolean;
@@ -72,21 +52,21 @@ function TransactionCardClickable(props: {
     const formattedAmount = formatMoney(tx.originalAmount);
 
     return (
-      <div class="w-full text-left bg-card p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
-        <div class="flex flex-col min-w-0">
-          <span class="text-lg font-semibold text-white flex items-center gap-2 truncate">
+      <div className="w-full text-left bg-card p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
+        <div className="flex flex-col min-w-0">
+          <span className="text-lg font-semibold text-white flex items-center gap-2 truncate">
             {tx.description}
-            <span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 shrink-0">
+            <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 shrink-0">
               {t("tx.badge_adjustment")}
             </span>
           </span>
-          <span class="text-sm text-zinc-400">
+          <span className="text-sm text-zinc-400">
             {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
             {formatTime(tx.createdAt, props.locale ?? "es")}
           </span>
         </div>
-        <div class="text-right flex flex-col items-end">
-          <span class="text-xl font-bold text-amber-400">${formattedAmount}</span>
+        <div className="text-right flex flex-col items-end">
+          <span className="text-xl font-bold text-amber-400">${formattedAmount}</span>
         </div>
       </div>
     );
@@ -115,34 +95,34 @@ function TransactionCardClickable(props: {
           : [];
 
     return (
-      <div class="w-full">
+      <div className="w-full">
         <button
           type="button"
           onClick={props.onClick}
-          class={`w-full text-left bg-card p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2 ${
+          className={`w-full text-left bg-card p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2 ${
             linkedExpenses.length === 0 ? "rounded-custom" : "rounded-t-custom"
           }`}
         >
-          <div class="flex flex-col min-w-0">
-            <span class="text-lg font-semibold text-white flex items-center gap-2 truncate">
+          <div className="flex flex-col min-w-0">
+            <span className="text-lg font-semibold text-white flex items-center gap-2 truncate">
               {tx.description}
-              <span class="text-xs font-medium px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 shrink-0">
+              <span className="text-xs font-medium px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 shrink-0">
                 {t("tx.badge_payment")}
               </span>
             </span>
-            <span class="text-sm text-zinc-400">
+            <span className="text-sm text-zinc-400">
               {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
               {formatTime(tx.createdAt, props.locale ?? "es")}
               {label && (
                 <>
                   {" "}
-                  &bull; <span class="text-indigo-400">{label}</span>
+                  &bull; <span className="text-indigo-400">{label}</span>
                 </>
               )}
             </span>
           </div>
-          <div class="text-right flex flex-col items-end">
-            <span class="text-xl font-bold text-indigo-400">${formattedAmount}</span>
+          <div className="text-right flex flex-col items-end">
+            <span className="text-xl font-bold text-indigo-400">${formattedAmount}</span>
           </div>
         </button>
         {linkedExpenses.length > 0 &&
@@ -169,32 +149,32 @@ function TransactionCardClickable(props: {
                   }, 450);
                 }
               }}
-              class={`w-full text-left bg-slate-800/60 px-5 py-2.5 border-l-4 border-l-indigo-500/40 border border-t-0 border-white/5 flex items-center gap-3 hover:bg-slate-700/60 transition-colors ${
+              className={`w-full text-left bg-slate-800/60 px-5 py-2.5 border-l-4 border-l-indigo-500/40 border border-t-0 border-white/5 flex items-center gap-3 hover:bg-slate-700/60 transition-colors ${
                 idx === linkedExpenses.length - 1 ? "rounded-b-custom" : ""
               }`}
             >
               <svg
-                class="w-3.5 h-3.5 text-slate-500 shrink-0"
+                className="w-3.5 h-3.5 text-slate-500 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path
                   d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                 />
                 <path
                   d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                 />
               </svg>
-              <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-zinc-300 truncate">{relatedTx.description}</p>
-                <p class="text-[10px] text-zinc-400">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-zinc-300 truncate">{relatedTx.description}</p>
+                <p className="text-[10px] text-zinc-400">
                   {formatDate(relatedTx.createdAt, props.locale ?? "es", {
                     month: "short",
                     day: "numeric",
@@ -203,16 +183,16 @@ function TransactionCardClickable(props: {
                 </p>
               </div>
               <svg
-                class="w-3 h-3 text-slate-500 shrink-0"
+                className="w-3 h-3 text-slate-500 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path
                   d="M19 9l-7 7-7-7"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                 />
               </svg>
             </button>
@@ -274,21 +254,21 @@ function TransactionCardClickable(props: {
     <button
       type="button"
       onClick={props.onClick}
-      class="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2"
+      className="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2"
     >
-      <div class="flex flex-col min-w-0">
-        <span class="text-lg font-semibold text-white truncate">{tx.description}</span>
-        <div class="text-sm text-zinc-400">
-          <span class="block sm:inline">
+      <div className="flex flex-col min-w-0">
+        <span className="text-lg font-semibold text-white truncate">{tx.description}</span>
+        <div className="text-sm text-zinc-400">
+          <span className="block sm:inline">
             {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
             {formatTime(tx.createdAt, props.locale ?? "es")}
           </span>
           {tx.paidByUser && (
             <>
-              <span class="hidden sm:inline">
+              <span className="hidden sm:inline">
                 {" • "}
                 <span
-                  class={`text-xs px-1.5 py-0.5 rounded ${
+                  className={`text-xs px-1.5 py-0.5 rounded ${
                     isPaidByMe
                       ? "bg-emerald-500/20 text-emerald-400"
                       : "bg-slate-300 text-slate-800 font-bold"
@@ -298,7 +278,7 @@ function TransactionCardClickable(props: {
                 </span>
               </span>
               <span
-                class={`block sm:hidden text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit ${
+                className={`block sm:hidden text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit ${
                   isPaidByMe
                     ? "bg-emerald-500/20 text-emerald-400"
                     : "bg-slate-300 text-slate-800 font-bold"
@@ -311,7 +291,7 @@ function TransactionCardClickable(props: {
           {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
             <>
               {" • "}
-              <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400">
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400">
                 {t("tx.badge_installment", {
                   current: tx.installmentCurrent,
                   total: tx.installmentTotal,
@@ -321,15 +301,15 @@ function TransactionCardClickable(props: {
           )}
         </div>
       </div>
-      <div class="text-right flex flex-col items-end">
+      <div className="text-right flex flex-col items-end">
         <span
-          class={`text-xl font-bold ${
+          className={`text-xl font-bold ${
             isZero ? "text-green-500" : isPositive ? "text-green-500" : "text-red-500"
           }`}
         >
           {isZero ? "" : isPositive ? "+" : "-"}${formatMoney(Math.abs(remainingBalance))}
         </span>
-        <span class="text-xs text-zinc-400">
+        <span className="text-xs text-zinc-400">
           {t("tx.of_total", {
             total: formatMoney(perInstallmentTotal),
           })}
@@ -340,26 +320,27 @@ function TransactionCardClickable(props: {
 }
 
 export default function TransactionList(props: TransactionListProps) {
-  const transactions = props.transactions;
-  const users = props.users;
-  const currentUserId = props.currentUserId;
-  const registryId = props.registryId;
-  const defaultSplit = props.defaultSplit;
-  const balance = props.balance;
-  const balanceEntries = props.balanceEntries;
-  const showTerceroPopover = useSignal(false);
+  const { state, dispatch } = props;
+  const { transactions, users, currentUserId, registryId, transactionPayments, balanceEntries } =
+    state;
+  const [showTerceroPopover, setShowTerceroPopover] = useState(false);
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(props.locale ?? "es", key, params);
 
-  const isOpen = useSignal(false);
-  const editingId = useSignal<string | null>(null);
-  const modalMode = useSignal<"expense" | "payment">("expense");
-  const searchQuery = useSignal("");
-  const filterUserId = useSignal<string | null>(null);
-  const transactionPayments = props.transactionPayments;
+  const [isOpen, setIsOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [modalMode, setModalMode] = useState<"expense" | "payment">("expense");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterUserId, setFilterUserId] = useState<string | null>(null);
 
-  useSignalEffect(() => {
-    const rid = registryId.value;
+  // Realtime/sync callbacks read live state without resubscribing the
+  // Supabase channel on every transaction change (the signals version got
+  // this for free by reading `.value` at event time).
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  useEffect(() => {
+    const rid = stateRef.current.registryId;
     if (!rid || !props.supabaseUrl || !props.supabaseAnonKey) return;
 
     setupRealtimeConfig(props.supabaseUrl, props.supabaseAnonKey);
@@ -372,42 +353,19 @@ export default function TransactionList(props: TransactionListProps) {
     setOnResync(() => void syncRegistry());
 
     subscribeToRegistry(rid, (payload) => {
-      const participantMap = new Map(users.value.map((u) => [u.id, u]));
+      const live = stateRef.current;
+      const participantMap = new Map(live.users.map((u) => [u.id, u]));
 
       const mapRow = (row: Record<string, unknown>): EnrichedTransaction =>
         rowToEnrichedTransaction(row, participantMap);
 
       if (payload.eventType === "INSERT" && payload.new?.id) {
-        const existing = transactions.value.find((t) => t.id === payload.new.id);
+        const existing = live.transactions.find((t) => t.id === payload.new.id);
         if (!existing) {
+          const tx = mapRow(payload.new);
+          dispatch({ type: "REALTIME_INSERT", tx });
           const creator = payload.new.creator_id as string;
-          const desc = payload.new.description as string;
-          const amt =
-            typeof payload.new.amount === "string"
-              ? parseFloat(payload.new.amount)
-              : (payload.new.amount as number);
-          const type = payload.new.type as string;
-
-          if (creator === currentUserId.value) {
-            const optimisticIndex = transactions.value.findIndex(
-              (t) =>
-                t.creatorId === creator &&
-                t.description === desc &&
-                t.amount === amt &&
-                t.type === type &&
-                t.id !== payload.new.id,
-            );
-            if (optimisticIndex !== -1) {
-              const updated = [...transactions.value];
-              updated[optimisticIndex] = mapRow(payload.new);
-              transactions.value = updated;
-            } else {
-              transactions.value = [mapRow(payload.new), ...transactions.value];
-            }
-          } else {
-            transactions.value = [mapRow(payload.new), ...transactions.value];
-          }
-          if (creator !== currentUserId.value) {
+          if (creator !== live.currentUserId) {
             const now = Date.now();
             if (
               now - lastNotificationAt >= NOTIFICATION_COOLDOWN &&
@@ -424,33 +382,10 @@ export default function TransactionList(props: TransactionListProps) {
           }
         }
       } else if (payload.eventType === "DELETE" && payload.old?.id) {
-        transactions.value = transactions.value.filter((t) => t.id !== payload.old.id);
+        dispatch({ type: "REALTIME_DELETE", id: payload.old.id as string });
       } else if (payload.eventType === "UPDATE" && payload.new?.id) {
-        transactions.value = transactions.value.map((t) =>
-          t.id === payload.new.id ? mapRow(payload.new) : t,
-        );
+        dispatch({ type: "REALTIME_UPDATE", tx: mapRow(payload.new) });
       }
-      const allParticipants = dedupById([
-        ...users.value.map((u) => ({
-          id: u.id,
-          name: u.name,
-          color: u.color,
-        })),
-        ...props.entities.value.map((e) => ({
-          id: e.id,
-          name: e.name,
-          color: e.color,
-        })),
-      ]);
-      balance.value = calculateBalance(
-        transactions.value as Parameters<typeof calculateBalance>[0],
-        currentUserId.value,
-      );
-      balanceEntries.value = calculatePairwiseBreakdown(
-        transactions.value as Parameters<typeof calculatePairwiseBreakdown>[0],
-        currentUserId.value,
-        allParticipants,
-      );
     });
 
     requestNotificationPermission().then((granted) => {
@@ -464,100 +399,33 @@ export default function TransactionList(props: TransactionListProps) {
       setOnResync(null);
       unsubscribeAll();
     };
-  });
+    // The channel is per-registry; the handler reads live state via stateRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.registryId, props.supabaseUrl, props.supabaseAnonKey]);
 
-  useSignalEffect(() => {
-    const rid = registryId.value;
-    const txs = transactions.value;
-    const bal = balance.value;
-    const be = balanceEntries.value;
-    const usrs = users.value;
-    const uid = currentUserId.value;
-    const ds = defaultSplit.value;
-    const sc = props.spawnCandidates.value;
-    const lm = props.lastModified.value;
-    const eids = [...props.entityIds.value];
-    const ents = props.entities.value;
-    const tps = transactionPayments.value;
-    if (!rid || (txs.length === 0 && lm === null)) return;
+  useEffect(() => {
+    if (!state.registryId || (state.transactions.length === 0 && state.lastModified === null)) {
+      return;
+    }
     if (props.isDemo) return;
     cache.setRegistrySnapshot({
-      registryId: rid,
-      transactions: txs.map((t) => ({
+      registryId: state.registryId,
+      transactions: state.transactions.map((t) => ({
         ...t,
         createdAt: typeof t.createdAt === "string" ? t.createdAt : t.createdAt.toISOString(),
       })),
-      transactionPayments: tps,
-      balance: bal,
-      balanceEntries: be,
-      users: usrs,
-      currentUserId: uid,
-      defaultSplit: ds,
-      spawnCandidates: sc,
-      entityIds: eids,
-      entities: ents,
-      lastModified: lm,
+      transactionPayments: state.transactionPayments,
+      balance: state.balance,
+      balanceEntries: state.balanceEntries,
+      users: state.users,
+      currentUserId: state.currentUserId,
+      defaultSplit: state.defaultSplit,
+      spawnCandidates: state.spawnCandidates,
+      entityIds: [...state.entityIds],
+      entities: state.entities,
+      lastModified: state.lastModified,
     });
-  });
-
-  useSignalEffect(() => {
-    const payload = registrySwitch.value;
-    if (!payload) return;
-    registryId.value = payload.registryId;
-    if (payload.transactions) {
-      transactions.value = payload.transactions.map((t) => ({
-        ...t,
-        createdAt:
-          typeof (t as unknown as { createdAt: unknown }).createdAt === "string"
-            ? new Date((t as unknown as { createdAt: string }).createdAt)
-            : t.createdAt,
-      })) as EnrichedTransaction[];
-    }
-    if (payload.balance !== undefined) balance.value = payload.balance;
-    if (payload.balanceEntries) balanceEntries.value = payload.balanceEntries;
-    if (payload.users) users.value = payload.users;
-    if (payload.currentUserId) currentUserId.value = payload.currentUserId;
-    if (payload.defaultSplit !== undefined) {
-      defaultSplit.value = payload.defaultSplit;
-    }
-    if (payload.spawnCandidates !== undefined) {
-      props.spawnCandidates.value = payload.spawnCandidates;
-    }
-    if (payload.lastModified !== undefined) {
-      props.lastModified.value = payload.lastModified;
-    }
-    if (payload.entityIds) {
-      props.entityIds.value = new Set(payload.entityIds);
-    }
-    if (payload.entities) {
-      props.entities.value = payload.entities;
-    }
-    if (payload.transactionPayments) {
-      transactionPayments.value = payload.transactionPayments;
-    }
-  });
-
-  useSignalEffect(() => {
-    const announcement = entitiesChanged.value;
-    if (!announcement) return;
-    if (announcement.entities) {
-      props.entityIds.value = new Set(announcement.entities.map((ent) => ent.id));
-      return;
-    }
-    const rid = registryId.value;
-    if (!rid) return;
-    if (props.isDemo) return;
-    fetch(`/api/entities?registryId=${rid}`)
-      .then((res) => (res.ok ? (res.json() as Promise<{ id: string }[]>) : null))
-      .then((data) => {
-        if (!data) return;
-        if (rid !== registryId.value) return;
-        props.entityIds.value = new Set(data.map((ent) => ent.id));
-      })
-      .catch(() => {
-        // ignore
-      });
-  });
+  }, [state, props.isDemo]);
 
   /**
    * Stamp-gated catch-up: compare the server's `last_modified` against the
@@ -580,13 +448,13 @@ export default function TransactionList(props: TransactionListProps) {
   let syncInFlight = false;
   async function syncRegistry(): Promise<void> {
     if (props.isDemo) return;
-    const rid = registryId.value;
+    const rid = stateRef.current.registryId;
     if (!rid) return;
     if (syncInFlight) return;
     syncInFlight = true;
     try {
       for (let attempt = 0; ; attempt++) {
-        if (rid !== registryId.value) return;
+        if (rid !== stateRef.current.registryId) return;
         const outcome = await trySyncOnce(rid);
         if (outcome === "done") return;
         if (attempt >= SYNC_RETRY_DELAYS_MS.length) {
@@ -607,7 +475,7 @@ export default function TransactionList(props: TransactionListProps) {
         method: "POST",
         cache: "no-store",
       });
-      if (rid !== registryId.value) return "done";
+      if (rid !== stateRef.current.registryId) return "done";
       // Dead session (expired refresh token): go to login instead of
       // silently leaving the screen frozen on stale data.
       if (isAuthFailure(stampRes)) {
@@ -619,59 +487,22 @@ export default function TransactionList(props: TransactionListProps) {
         lastModified: string | null;
       };
       const cached = await cache.getRegistrySnapshot(rid);
-      if (rid !== registryId.value) return "done";
+      if (rid !== stateRef.current.registryId) return "done";
       // Null stamp = version unknown → always refetch, never "in sync".
       if (lastModified && cached?.lastModified === lastModified) return "done";
 
       const dashRes = await fetch(`/api/dashboard?registryId=${rid}`, {
         cache: "no-store",
       });
-      if (rid !== registryId.value) return "done";
+      if (rid !== stateRef.current.registryId) return "done";
       if (isAuthFailure(dashRes)) {
         redirectToLogin();
         return "done";
       }
       if (!dashRes.ok) return "retry";
-      const data = (await dashRes.json()) as {
-        transactions: unknown[];
-        transactionPayments: TransactionPayment[];
-        balance: number;
-        balanceEntries: BalanceBreakdownEntry[];
-        users: Participant[];
-        defaultSplit: DefaultSplit | null;
-        spawnCandidates: SpawnCandidate[];
-        entityIds: string[];
-        entities: { id: string; name: string; color: string }[];
-      };
+      const data = (await dashRes.json()) as RegistrySnapshot;
 
-      transactions.value = (data.transactions as EnrichedTransaction[]).map((t) => ({
-        ...t,
-        createdAt:
-          typeof (t as unknown as { createdAt: unknown }).createdAt === "string"
-            ? new Date((t as unknown as { createdAt: string }).createdAt)
-            : t.createdAt,
-      }));
-      balance.value = data.balance;
-      balanceEntries.value = data.balanceEntries;
-      if (data.defaultSplit !== undefined) {
-        defaultSplit.value = data.defaultSplit;
-      }
-      if (data.spawnCandidates) {
-        props.spawnCandidates.value = data.spawnCandidates;
-      }
-      if (data.users) {
-        users.value = data.users;
-      }
-      if (data.entityIds) {
-        props.entityIds.value = new Set(data.entityIds);
-      }
-      if (data.entities) {
-        props.entities.value = data.entities;
-      }
-      if (data.transactionPayments) {
-        transactionPayments.value = data.transactionPayments;
-      }
-      props.lastModified.value = lastModified;
+      dispatch({ type: "APPLY_SNAPSHOT", snapshot: { ...data, registryId: rid, lastModified } });
       return "done";
     } catch {
       // Network-level failure (offline, DNS not ready after resume).
@@ -679,7 +510,7 @@ export default function TransactionList(props: TransactionListProps) {
     }
   }
 
-  useSignalEffect(() => {
+  useEffect(() => {
     let lastActive = Date.now();
     const FRESHNESS_MS = 30_000;
     const HEARTBEAT_MS = 10_000;
@@ -690,7 +521,7 @@ export default function TransactionList(props: TransactionListProps) {
 
     async function wokeUp() {
       if (props.isDemo) return;
-      const rid = registryId.value;
+      const rid = stateRef.current.registryId;
       if (!rid) return;
       const elapsed = Date.now() - lastActive;
       if (elapsed < FRESHNESS_MS) return;
@@ -733,15 +564,16 @@ export default function TransactionList(props: TransactionListProps) {
       globalThis.removeEventListener("online", onOnline);
       globalThis.removeEventListener("pageshow", wokeUp);
     };
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const filteredTransactions = useComputed(() => {
-    let list = transactions.value;
-    if (filterUserId.value) {
-      list = list.filter((tx) => tx.userPaid === filterUserId.value);
+  const filteredTransactions = useMemo(() => {
+    let list = transactions;
+    if (filterUserId) {
+      list = list.filter((tx) => tx.userPaid === filterUserId);
     }
-    if (searchQuery.value.trim()) {
-      const q = searchQuery.value.trim().toLowerCase();
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
       // Amount search: digits-only view of the query (strips $, commas,
       // decimals) matched against the CENTS representation of the amounts
       // shown on the card — so "1613", "$1,613" and "1,613.00" all find a
@@ -760,39 +592,39 @@ export default function TransactionList(props: TransactionListProps) {
       if (db !== da) return db - da;
       return a.description.localeCompare(b.description);
     });
-  });
+  }, [transactions, filterUserId, searchQuery]);
 
-  if (users.value.length <= 1) {
+  if (users.length <= 1) {
     return (
-      <main class="flex-1 overflow-y-auto custom-scrollbar p-6 flex items-center justify-center">
-        <div class="text-center max-w-sm space-y-6">
-          <div class="bg-white/5 p-6 rounded-full mx-auto w-fit">
+      <main className="flex-1 overflow-y-auto custom-scrollbar p-6 flex items-center justify-center">
+        <div className="text-center max-w-sm space-y-6">
+          <div className="bg-white/5 p-6 rounded-full mx-auto w-fit">
             <svg
-              class="h-16 w-16 text-zinc-500"
+              className="h-16 w-16 text-zinc-500"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path
                 d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
               />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-white">{t("tx.single_user_title")}</h3>
-          <p class="text-zinc-400 text-base leading-relaxed">
+          <h3 className="text-2xl font-bold text-white">{t("tx.single_user_title")}</h3>
+          <p className="text-zinc-400 text-base leading-relaxed">
             {t("tx.single_user_desc")}{" "}
             <span
-              class="font-bold underline cursor-pointer text-orange-400 relative"
-              onClick={() => (showTerceroPopover.value = !showTerceroPopover.value)}
-              onMouseEnter={() => (showTerceroPopover.value = true)}
-              onMouseLeave={() => (showTerceroPopover.value = false)}
+              className="font-bold underline cursor-pointer text-orange-400 relative"
+              onClick={() => setShowTerceroPopover(!showTerceroPopover)}
+              onMouseEnter={() => setShowTerceroPopover(true)}
+              onMouseLeave={() => setShowTerceroPopover(false)}
             >
               tercero
-              {showTerceroPopover.value && (
-                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-surface border border-white/10 text-white text-xs font-normal no-underline rounded-custom px-3 py-2 shadow-xl z-50">
+              {showTerceroPopover && (
+                <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-surface border border-white/10 text-white text-xs font-normal no-underline rounded-custom px-3 py-2 shadow-xl z-50">
                   {t("tx.tercero_tooltip")}
                 </span>
               )}
@@ -804,98 +636,81 @@ export default function TransactionList(props: TransactionListProps) {
   }
 
   function recalculate() {
-    const allParticipants = dedupById([
-      ...users.value.map((u) => ({
-        id: u.id,
-        name: u.name,
-        color: u.color,
-      })),
-      ...props.entities.value.map((e) => ({
-        id: e.id,
-        name: e.name,
-        color: e.color,
-      })),
-    ]);
-    balance.value = calculateBalance(transactions.value, currentUserId.value);
-    balanceEntries.value = calculatePairwiseBreakdown(
-      transactions.value,
-      currentUserId.value,
-      allParticipants,
-    );
+    dispatch({ type: "REBALANCE" });
   }
 
   function openNew() {
-    modalMode.value = "expense";
-    editingId.value = null;
-    isOpen.value = true;
+    setModalMode("expense");
+    setEditingId(null);
+    setIsOpen(true);
   }
 
   function openNewPago() {
-    modalMode.value = "payment";
-    editingId.value = null;
-    isOpen.value = true;
+    setModalMode("payment");
+    setEditingId(null);
+    setIsOpen(true);
   }
 
   function openEdit(tx: EnrichedTransaction) {
-    editingId.value = tx.id;
-    modalMode.value = tx.type === "pago" ? "payment" : "expense";
-    isOpen.value = true;
+    setEditingId(tx.id);
+    setModalMode(tx.type === "pago" ? "payment" : "expense");
+    setIsOpen(true);
   }
 
   return (
     <>
       <main
-        class="flex-1 overflow-y-auto custom-scrollbar p-2 sm:p-6 space-y-4 relative"
+        className="flex-1 overflow-y-auto custom-scrollbar p-2 sm:p-6 space-y-4 relative"
         data-tour="transaction-list"
       >
-        <div class="flex justify-between items-center mb-2">
-          <h2 class="text-lg font-semibold text-zinc-200">
-            {filterUserId.value
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-lg font-semibold text-zinc-200">
+            {filterUserId
               ? t("tx.current_period_filtered", {
-                  name: users.value.find((u) => u.id === filterUserId.value)?.name ?? "",
+                  name: users.find((u) => u.id === filterUserId)?.name ?? "",
                 })
               : t("tx.current_period")}
           </h2>
         </div>
 
-        {transactions.value.length > 1 && (
-          <div class="space-y-3">
-            {new Set(transactions.value.map((tx) => tx.userPaid)).size > 1 && (
-              <div class="flex gap-2 flex-wrap">
+        {transactions.length > 1 && (
+          <div className="space-y-3">
+            {new Set(transactions.map((tx) => tx.userPaid)).size > 1 && (
+              <div className="flex gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => (filterUserId.value = null)}
-                  class={`text-xs font-semibold px-3 py-1.5 rounded transition-colors cursor-pointer ${
-                    filterUserId.value === null
+                  onClick={() => setFilterUserId(null)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded transition-colors cursor-pointer ${
+                    filterUserId === null
                       ? "bg-primary text-white shadow-sm"
                       : "text-zinc-400 hover:text-white hover:bg-white/5 border border-white/10"
                   }`}
                 >
                   {t("tx.all")}
                 </button>
-                {users.value.map((user) => {
+                {users.map((user) => {
                   const userInitials = initials(user.name);
                   // Active state: colored BORDER + white name, NOT a solid
                   // fill — filling with user.color made the initials avatar
                   // (same color on same color) invisible.
-                  const active = filterUserId.value === user.id;
+                  const active = filterUserId === user.id;
                   return (
                     <button
                       key={user.id}
                       type="button"
                       onClick={() => {
-                        filterUserId.value = active ? null : user.id;
+                        setFilterUserId(active ? null : user.id);
                       }}
-                      class={`text-xs font-semibold px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 cursor-pointer border ${
+                      className={`text-xs font-semibold px-3 py-1.5 rounded transition-colors flex items-center gap-1.5 cursor-pointer border ${
                         active
                           ? "text-white shadow-sm"
                           : "text-zinc-400 hover:text-white hover:bg-white/5 border-white/10"
                       }`}
-                      style={active ? `border-color: ${user.color}` : ""}
+                      style={active ? { borderColor: user.color } : undefined}
                     >
                       <div
-                        class="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                        style={`background-color: ${user.color}30; color: ${user.color}`}
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
+                        style={{ backgroundColor: `${user.color}30`, color: user.color }}
                       >
                         {userInitials}
                       </div>
@@ -906,14 +721,14 @@ export default function TransactionList(props: TransactionListProps) {
                 })}
               </div>
             )}
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
                   />
                 </svg>
               </span>
@@ -921,22 +736,22 @@ export default function TransactionList(props: TransactionListProps) {
                 type="text"
                 data-tour="search-bar"
                 placeholder={t("tx.search_placeholder")}
-                value={searchQuery.value}
-                onInput={(e) => (searchQuery.value = (e.target as HTMLInputElement).value)}
-                class="w-full bg-white/5 border border-white/15 rounded-custom pl-10 text-white placeholder-zinc-500 focus:ring-primary focus:border-primary py-2.5"
+                value={searchQuery}
+                onInput={(e) => setSearchQuery(e.currentTarget.value)}
+                className="w-full bg-white/5 border border-white/15 rounded-custom pl-10 text-white placeholder-zinc-500 focus:ring-primary focus:border-primary py-2.5"
               />
-              {searchQuery.value && (
+              {searchQuery && (
                 <button
                   type="button"
-                  onClick={() => (searchQuery.value = "")}
-                  class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M6 18L18 6M6 6l12 12"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
                     />
                   </svg>
                 </button>
@@ -945,19 +760,19 @@ export default function TransactionList(props: TransactionListProps) {
           </div>
         )}
 
-        <div class="sm:hidden flex gap-2">
+        <div className="sm:hidden flex gap-2">
           <button
             type="button"
             onClick={openNewPago}
             data-tour="add-payment-mobile"
-            class="flex-1 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
               />
             </svg>
             {t("tx.add_payment_mobile")}
@@ -966,109 +781,109 @@ export default function TransactionList(props: TransactionListProps) {
             type="button"
             onClick={openNew}
             data-tour="add-expense-mobile"
-            class="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
               />
             </svg>
             {t("tx.add_expense_mobile")}
           </button>
         </div>
 
-        {transactions.value.length === 0 ? (
-          <div class="flex flex-col items-center justify-center py-20 text-center">
-            <div class="bg-white/5 p-4 rounded-full mb-4">
+        {transactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="bg-white/5 p-4 rounded-full mb-4">
               <svg
-                class="h-12 w-12 text-zinc-500"
+                className="h-12 w-12 text-zinc-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path
                   d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                 />
               </svg>
             </div>
-            <h3 class="text-lg font-medium text-zinc-300">{t("tx.empty_title")}</h3>
-            <p class="text-zinc-400 mt-2">{t("tx.empty_desc")}</p>
+            <h3 className="text-lg font-medium text-zinc-300">{t("tx.empty_title")}</h3>
+            <p className="text-zinc-400 mt-2">{t("tx.empty_desc")}</p>
           </div>
-        ) : filteredTransactions.value.length === 0 ? (
-          <div class="flex flex-col items-center justify-center py-12 text-center">
-            <p class="text-zinc-400">{t("tx.no_results")}</p>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-zinc-400">{t("tx.no_results")}</p>
             <button
               type="button"
               onClick={() => {
-                searchQuery.value = "";
-                filterUserId.value = null;
+                setSearchQuery("");
+                setFilterUserId(null);
               }}
-              class="mt-2 text-sm text-primary hover:underline"
+              className="mt-2 text-sm text-primary hover:underline"
             >
               {t("tx.clear_filters")}
             </button>
           </div>
         ) : (
-          filteredTransactions.value.map((tx) => (
+          filteredTransactions.map((tx) => (
             <div key={tx.id} id={`tx-${tx.id}`} data-tour="transaction-card">
               <TransactionCardClickable
                 tx={tx}
-                users={users.value}
-                currentUserId={currentUserId.value}
+                users={users}
+                currentUserId={currentUserId}
                 onClick={() => tx.type !== "ajuste" && openEdit(tx)}
-                allTxs={transactions.value}
-                transactionPayments={transactionPayments.value}
+                allTxs={transactions}
+                transactionPayments={transactionPayments}
                 locale={props.locale}
               />
             </div>
           ))
         )}
-        <div class="h-12" />
+        <div className="h-12" />
       </main>
 
-      <div class="hidden sm:flex fixed bottom-8 right-8 z-50 flex-col gap-3">
-        <div class="group relative">
-          <span class="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+      <div className="hidden sm:flex fixed bottom-8 right-8 z-50 flex-col gap-3">
+        <div className="group relative">
+          <span className="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             {t("tx.add_payment_tooltip")}
           </span>
           <button
             type="button"
             onClick={openNewPago}
             data-tour="add-payment"
-            class="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
           >
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
               />
             </svg>
           </button>
         </div>
-        <div class="group relative">
-          <span class="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+        <div className="group relative">
+          <span className="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
             {t("tx.add_expense_tooltip")}
           </span>
           <button
             type="button"
             onClick={openNew}
             data-tour="add-expense"
-            class="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
           >
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
               />
             </svg>
           </button>
@@ -1084,12 +899,23 @@ export default function TransactionList(props: TransactionListProps) {
         currentUserId={currentUserId}
         registryId={registryId}
         balanceEntries={balanceEntries}
-        defaultSplit={defaultSplit}
-        entityIds={props.entityIds}
-        entities={props.entities}
+        defaultSplit={state.defaultSplit}
+        entityIds={state.entityIds}
         transactionPayments={transactionPayments}
         onRecalculate={recalculate}
-        onServerStamp={(stamp) => (props.lastModified.value = stamp)}
+        onServerStamp={(stamp) => dispatch({ type: "SET_LAST_MODIFIED", stamp })}
+        onTransactionsChange={(next) => dispatch({ type: "SET_TRANSACTIONS", transactions: next })}
+        onTransactionPaymentsChange={(next) =>
+          dispatch({ type: "SET_TRANSACTION_PAYMENTS", transactionPayments: next })
+        }
+        onClose={() => {
+          setIsOpen(false);
+          setEditingId(null);
+        }}
+        onReopen={(id) => {
+          setEditingId(id);
+          setIsOpen(true);
+        }}
         isDemo={props.isDemo}
         locale={props.locale}
       />
