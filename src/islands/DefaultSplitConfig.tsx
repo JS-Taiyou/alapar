@@ -1,8 +1,8 @@
 import { useSignal } from "@preact/signals";
 import type { DefaultSplit, User } from "../lib/types";
 import { initials, sanitizeDecimal } from "../lib/format";
-import Modal from "../components/Modal";
-import ProBadge from "../components/ProBadge";
+import Modal from "./Modal";
+import ProBadge from "./ProBadge";
 import type { Locale } from "../lib/i18n";
 
 interface DefaultSplitConfigProps {

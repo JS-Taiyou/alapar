@@ -1,7 +1,7 @@
 import { type Signal, useSignal } from "@preact/signals";
 import type { SpawnCandidate } from "../lib/types";
 import { formatMoney } from "../lib/format";
-import Modal from "../components/Modal";
+import Modal from "./Modal";
 
 interface RecurringSpawnProps {
   candidates: Signal<SpawnCandidate[]>;

@@ -1,4 +1,5 @@
-import { useEffect } from "preact/hooks";
+/** @jsxImportSource react */
+import { useEffect } from "react";
 
 /**
  * Auto-retry for /billing/success's pending state.

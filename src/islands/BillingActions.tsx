@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import Modal from "../components/Modal";
+import Modal from "./Modal";
 import { formatDate, type Locale, t as translate } from "../lib/i18n";
 
 interface BillingActionsProps {

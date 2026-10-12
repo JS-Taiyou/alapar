@@ -15,8 +15,8 @@ import EntityManager from "./EntityManager";
 import DefaultSplitConfig from "./DefaultSplitConfig";
 import LocaleToggle from "./LocaleToggle";
 import UpgradeButton from "./UpgradeButton";
-import Modal from "../components/Modal";
-import ProBadge from "../components/ProBadge";
+import Modal from "./Modal";
+import ProBadge from "./ProBadge";
 import Toaster, { showUpgradeToast } from "./Toaster";
 import {
   type EnrichedTransaction,

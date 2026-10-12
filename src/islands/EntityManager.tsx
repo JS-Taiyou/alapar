@@ -2,7 +2,7 @@ import { type Signal, useSignal } from "@preact/signals";
 import type { Entity } from "../lib/types";
 import { initials } from "../lib/format";
 import { entitiesChanged } from "./shared-signals";
-import Modal from "../components/Modal";
+import Modal from "./Modal";
 
 interface EntityManagerProps {
   registryId: string;

@@ -8,7 +8,7 @@ import type {
 } from "../lib/types";
 import { type EnrichedTransaction, entitiesChanged, registrySwitch } from "./shared-signals";
 import { rowToEnrichedTransaction } from "../lib/rows";
-import ProBadge from "../components/ProBadge";
+import ProBadge from "./ProBadge";
 
 function dedupById<T extends { id: string }>(items: T[]): T[] {
   const seen = new Set<string>();
@@ -29,7 +29,7 @@ import {
 import { isAuthFailure, redirectToLogin } from "../lib/auth-client";
 import { requestNotificationPermission, subscribeToPush } from "../lib/notifications";
 import { cache } from "../lib/cache";
-import TransactionModal from "../components/TransactionModal";
+import TransactionModal from "./TransactionModal";
 import { formatMoney, initials } from "../lib/format";
 import { formatDate, formatTime, type Locale, t as translate } from "../lib/i18n";
 

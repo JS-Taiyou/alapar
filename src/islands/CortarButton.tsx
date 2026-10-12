@@ -1,5 +1,5 @@
 import { useSignal } from "@preact/signals";
-import Modal from "../components/Modal";
+import Modal from "./Modal";
 
 interface CortarButtonProps {
   hasTransactions: boolean;
