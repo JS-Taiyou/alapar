@@ -3,16 +3,15 @@ import type {
   BalanceBreakdownEntry,
   DefaultSplit,
   Entity,
+  EnrichedTransaction,
   Participant,
   SpawnCandidate,
-  Transaction,
   TransactionPayment,
 } from "../lib/types";
 
-export interface EnrichedTransaction extends Transaction {
-  paidByUser: Participant | null;
-  transactionPayments?: TransactionPayment[];
-}
+// Canonical home is lib/types.ts; re-exported here while the islands still
+// import it from the signals module (removed with the Preact port).
+export type { EnrichedTransaction };
 
 /**
  * Cross-island state shared between the Sidebar, TransactionList and

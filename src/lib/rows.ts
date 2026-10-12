@@ -23,6 +23,7 @@
 import type {
   DefaultSplit,
   Entity,
+  EnrichedTransaction,
   Exercise,
   Participant,
   Registry,
@@ -126,16 +127,6 @@ export function rowToEntity(row: Record<string, unknown>): Entity {
     color: row.color as string,
   };
 }
-
-/**
- * A transaction plus the resolved `paidByUser` participant. This is the shape
- * the transactions GET endpoint and the client TransactionList island both
- * consume. Defined here (rather than in `islands/shared-signals.ts`) so the
- * shared enrichment helper has no island dependency.
- */
-export type EnrichedTransaction = Transaction & {
-  paidByUser: Participant | null;
-};
 
 /**
  * Map a raw row to an {@link EnrichedTransaction}, resolving `paidByUser`

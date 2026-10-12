@@ -100,6 +100,18 @@ export interface TransactionPayment {
   createdAt: Date;
 }
 
+/**
+ * A transaction plus the resolved `paidByUser` participant — the shape the
+ * transactions GET endpoint and the client transaction list both consume.
+ * `transactionPayments` links pago→expense records for payment transactions.
+ * The single canonical definition (the island-layer duplicate was removed
+ * with the Preact signals bus).
+ */
+export interface EnrichedTransaction extends Transaction {
+  paidByUser: Participant | null;
+  transactionPayments?: TransactionPayment[];
+}
+
 export interface BalanceBreakdownEntry {
   userId: string;
   userName: string;
