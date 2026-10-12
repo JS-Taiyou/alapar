@@ -1,40 +1,28 @@
-import { signal } from "@preact/signals";
+import { useEffect, useState } from "preact/hooks";
 import { type Locale, t as translate } from "../lib/i18n";
+import {
+  dismissToast,
+  getToasts,
+  subscribeToasts,
+  type UpgradeToast,
+} from "../components/ui/toast-store";
 
 /**
- * Upgrade toast — the 402 funnel. When a paywalled action fails inside a
- * form context (4th recurring template, 3rd owned registry), the data rolls
- * back and this toast surfaces the limit with a link to /pricing.
- *
- * Module-level signal store (shared-signals pattern): producers call
- * {@link showUpgradeToast} from anywhere client-side; a single <Toaster />
- * mounted in the Sidebar (present on every dashboard page) renders them.
+ * Preact binding over the framework-agnostic toast store — transitional,
+ * replaced by the React Toaster when the dashboard cluster ports. The store
+ * (and showUpgradeToast, re-exported below) is the stable contract.
  */
-
-interface UpgradeToast {
-  id: number;
-  locale: Locale;
-  messageKey: string;
-}
-
-const toasts = signal<UpgradeToast[]>([]);
-
-function dismiss(id: number): void {
-  toasts.value = toasts.value.filter((toast) => toast.id !== id);
-}
-
-/** Show an upgrade toast with the given (already localized-at-render) message
- * key and a "Ver planes →" link. Auto-dismisses after 6 seconds. */
-export function showUpgradeToast(locale: Locale, messageKey: string): void {
-  const id = Date.now() + Math.random();
-  toasts.value = [...toasts.value, { id, locale, messageKey }];
-  setTimeout(() => dismiss(id), 6000);
-}
+export { showUpgradeToast } from "../components/ui/toast-store";
+export type { UpgradeToast };
 
 export default function Toaster() {
+  const [toasts, setToasts] = useState<UpgradeToast[]>(getToasts);
+
+  useEffect(() => subscribeToasts(() => setToasts(getToasts())), []);
+
   return (
     <div class="fixed top-20 right-4 sm:right-6 z-[60] flex flex-col gap-2 items-end pointer-events-none">
-      {toasts.value.map((toast) => {
+      {toasts.map((toast) => {
         const t = (key: string) => translate(toast.locale, key);
         return (
           <div
@@ -65,7 +53,7 @@ export default function Toaster() {
             <button
               type="button"
               aria-label={t("common.cancel")}
-              onClick={() => dismiss(toast.id)}
+              onClick={() => dismissToast(toast.id)}
               class="text-zinc-500 hover:text-white transition-colors shrink-0"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
