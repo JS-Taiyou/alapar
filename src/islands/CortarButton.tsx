@@ -44,9 +44,7 @@ export default function CortarButton(props: CortarButtonProps) {
         }}
         disabled={!canCut}
         class={`px-4 py-2 sm:px-6 sm:py-3 text-sm sm:text-base rounded-custom font-semibold text-white shadow-lg transition-opacity ${
-          canCut
-            ? "bg-primary hover:opacity-90"
-            : "bg-slate-700 opacity-50 cursor-not-allowed"
+          canCut ? "bg-primary hover:opacity-90" : "bg-slate-700 opacity-50 cursor-not-allowed"
         }`}
       >
         Cortar
@@ -54,14 +52,14 @@ export default function CortarButton(props: CortarButtonProps) {
 
       {showModal.value && (
         <Modal
-          onClose={() => showModal.value = false}
+          onClose={() => (showModal.value = false)}
           title="Cortar ejercicio"
           subtitle="Esta acción cerrará el periodo actual y no se puede deshacer."
           footer={
             <div class="ml-auto flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => showModal.value = false}
+                onClick={() => (showModal.value = false)}
                 class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
                 Cancelar
@@ -79,8 +77,8 @@ export default function CortarButton(props: CortarButtonProps) {
         >
           <div class="p-6">
             <p class="text-sm text-zinc-300">
-              Se crearán transacciones de ajuste para los saldos pendientes
-              entre los miembros del registro.
+              Se crearán transacciones de ajuste para los saldos pendientes entre los miembros del
+              registro.
             </p>
           </div>
         </Modal>

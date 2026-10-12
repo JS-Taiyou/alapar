@@ -28,8 +28,7 @@ export const es: Record<string, string> = {
 
   // --- Landing page ---
   "landing.new_registry": "Nuevo registro",
-  "landing.new_registry_desc":
-    "Crea un nuevo grupo de gastos para tu próximo viaje o evento.",
+  "landing.new_registry_desc": "Crea un nuevo grupo de gastos para tu próximo viaje o evento.",
   "landing.start": "Comenzar",
   "landing.join_registry": "Unirme a registro",
   "landing.join_registry_desc":
@@ -42,8 +41,7 @@ export const es: Record<string, string> = {
   "auth.signup": "Crear Cuenta",
   "auth.signup_subtitle": "Regístrate para empezar a dividir gastos",
   "auth.forgot_password": "Recuperar Contraseña",
-  "auth.forgot_password_subtitle":
-    "Ingresa tu email y te enviaremos un enlace para restablecerla",
+  "auth.forgot_password_subtitle": "Ingresa tu email y te enviaremos un enlace para restablecerla",
   "auth.reset_password": "Nueva Contraseña",
   "auth.reset_password_subtitle": "Ingresa tu nueva contraseña",
   "auth.name": "Nombre",
@@ -69,8 +67,7 @@ export const es: Record<string, string> = {
   "forgot.submit": "Enviar enlace de recuperación",
   "forgot.sending": "Enviando...",
   "forgot.back_login": "Volver a iniciar sesión",
-  "forgot.success":
-    "Te enviamos un email con el enlace para restablecer tu contraseña.",
+  "forgot.success": "Te enviamos un email con el enlace para restablecer tu contraseña.",
 
   // --- Reset password ---
   "reset.new_password": "Nueva contraseña",
@@ -78,10 +75,8 @@ export const es: Record<string, string> = {
   "reset.submit": "Restablecer contraseña",
   "reset.updating": "Actualizando...",
   "reset.success": "Tu contraseña fue actualizada correctamente.",
-  "reset.invalid_link":
-    "Enlace de recuperación inválido o expirado. Solicita uno nuevo.",
-  "reset.session_failed":
-    "No se pudo establecer la sesión. El enlace puede haber expirado.",
+  "reset.invalid_link": "Enlace de recuperación inválido o expirado. Solicita uno nuevo.",
+  "reset.session_failed": "No se pudo establecer la sesión. El enlace puede haber expirado.",
   "reset.password_too_short": "La contraseña debe tener al menos 6 caracteres.",
   "reset.password_mismatch": "Las contraseñas no coinciden.",
   "reset.request_new": "Solicitar un nuevo enlace",
@@ -127,8 +122,7 @@ export const es: Record<string, string> = {
   "tx.badge_adjustment": "Saldo pendiente",
   "tx.badge_installment": "{current}/{total}",
   "tx.single_user_title": "Está muy solo aquí",
-  "tx.single_user_desc":
-    "Asegúrate de invitar otros usuarios o crear un tercero",
+  "tx.single_user_desc": "Asegúrate de invitar otros usuarios o crear un tercero",
   "tx.tercero_tooltip":
     "Un tercero es una entidad diferente de ti pero que no se va a registrar como usuario, por ejemplo: un banco!",
 
@@ -169,8 +163,7 @@ export const es: Record<string, string> = {
   "modal.owes_you": "Te debe {amount}",
   "modal.you_owe_them": "Le debes {amount}",
   "modal.link_expenses": "Relacionar este pago a gastos existentes",
-  "modal.link_expenses_tooltip":
-    "Sólo puedes relacionar pagos cuando tienes saldo por pagar!",
+  "modal.link_expenses_tooltip": "Sólo puedes relacionar pagos cuando tienes saldo por pagar!",
   "modal.search_expense": "Buscar gasto...",
   "modal.no_expenses_found": "No se encontraron gastos.",
   "modal.paid_by_name": "Pagó {name}",
@@ -246,8 +239,7 @@ export const es: Record<string, string> = {
   "pricing.free_members": "Hasta {n} miembros por registro",
   "pricing.free_templates": "Hasta {n} plantillas recurrentes",
   "pricing.free_history": "Último corte en el historial",
-  "pricing.unlimited_core":
-    "Transacciones, pagos y cortes ilimitados desde el día uno",
+  "pricing.unlimited_core": "Transacciones, pagos y cortes ilimitados desde el día uno",
   "pricing.pro_name": "Pro",
   "pricing.pro_includes": "Todo lo del plan gratuito, más:",
   "pricing.pro_members": "Miembros ilimitados por registro",
@@ -273,8 +265,7 @@ export const es: Record<string, string> = {
   "pricing.keep_sub": "Mantener suscripción",
   "pricing.reactivate": "Reactivar",
   "pricing.create_first": "Crea tu primer registro",
-  "pricing.create_first_hint":
-    "El plan Pro se contrata por registro — crea el tuyo para empezar.",
+  "pricing.create_first_hint": "El plan Pro se contrata por registro — crea el tuyo para empezar.",
 
   // --- Billing: already-subscribed guard + plan switch ---
   "billing.already_subscribed":
@@ -317,8 +308,7 @@ export const es: Record<string, string> = {
   "tour.add_expense_full_desc":
     "Vamos a abrir el formulario para crear un gasto y ver las opciones disponibles.",
   "tour.add_payment_title": "💸 Agregar Pago",
-  "tour.add_payment_desc":
-    "Usa este botón para registrar un pago entre personas y saldar deudas.",
+  "tour.add_payment_desc": "Usa este botón para registrar un pago entre personas y saldar deudas.",
   "tour.edit_title": "✏️ Editar Transacciones",
   "tour.edit_desc":
     "Haz clic en cualquier transacción para ver sus detalles, editarla o eliminarla.",

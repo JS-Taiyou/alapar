@@ -1,9 +1,6 @@
 import type { APIRoute } from "astro";
 import { query } from "@/lib/db";
-import {
-  billingConfigured,
-  cancelSubscriptionAtPeriodEnd,
-} from "@/lib/billing";
+import { billingConfigured, cancelSubscriptionAtPeriodEnd } from "@/lib/billing";
 
 /**
  * POST /api/billing/cancel — schedules (or undoes) a cancel-at-period-end
@@ -28,9 +25,12 @@ export const POST: APIRoute = async (ctx) => {
   const undo = (body as { undo?: boolean }).undo === true;
 
   if (!billingConfigured()) {
-    return Response.json({ error: "Billing is not configured" }, {
-      status: 503,
-    });
+    return Response.json(
+      { error: "Billing is not configured" },
+      {
+        status: 503,
+      },
+    );
   }
 
   const sub = await query(
@@ -42,21 +42,12 @@ export const POST: APIRoute = async (ctx) => {
     | { polar_subscription_id?: string; current_period_end?: string | null }
     | undefined;
   if (!row?.polar_subscription_id) {
-    return Response.json(
-      { error: "No subscription found for this account" },
-      { status: 404 },
-    );
+    return Response.json({ error: "No subscription found for this account" }, { status: 404 });
   }
 
-  const ok = await cancelSubscriptionAtPeriodEnd(
-    row.polar_subscription_id,
-    !undo,
-  );
+  const ok = await cancelSubscriptionAtPeriodEnd(row.polar_subscription_id, !undo);
   if (!ok) {
-    return Response.json(
-      { error: "Polar rejected the cancellation request" },
-      { status: 502 },
-    );
+    return Response.json({ error: "Polar rejected the cancellation request" }, { status: 502 });
   }
 
   await query(

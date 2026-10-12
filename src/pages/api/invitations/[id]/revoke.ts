@@ -14,9 +14,12 @@ export const POST: APIRoute = async (ctx) => {
   // active). A foreign or unknown id therefore no-ops → 404.
   const revoked = await revokeInvitation(invitationId, systemUserId);
   if (!revoked) {
-    return Response.json({ error: "Not found or forbidden" }, {
-      status: 404,
-    });
+    return Response.json(
+      { error: "Not found or forbidden" },
+      {
+        status: 404,
+      },
+    );
   }
 
   return Response.json({ ok: true });

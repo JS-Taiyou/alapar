@@ -16,9 +16,12 @@ export const POST: APIRoute = async (ctx) => {
   };
 
   if (!endpoint || !keys?.p256dh || !keys?.auth) {
-    return Response.json({ error: "Missing subscription data" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Missing subscription data" },
+      {
+        status: 400,
+      },
+    );
   }
 
   // Only accept genuine push-service endpoints (https), not arbitrary URLs.

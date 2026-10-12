@@ -32,10 +32,7 @@ import {
   rowToUser,
 } from "./rows";
 import { filterSpawnCandidates, generateInviteCode } from "./invite";
-import {
-  buildBatchPlaceholders,
-  buildTransactionUpdateSets,
-} from "./sql-builders";
+import { buildBatchPlaceholders, buildTransactionUpdateSets } from "./sql-builders";
 import { computeDeltas } from "./balances";
 
 export {
@@ -55,18 +52,17 @@ export { generateInviteCode };
  * `q` is the executor: the pool by default, or a transaction's client when
  * called inside `withTransaction` (the write must not escape the unit).
  */
-async function writeTransactionBalances(
-  tx: Transaction,
-  q: QueryFn = query,
-): Promise<void> {
+async function writeTransactionBalances(tx: Transaction, q: QueryFn = query): Promise<void> {
   const deltas = computeDeltas(tx);
   if (deltas.length === 0) return;
   const values: unknown[] = [];
-  const placeholders = deltas.map((d, i) => {
-    const base = i * 3;
-    values.push(tx.id, d.userId, d.amount);
-    return `($${base + 1}, $${base + 2}, $${base + 3})`;
-  }).join(", ");
+  const placeholders = deltas
+    .map((d, i) => {
+      const base = i * 3;
+      values.push(tx.id, d.userId, d.amount);
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
+    })
+    .join(", ");
   await q(
     `INSERT INTO transaction_balances (transaction_id, user_id, amount) VALUES ${placeholders}
      ON CONFLICT (transaction_id, user_id) DO UPDATE SET amount = EXCLUDED.amount`,
@@ -94,23 +90,17 @@ async function writeTransactionBalancesBatch(
   }
   if (rowFragments.length === 0) return;
   await q(
-    `INSERT INTO transaction_balances (transaction_id, user_id, amount) VALUES ${
-      rowFragments.join(", ")
-    }
+    `INSERT INTO transaction_balances (transaction_id, user_id, amount) VALUES ${rowFragments.join(
+      ", ",
+    )}
      ON CONFLICT (transaction_id, user_id) DO UPDATE SET amount = EXCLUDED.amount`,
     params,
   );
 }
 
 /** Delete persisted balance deltas for a transaction (before re-computing on update). */
-async function deleteTransactionBalances(
-  transactionId: string,
-  q: QueryFn = query,
-): Promise<void> {
-  await q(
-    "DELETE FROM transaction_balances WHERE transaction_id = $1",
-    [transactionId],
-  );
+async function deleteTransactionBalances(transactionId: string, q: QueryFn = query): Promise<void> {
+  await q("DELETE FROM transaction_balances WHERE transaction_id = $1", [transactionId]);
 }
 
 /**
@@ -124,14 +114,8 @@ async function deleteTransactionBalances(
  * pre-mutation rows. Sharing the transaction makes data + stamp commit
  * atomically.
  */
-export async function touchRegistryStamp(
-  registryId: string,
-  q: QueryFn = query,
-): Promise<void> {
-  await q(
-    "UPDATE registries SET last_modified = NOW() WHERE id = $1",
-    [registryId],
-  );
+export async function touchRegistryStamp(registryId: string, q: QueryFn = query): Promise<void> {
+  await q("UPDATE registries SET last_modified = NOW() WHERE id = $1", [registryId]);
 }
 
 const MONTHS_ES = [
@@ -149,13 +133,8 @@ const MONTHS_ES = [
   "Dic",
 ];
 
-export async function getUserBySupabaseId(
-  supabaseAuthId: string,
-): Promise<User | null> {
-  const result = await query(
-    "SELECT * FROM users WHERE supabase_auth_id = $1",
-    [supabaseAuthId],
-  );
+export async function getUserBySupabaseId(supabaseAuthId: string): Promise<User | null> {
+  const result = await query("SELECT * FROM users WHERE supabase_auth_id = $1", [supabaseAuthId]);
   if (result.rows.length === 0) return null;
   return rowToUser(result.rows[0]);
 }
@@ -212,9 +191,7 @@ export async function resolveUserState(supabaseAuthId: string): Promise<{
 
   const registriesList = registriesResult.rows.map(rowToRegistry);
   const ownerRegistryIds = new Set<string>(
-    registriesResult.rows.filter((r) => r.membership_role === "owner").map(
-      (r) => r.id as string,
-    ),
+    registriesResult.rows.filter((r) => r.membership_role === "owner").map((r) => r.id as string),
   );
   let activeRegistry: Registry | null = null;
   let isOwner = false;
@@ -225,7 +202,7 @@ export async function resolveUserState(supabaseAuthId: string): Promise<{
   if (registriesList.length > 0) {
     const cachedActiveId = getUserActiveRegistry(user.id);
     activeRegistry = cachedActiveId
-      ? registriesList.find((r) => r.id === cachedActiveId) ?? registriesList[0]
+      ? (registriesList.find((r) => r.id === cachedActiveId) ?? registriesList[0])
       : registriesList[0];
     const activeIdx = registriesList.indexOf(activeRegistry);
     const activeRow = registriesResult.rows[activeIdx];
@@ -280,9 +257,7 @@ export async function getUserById(id: string): Promise<User | undefined> {
   return rowToUser(result.rows[0]);
 }
 
-export async function getActiveTransactions(
-  registryId: string,
-): Promise<Transaction[]> {
+export async function getActiveTransactions(registryId: string): Promise<Transaction[]> {
   const result = await query(
     "SELECT * FROM transactions WHERE exercise_id IS NULL AND registry_id = $1 ORDER BY created_at DESC, description ASC",
     [registryId],
@@ -290,9 +265,7 @@ export async function getActiveTransactions(
   return result.rows.map(rowToTransaction);
 }
 
-export async function getTransactionsByExercise(
-  exerciseId: string,
-): Promise<Transaction[]> {
+export async function getTransactionsByExercise(exerciseId: string): Promise<Transaction[]> {
   const result = await query(
     "SELECT * FROM transactions WHERE exercise_id = $1 ORDER BY created_at DESC, description ASC",
     [exerciseId],
@@ -321,23 +294,16 @@ export async function getTransactionsByExerciseForUser(
   return result.rows.map(rowToTransaction);
 }
 
-export async function getTransactionById(
-  id: string,
-): Promise<Transaction | undefined> {
+export async function getTransactionById(id: string): Promise<Transaction | undefined> {
   const result = await query("SELECT * FROM transactions WHERE id = $1", [id]);
   if (result.rows.length === 0) return undefined;
   return rowToTransaction(result.rows[0]);
 }
 
 /** Fetch several transactions by id in one query (used for cross-reference validation). */
-export async function getTransactionsByIds(
-  ids: string[],
-): Promise<Transaction[]> {
+export async function getTransactionsByIds(ids: string[]): Promise<Transaction[]> {
   if (ids.length === 0) return [];
-  const result = await query(
-    "SELECT * FROM transactions WHERE id = ANY($1::uuid[])",
-    [ids],
-  );
+  const result = await query("SELECT * FROM transactions WHERE id = ANY($1::uuid[])", [ids]);
   return result.rows.map(rowToTransaction);
 }
 
@@ -353,13 +319,8 @@ export async function getTransactionPaymentsForRegistry(
   return result.rows.map(rowToTransactionPayment);
 }
 
-export async function getTransactionPaymentsForPago(
-  pagoId: string,
-): Promise<TransactionPayment[]> {
-  const result = await query(
-    "SELECT * FROM transaction_payments WHERE pago_id = $1",
-    [pagoId],
-  );
+export async function getTransactionPaymentsForPago(pagoId: string): Promise<TransactionPayment[]> {
+  const result = await query("SELECT * FROM transaction_payments WHERE pago_id = $1", [pagoId]);
   return result.rows.map(rowToTransactionPayment);
 }
 
@@ -370,11 +331,13 @@ export async function createTransactionPayments(
 ): Promise<TransactionPayment[]> {
   if (entries.length === 0) return [];
   const values: unknown[] = [];
-  const placeholders = entries.map((e, i) => {
-    const base = i * 3;
-    values.push(pagoId, e.expenseId, e.amount);
-    return `($${base + 1}, $${base + 2}, $${base + 3})`;
-  }).join(", ");
+  const placeholders = entries
+    .map((e, i) => {
+      const base = i * 3;
+      values.push(pagoId, e.expenseId, e.amount);
+      return `($${base + 1}, $${base + 2}, $${base + 3})`;
+    })
+    .join(", ");
   const result = await q(
     `INSERT INTO transaction_payments (pago_id, expense_id, amount) VALUES ${placeholders} RETURNING *`,
     values,
@@ -426,11 +389,7 @@ export async function createTransaction(
     );
     const tx = rowToTransaction(result.rows[0]);
     if (transactionPaymentEntries && transactionPaymentEntries.length > 0) {
-      await createTransactionPayments(
-        tx.id,
-        transactionPaymentEntries,
-        executor,
-      );
+      await createTransactionPayments(tx.id, transactionPaymentEntries, executor);
     }
     await writeTransactionBalances(tx, executor);
     await touchRegistryStamp(tx.registry_id, executor);
@@ -455,9 +414,9 @@ export async function updateTransaction(
     values.push(id);
     values.push(userId);
     const result = await q(
-      `UPDATE transactions SET ${
-        sets.join(", ")
-      } WHERE id = $${idx} AND registry_id IN (SELECT rm.registry_id FROM registry_members rm WHERE rm.user_id = $${
+      `UPDATE transactions SET ${sets.join(
+        ", ",
+      )} WHERE id = $${idx} AND registry_id IN (SELECT rm.registry_id FROM registry_members rm WHERE rm.user_id = $${
         idx + 1
       } AND rm.registry_id = transactions.registry_id) RETURNING *`,
       values,
@@ -471,7 +430,8 @@ export async function updateTransaction(
       }
     }
     // Recompute balance deltas if any delta-relevant field changed.
-    const deltaRelevant = data.amount !== undefined ||
+    const deltaRelevant =
+      data.amount !== undefined ||
       data.originalAmount !== undefined ||
       data.type !== undefined ||
       data.splitJson !== undefined ||
@@ -487,10 +447,7 @@ export async function updateTransaction(
   });
 }
 
-export async function deleteTransaction(
-  id: string,
-  userId: string,
-): Promise<boolean> {
+export async function deleteTransaction(id: string, userId: string): Promise<boolean> {
   // Delete + stamp bump are one unit: RETURNING captures the registry without
   // a second read, and the bump commits with the delete.
   return await withTransaction(async (q) => {
@@ -514,9 +471,7 @@ export async function getExercises(registryId: string): Promise<Exercise[]> {
   return result.rows.map(rowToExercise);
 }
 
-export async function getExerciseById(
-  id: string,
-): Promise<Exercise | undefined> {
+export async function getExerciseById(id: string): Promise<Exercise | undefined> {
   const result = await query("SELECT * FROM exercises WHERE id = $1", [id]);
   if (result.rows.length === 0) return undefined;
   return rowToExercise(result.rows[0]);
@@ -543,10 +498,7 @@ export async function getExerciseByIdForUser(
   return rowToExercise(result.rows[0]);
 }
 
-export async function createExercise(
-  registryId: string,
-  q: QueryFn = query,
-): Promise<Exercise> {
+export async function createExercise(registryId: string, q: QueryFn = query): Promise<Exercise> {
   const result = await q(
     `WITH active AS (
       SELECT id, original_amount, created_at
@@ -577,9 +529,7 @@ export async function createExercise(
   return rowToExercise(result.rows[0]);
 }
 
-export async function getRegistriesForUser(
-  userId: string,
-): Promise<Registry[]> {
+export async function getRegistriesForUser(userId: string): Promise<Registry[]> {
   const result = await query(
     `SELECT r.* FROM registries r JOIN registry_members rm ON r.id = rm.registry_id WHERE rm.user_id = $1 ORDER BY r.latest_accessed DESC`,
     [userId],
@@ -587,10 +537,7 @@ export async function getRegistriesForUser(
   return result.rows.map(rowToRegistry);
 }
 
-export async function createRegistry(
-  name: string,
-  userId: string,
-): Promise<Registry> {
+export async function createRegistry(name: string, userId: string): Promise<Registry> {
   return await withTransaction(async (q) => {
     const result = await q(
       "INSERT INTO registries (name, is_default) VALUES ($1, false) RETURNING *",
@@ -612,27 +559,22 @@ export async function renameRegistry(
 ): Promise<Registry | undefined> {
   const member = await isMemberOfRegistry(userId, registryId);
   if (!member) return undefined;
-  const result = await query(
-    "UPDATE registries SET name = $1 WHERE id = $2 RETURNING *",
-    [name, registryId],
-  );
+  const result = await query("UPDATE registries SET name = $1 WHERE id = $2 RETURNING *", [
+    name,
+    registryId,
+  ]);
   if (result.rows.length === 0) return undefined;
   return rowToRegistry(result.rows[0]);
 }
 
-export async function getTransactionCount(
-  registryId: string,
-): Promise<number> {
-  const result = await query(
-    "SELECT COUNT(*) as cnt FROM transactions WHERE registry_id = $1",
-    [registryId],
-  );
+export async function getTransactionCount(registryId: string): Promise<number> {
+  const result = await query("SELECT COUNT(*) as cnt FROM transactions WHERE registry_id = $1", [
+    registryId,
+  ]);
   return parseInt(result.rows[0].cnt as string);
 }
 
-export async function getTransactionCounts(
-  registryIds: string[],
-): Promise<Map<string, number>> {
+export async function getTransactionCounts(registryIds: string[]): Promise<Map<string, number>> {
   if (registryIds.length === 0) return new Map();
   const result = await query(
     "SELECT registry_id, COUNT(*) as cnt FROM transactions WHERE registry_id = ANY($1::uuid[]) GROUP BY registry_id",
@@ -645,10 +587,7 @@ export async function getTransactionCounts(
   return map;
 }
 
-export async function deleteRegistry(
-  registryId: string,
-  userId: string,
-): Promise<boolean> {
+export async function deleteRegistry(registryId: string, userId: string): Promise<boolean> {
   const count = await getTransactionCount(registryId);
   if (count > 0) return false;
   // Owner-only: the DELETE itself carries the ownership subquery so it can't
@@ -663,10 +602,7 @@ export async function deleteRegistry(
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function getUserRole(
-  userId: string,
-  registryId: string,
-): Promise<string | null> {
+export async function getUserRole(userId: string, registryId: string): Promise<string | null> {
   const result = await query(
     "SELECT role FROM registry_members WHERE registry_id = $1 AND user_id = $2",
     [registryId, userId],
@@ -675,10 +611,7 @@ export async function getUserRole(
   return result.rows[0].role as string;
 }
 
-export async function isMemberOfRegistry(
-  userId: string,
-  registryId: string,
-): Promise<boolean> {
+export async function isMemberOfRegistry(userId: string, registryId: string): Promise<boolean> {
   const result = await query(
     "SELECT 1 FROM registry_members WHERE registry_id = $1 AND user_id = $2",
     [registryId, userId],
@@ -691,8 +624,7 @@ export async function calculateBalance(
   registryId: string,
   preloadedTransactions?: Transaction[],
 ): Promise<number> {
-  const active = preloadedTransactions ??
-    await getActiveTransactions(registryId);
+  const active = preloadedTransactions ?? (await getActiveTransactions(registryId));
   return calcBalancePure(active, userId);
 }
 
@@ -702,10 +634,7 @@ export async function calculateBalance(
  * Falls back to `calculateBalance` if the deltas table doesn't exist yet
  * (pre-migration), making the rollout safe.
  */
-export async function getBalanceFromDeltas(
-  userId: string,
-  registryId: string,
-): Promise<number> {
+export async function getBalanceFromDeltas(userId: string, registryId: string): Promise<number> {
   const result = await query(
     `SELECT COALESCE(SUM(tb.amount), 0) as balance
      FROM transaction_balances tb
@@ -720,9 +649,7 @@ export function getMonthNameEs(date: Date): string {
   return MONTHS_ES[date.getMonth()];
 }
 
-export async function getSpawnCandidates(
-  registryId: string,
-): Promise<Transaction[]> {
+export async function getSpawnCandidates(registryId: string): Promise<Transaction[]> {
   const result = await query(
     `SELECT * FROM transactions
      WHERE registry_id = $1
@@ -787,9 +714,7 @@ export async function batchCloneTransactions(
      )`,
     [ids, userId],
   );
-  const sources = new Map(
-    result.rows.map(rowToTransaction).map((t) => [t.id, t]),
-  );
+  const sources = new Map(result.rows.map(rowToTransaction).map((t) => [t.id, t]));
 
   const rows: unknown[][] = [];
   for (const item of items) {
@@ -843,10 +768,7 @@ export async function batchCloneTransactions(
   return cloned;
 }
 
-export async function getEntities(
-  registryId: string,
-  userId: string,
-): Promise<Entity[]> {
+export async function getEntities(registryId: string, userId: string): Promise<Entity[]> {
   // Membership-scoped: non-members see an empty list, same as "no entities".
   const result = await query(
     `SELECT entities_json FROM registries r WHERE r.id = $1
@@ -859,7 +781,7 @@ export async function getEntities(
   if (result.rows.length === 0) return [];
   const raw = result.rows[0].entities_json;
   if (!raw) return [];
-  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw as unknown[];
+  const parsed = typeof raw === "string" ? JSON.parse(raw) : (raw as unknown[]);
   return parsed.map((e: Record<string, unknown>) => ({
     id: e.id as string,
     name: e.name as string,
@@ -961,10 +883,9 @@ export async function getRegistryMemberCount(
   registryId: string,
   q: QueryFn = query,
 ): Promise<number> {
-  const result = await q(
-    "SELECT COUNT(*) as cnt FROM registry_members WHERE registry_id = $1",
-    [registryId],
-  );
+  const result = await q("SELECT COUNT(*) as cnt FROM registry_members WHERE registry_id = $1", [
+    registryId,
+  ]);
   return parseInt(result.rows[0].cnt as string);
 }
 
@@ -986,10 +907,7 @@ export async function setDefaultSplit(
   return (result.rowCount ?? 0) > 0;
 }
 
-export async function clearDefaultSplit(
-  registryId: string,
-  q: QueryFn = query,
-): Promise<void> {
+export async function clearDefaultSplit(registryId: string, q: QueryFn = query): Promise<void> {
   await q(
     "UPDATE registries SET default_split_json = NULL, default_split_member_count = NULL, last_modified = NOW() WHERE id = $1",
     [registryId],
@@ -1019,10 +937,9 @@ export async function invalidateDefaultSplitIfNeeded(
   registryId: string,
   q: QueryFn = query,
 ): Promise<void> {
-  const result = await q(
-    "SELECT default_split_member_count FROM registries WHERE id = $1",
-    [registryId],
-  );
+  const result = await q("SELECT default_split_member_count FROM registries WHERE id = $1", [
+    registryId,
+  ]);
   if (result.rows.length === 0) return;
   const savedCount = result.rows[0].default_split_member_count as number | null;
   if (savedCount === null) return;
@@ -1042,28 +959,15 @@ export async function createInvitation(
   const code = generateInviteCode();
   // Invitations created without an explicit expiry (e.g. from the UI) default
   // to 7 days instead of being valid forever.
-  const effectiveExpiresAt = expiresAt ??
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const effectiveExpiresAt = expiresAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const result = await query(
     `INSERT INTO invitations (registry_id, code, created_by, expires_at, max_uses) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [
-      registryId,
-      code,
-      createdBy,
-      effectiveExpiresAt.toISOString(),
-      maxUses ?? null,
-    ],
+    [registryId, code, createdBy, effectiveExpiresAt.toISOString(), maxUses ?? null],
   );
   const row = result.rows[0];
   await query(
     `INSERT INTO audit_log (actor_id, action, target_type, target_id, metadata) VALUES ($1, $2, $3, $4, $5)`,
-    [
-      createdBy,
-      "invite_created",
-      "invitation",
-      row.id,
-      JSON.stringify({ code }),
-    ],
+    [createdBy, "invite_created", "invitation", row.id, JSON.stringify({ code })],
   );
   return {
     id: row.id as string,
@@ -1072,18 +976,16 @@ export async function createInvitation(
   };
 }
 
-export async function getInvitationByCode(code: string): Promise<
-  {
-    id: string;
-    registryId: string;
-    registryName: string;
-    code: string;
-    expiresAt: Date | null;
-    maxUses: number | null;
-    currentUses: number;
-    revokedAt: Date | null;
-  } | null
-> {
+export async function getInvitationByCode(code: string): Promise<{
+  id: string;
+  registryId: string;
+  registryName: string;
+  code: string;
+  expiresAt: Date | null;
+  maxUses: number | null;
+  currentUses: number;
+  revokedAt: Date | null;
+} | null> {
   const result = await query(
     `SELECT i.*, r.name as registry_name FROM invitations i JOIN registries r ON r.id = i.registry_id WHERE i.code = $1`,
     [code.toUpperCase()],
@@ -1102,10 +1004,7 @@ export async function getInvitationByCode(code: string): Promise<
   };
 }
 
-export async function useInvitation(
-  code: string,
-  userId: string,
-): Promise<string> {
+export async function useInvitation(code: string, userId: string): Promise<string> {
   const invitation = await getInvitationByCode(code);
   if (!invitation) throw new Error("Invitation not found");
   if (invitation.revokedAt) throw new Error("Invitation has been revoked");
@@ -1172,13 +1071,7 @@ export async function useInvitation(
 
     await q(
       `INSERT INTO audit_log (actor_id, action, target_type, target_id, metadata) VALUES ($1, $2, $3, $4, $5)`,
-      [
-        userId,
-        "invite_used",
-        "invitation",
-        invitation.id,
-        JSON.stringify({ code }),
-      ],
+      [userId, "invite_used", "invitation", invitation.id, JSON.stringify({ code })],
     );
 
     // The member list is part of every registry snapshot — a new member must
@@ -1189,15 +1082,17 @@ export async function useInvitation(
   });
 }
 
-export async function getInvitationsForRegistry(registryId: string): Promise<{
-  id: string;
-  code: string;
-  expiresAt: Date | null;
-  maxUses: number | null;
-  currentUses: number;
-  revokedAt: Date | null;
-  createdAt: Date;
-}[]> {
+export async function getInvitationsForRegistry(registryId: string): Promise<
+  {
+    id: string;
+    code: string;
+    expiresAt: Date | null;
+    maxUses: number | null;
+    currentUses: number;
+    revokedAt: Date | null;
+    createdAt: Date;
+  }[]
+> {
   const result = await query(
     "SELECT * FROM invitations WHERE registry_id = $1 ORDER BY created_at DESC",
     [registryId],
@@ -1213,10 +1108,7 @@ export async function getInvitationsForRegistry(registryId: string): Promise<{
   }));
 }
 
-export async function revokeInvitation(
-  invitationId: string,
-  userId: string,
-): Promise<boolean> {
+export async function revokeInvitation(invitationId: string, userId: string): Promise<boolean> {
   // Ownership-scoped: the UPDATE no-ops unless `userId` owns the registry the
   // invitation belongs to, so a bare invitation id can't be revoked across
   // registries. Returns false in that case (and when already revoked).
@@ -1232,24 +1124,13 @@ export async function revokeInvitation(
   if ((result.rowCount ?? 0) === 0) return false;
   await query(
     `INSERT INTO audit_log (actor_id, action, target_type, target_id, metadata) VALUES ($1, $2, $3, $4, $5)`,
-    [
-      userId,
-      "invite_revoked",
-      "invitation",
-      invitationId,
-      JSON.stringify({}),
-    ],
+    [userId, "invite_revoked", "invitation", invitationId, JSON.stringify({})],
   );
   return true;
 }
 
-export async function getRegistryStamp(
-  registryId: string,
-): Promise<string | null> {
-  const result = await query(
-    "SELECT last_modified FROM registries WHERE id = $1",
-    [registryId],
-  );
+export async function getRegistryStamp(registryId: string): Promise<string | null> {
+  const result = await query("SELECT last_modified FROM registries WHERE id = $1", [registryId]);
   if (result.rows.length === 0) return null;
   const lm = result.rows[0].last_modified;
   return lm ? new Date(lm as string).toISOString() : null;

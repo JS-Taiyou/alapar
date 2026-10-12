@@ -11,14 +11,10 @@ interface RecurringSpawnProps {
 export default function RecurringSpawn(props: RecurringSpawnProps) {
   const showModal = useSignal(false);
   const loading = useSignal(false);
-  const checkedIds = useSignal<Set<string>>(
-    new Set(props.candidates.value.map((c) => c.id)),
-  );
+  const checkedIds = useSignal<Set<string>>(new Set(props.candidates.value.map((c) => c.id)));
   const quantities = useSignal<Record<string, number>>(
     Object.fromEntries(
-      props.candidates.value.filter((c) => c.type === "parcialidad").map((
-        c,
-      ) => [c.id, 1]),
+      props.candidates.value.filter((c) => c.type === "parcialidad").map((c) => [c.id, 1]),
     ),
   );
   const disabledIds = useSignal<Set<string>>(new Set());
@@ -49,9 +45,10 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
     const c = props.candidates.value.find((x) => x.id === id);
     if (!c || c.type !== "parcialidad") return;
     const cur = quantities.value[id] ?? 1;
-    const max = c.installmentTotal !== null && c.installmentCurrent !== null
-      ? c.installmentTotal - c.installmentCurrent
-      : 1;
+    const max =
+      c.installmentTotal !== null && c.installmentCurrent !== null
+        ? c.installmentTotal - c.installmentCurrent
+        : 1;
     const next = Math.max(1, Math.min(cur + delta, max));
     quantities.value = { ...quantities.value, [id]: next };
   }
@@ -102,12 +99,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
         class="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-zinc-300 relative"
         title="Recurrentes"
       >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             stroke-linecap="round"
@@ -124,7 +116,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
 
       {showModal.value && (
         <Modal
-          onClose={() => showModal.value = false}
+          onClose={() => (showModal.value = false)}
           title="Gastos Recurrentes"
           subtitle="Selecciona cuáles incluir en este periodo."
           widthClass="max-w-lg"
@@ -132,7 +124,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
             <div class="ml-auto flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => showModal.value = false}
+                onClick={() => (showModal.value = false)}
                 class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
                 Cancelar
@@ -171,11 +163,12 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                 );
               }
 
-              const maxQty = item.type === "parcialidad" &&
-                  item.installmentTotal !== null &&
-                  item.installmentCurrent !== null
-                ? item.installmentTotal - item.installmentCurrent
-                : 1;
+              const maxQty =
+                item.type === "parcialidad" &&
+                item.installmentTotal !== null &&
+                item.installmentCurrent !== null
+                  ? item.installmentTotal - item.installmentCurrent
+                  : 1;
 
               return (
                 <div
@@ -200,29 +193,24 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                             : "bg-emerald-500/20 text-emerald-400"
                         }`}
                       >
-                        {item.type === "parcialidad"
-                          ? "Parcialidad"
-                          : "Recurrente"}
+                        {item.type === "parcialidad" ? "Parcialidad" : "Recurrente"}
                       </span>
                     </div>
                     <div class="flex items-center gap-2 mt-1 text-xs text-zinc-400">
-                      <span>
-                        ${formatMoney(item.originalAmount)}
-                      </span>
+                      <span>${formatMoney(item.originalAmount)}</span>
                       {item.type === "parcialidad" &&
                         item.installmentCurrent !== null &&
                         item.installmentTotal !== null && (
-                        <>
-                          <span>&bull;</span>
-                          <span class="text-primary">
-                            {item.installmentCurrent}/{item.installmentTotal}
-                          </span>
-                        </>
-                      )}
+                          <>
+                            <span>&bull;</span>
+                            <span class="text-primary">
+                              {item.installmentCurrent}/{item.installmentTotal}
+                            </span>
+                          </>
+                        )}
                     </div>
                   </div>
-                  {item.type === "parcialidad" && maxQty > 1 &&
-                    checkedIds.value.has(item.id) && (
+                  {item.type === "parcialidad" && maxQty > 1 && checkedIds.value.has(item.id) && (
                     <div class="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
@@ -250,12 +238,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                       title="Desactivar recurrente"
                       class="shrink-0 p-1.5 text-zinc-400 hover:text-red-400 transition-colors rounded-custom hover:bg-red-400/10"
                     >
-                      <svg
-                        class="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                           d="M18.364 18.364A9 9 0 015.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
                           stroke-linecap="round"

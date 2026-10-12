@@ -47,7 +47,7 @@ export function splitCents(
   const offset = hashToIndex(seed, n);
   const result = new Map<string, number>();
   memberIds.forEach((id, i) => {
-    const getsExtra = ((i - offset + n) % n) < remainder;
+    const getsExtra = (i - offset + n) % n < remainder;
     result.set(id, base + (getsExtra ? 1 : 0));
   });
   return result;

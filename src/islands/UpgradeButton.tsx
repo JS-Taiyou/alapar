@@ -18,12 +18,7 @@ export default function UpgradeButton({ locale }: { locale: Locale }) {
       class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary-light hover:opacity-90 border border-primary-light/40 rounded-custom text-sm font-semibold text-white transition-all py-2.5 px-4"
       title={t("billing.upgrade_hint_owner")}
     >
-      <svg
-        class="w-4 h-4 shrink-0"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
+      <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path
           d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
           stroke-linecap="round"

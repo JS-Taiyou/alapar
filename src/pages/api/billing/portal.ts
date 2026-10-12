@@ -20,10 +20,7 @@ export const POST: APIRoute = async (ctx) => {
 
   const url = await createPortalSession(userId);
   if (!url) {
-    return Response.json(
-      { error: "No subscription found for this account" },
-      { status: 404 },
-    );
+    return Response.json({ error: "No subscription found for this account" }, { status: 404 });
   }
   return Response.json({ url });
 };

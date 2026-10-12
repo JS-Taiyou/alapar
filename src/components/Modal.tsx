@@ -67,9 +67,7 @@ export default function Modal(props: ModalProps) {
         <header class="px-4 py-3 sm:px-6 sm:py-4 border-b border-border-custom flex justify-between items-center gap-3">
           <div class="min-w-0">
             <h2 class="text-xl font-bold text-white">{props.title}</h2>
-            {props.subtitle && (
-              <p class="text-sm text-zinc-400 mt-1">{props.subtitle}</p>
-            )}
+            {props.subtitle && <p class="text-sm text-zinc-400 mt-1">{props.subtitle}</p>}
           </div>
           <button
             type="button"
@@ -77,12 +75,7 @@ export default function Modal(props: ModalProps) {
             aria-label={props.closeLabel ?? "Cerrar"}
             class="text-zinc-400 hover:text-white transition-colors shrink-0"
           >
-            <svg
-              class="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M6 18L18 6M6 6l12 12"
                 stroke-linecap="round"

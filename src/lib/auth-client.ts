@@ -38,7 +38,6 @@ export function isAuthFailure(res: Response): boolean {
  */
 export function redirectToLogin(): void {
   if (globalThis.location.pathname.startsWith("/login")) return;
-  const current = globalThis.location.pathname +
-    globalThis.location.search;
+  const current = globalThis.location.pathname + globalThis.location.search;
   globalThis.location.href = `/login?redirect=${encodeURIComponent(current)}`;
 }

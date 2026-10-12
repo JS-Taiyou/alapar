@@ -264,12 +264,12 @@ The `split_json` JSONB field in transactions:
     {
       "userId": "uuid-1",
       "percentage": 50.0,
-      "amount": 150.00
+      "amount": 150.0
     },
     {
       "userId": "uuid-2",
       "percentage": 50.0,
-      "amount": 150.00
+      "amount": 150.0
     }
   ]
 }
@@ -284,7 +284,7 @@ recipient:
     {
       "userId": "recipient-uuid",
       "percentage": 100,
-      "amount": 50.00
+      "amount": 50.0
     }
   ]
 }

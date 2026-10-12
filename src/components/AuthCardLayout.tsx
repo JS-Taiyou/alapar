@@ -8,9 +8,7 @@ interface AuthCardLayoutProps {
   centered?: boolean;
 }
 
-export default function AuthCardLayout(
-  { children, centered = false }: AuthCardLayoutProps,
-) {
+export default function AuthCardLayout({ children, centered = false }: AuthCardLayoutProps) {
   const cardClasses = centered
     ? "bg-surface border border-border-custom rounded-custom p-8 w-full max-w-md z-10 text-center"
     : "bg-surface border border-border-custom rounded-custom p-8 w-full max-w-md z-10";
@@ -19,9 +17,7 @@ export default function AuthCardLayout(
     <>
       <main class="min-h-screen flex items-center justify-center p-6 bg-pattern">
         <div class="absolute inset-0 gradient-glow pointer-events-none" />
-        <div class={cardClasses}>
-          {children}
-        </div>
+        <div class={cardClasses}>{children}</div>
       </main>
     </>
   );

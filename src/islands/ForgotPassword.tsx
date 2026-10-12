@@ -37,10 +37,9 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
     loading.value = true;
 
     try {
-      const { error: resetError } = await client.auth.resetPasswordForEmail(
-        email.value,
-        { redirectTo: globalThis.location.origin + "/reset-password" },
-      );
+      const { error: resetError } = await client.auth.resetPasswordForEmail(email.value, {
+        redirectTo: globalThis.location.origin + "/reset-password",
+      });
       if (resetError) {
         error.value = resetError.message;
         loading.value = false;
@@ -48,9 +47,7 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
       }
       success.value = true;
     } catch (err) {
-      error.value = err instanceof Error
-        ? err.message
-        : t("common.error_unknown");
+      error.value = err instanceof Error ? err.message : t("common.error_unknown");
     }
     loading.value = false;
   }
@@ -66,10 +63,7 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
   return (
     <form onSubmit={handleSubmit} class="space-y-5">
       <div>
-        <label
-          class="block text-sm font-medium text-zinc-300 mb-1.5"
-          for="forgot-email"
-        >
+        <label class="block text-sm font-medium text-zinc-300 mb-1.5" for="forgot-email">
           {t("auth.email")}
         </label>
         <input
@@ -78,7 +72,7 @@ export default function ForgotPassword(props: ForgotPasswordProps) {
           type="email"
           placeholder={t("auth.email_placeholder")}
           value={email.value}
-          onInput={(e) => email.value = (e.target as HTMLInputElement).value}
+          onInput={(e) => (email.value = (e.target as HTMLInputElement).value)}
           required
         />
       </div>

@@ -6,9 +6,12 @@ export const POST: APIRoute = async (ctx) => {
   // (the csrf middleware already enforces a matching Origin).
   const contentType = ctx.request.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
-    return Response.json({ error: "Expected application/json" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Expected application/json" },
+      {
+        status: 400,
+      },
+    );
   }
 
   let body: { accessToken?: unknown; refreshToken?: unknown };

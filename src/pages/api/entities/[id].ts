@@ -21,13 +21,7 @@ export const PUT: APIRoute = async (ctx) => {
     return Response.json({ error: "Sin registro activo" }, { status: 400 });
   }
 
-  const entity = await updateEntity(
-    registryId,
-    id,
-    name.trim(),
-    color,
-    userId,
-  );
+  const entity = await updateEntity(registryId, id, name.trim(), color, userId);
   if (!entity) {
     return Response.json({ error: "Entidad no encontrada" }, { status: 404 });
   }
@@ -55,9 +49,12 @@ export const DELETE: APIRoute = async (ctx) => {
 
   const deleted = await deleteEntity(registryId, id, userId);
   if (!deleted) {
-    return Response.json({
-      error: "No se puede eliminar: tiene transacciones activas",
-    }, { status: 409 });
+    return Response.json(
+      {
+        error: "No se puede eliminar: tiene transacciones activas",
+      },
+      { status: 409 },
+    );
   }
 
   invalidateRegistry(registryId);

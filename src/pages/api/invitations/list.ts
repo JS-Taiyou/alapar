@@ -11,9 +11,12 @@ export const GET: APIRoute = async (ctx) => {
 
   const role = await getUserRole(systemUserId, registryId);
   if (role !== "owner") {
-    return Response.json({ error: "Only owners can list invitations" }, {
-      status: 403,
-    });
+    return Response.json(
+      { error: "Only owners can list invitations" },
+      {
+        status: 403,
+      },
+    );
   }
 
   const invitations = await getInvitationsForRegistry(registryId);

@@ -8,8 +8,7 @@ export const GET: APIRoute = async (ctx) => {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const registryId = ctx.url.searchParams.get("registryId") ||
-    ctx.locals.activeRegistry?.id;
+  const registryId = ctx.url.searchParams.get("registryId") || ctx.locals.activeRegistry?.id;
   if (!registryId) {
     return Response.json([]);
   }
@@ -22,11 +21,13 @@ export const GET: APIRoute = async (ctx) => {
   }
 
   const entities = await getEntities(registryId, userId);
-  return Response.json(entities.map((e) => ({
-    id: e.id,
-    name: e.name,
-    color: e.color,
-  })));
+  return Response.json(
+    entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      color: e.color,
+    })),
+  );
 };
 
 export const POST: APIRoute = async (ctx) => {
@@ -47,28 +48,24 @@ export const POST: APIRoute = async (ctx) => {
     return Response.json({ error: "Sin registro activo" }, { status: 400 });
   }
 
-  const isMember = ctx.locals.registries.some((r) =>
-    r.id === activeRegistryId
-  );
+  const isMember = ctx.locals.registries.some((r) => r.id === activeRegistryId);
   if (!isMember) {
     return Response.json({ error: "No eres miembro" }, { status: 403 });
   }
 
-  const entity = await createEntity(
-    activeRegistryId,
-    name.trim(),
-    color,
-    userId,
-  );
+  const entity = await createEntity(activeRegistryId, name.trim(), color, userId);
   if (!entity) {
     return Response.json({ error: "No eres miembro" }, { status: 403 });
   }
 
   invalidateRegistry(activeRegistryId);
 
-  return Response.json({
-    id: entity.id,
-    name: entity.name,
-    color: entity.color,
-  }, { status: 201 });
+  return Response.json(
+    {
+      id: entity.id,
+      name: entity.name,
+      color: entity.color,
+    },
+    { status: 201 },
+  );
 };

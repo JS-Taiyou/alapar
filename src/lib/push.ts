@@ -1,11 +1,6 @@
 import { query } from "./db";
 import { env } from "./env";
-import {
-  base64url,
-  base64urlToBytes,
-  concatUint8Arrays,
-  encodeLength,
-} from "./encoding";
+import { base64url, base64urlToBytes, concatUint8Arrays, encodeLength } from "./encoding";
 
 interface PushSubscription {
   id: string;
@@ -62,11 +57,7 @@ export async function sendPushToRegistry(
   const now = Date.now();
   const last = lastPushAt.get(key) ?? 0;
   if (!shouldSendPush(now, last)) {
-    console.log(
-      "[push] Cooldown active, skipping. Last push was",
-      now - last,
-      "ms ago",
-    );
+    console.log("[push] Cooldown active, skipping. Last push was", now - last, "ms ago");
     return;
   }
   lastPushAt.set(key, now);
@@ -127,22 +118,15 @@ async function sendPushNotification(
   // RFC 8292: the VAPID `aud` claim must be the origin of the push service
   // for this subscription — not a hardcoded FCM origin (subscriptions may
   // come from Mozilla, Edge, etc.).
-  const jwt = await createVapidJWT(
-    vapidKeys,
-    new URL(subscription.endpoint).origin,
-  );
-  const encrypted = await encryptPayload(
-    body,
-    subscription.p256dh,
-    subscription.auth,
-  );
+  const jwt = await createVapidJWT(vapidKeys, new URL(subscription.endpoint).origin);
+  const encrypted = await encryptPayload(body, subscription.p256dh, subscription.auth);
   const encryptedBytes = new Uint8Array(encrypted);
 
   const headers: Record<string, string> = {
-    "TTL": "86400",
+    TTL: "86400",
     "Content-Type": "application/octet-stream",
     "Content-Encoding": "aes128gcm",
-    "Authorization": `vapid t=${jwt}, k=${vapidKeys.publicKey}`,
+    Authorization: `vapid t=${jwt}, k=${vapidKeys.publicKey}`,
     "Content-Length": encryptedBytes.length.toString(),
   };
 
@@ -188,11 +172,7 @@ async function createVapidJWT(
   return `${data}.${sigB64}`;
 }
 
-async function encryptPayload(
-  payload: string,
-  p256dh: string,
-  auth: string,
-): Promise<ArrayBuffer> {
+async function encryptPayload(payload: string, p256dh: string, auth: string): Promise<ArrayBuffer> {
   const encoder = new TextEncoder();
   const payloadBytes = encoder.encode(payload);
 
@@ -211,11 +191,9 @@ async function encryptPayload(
     [],
   );
 
-  const ecdhKeyPair = await crypto.subtle.generateKey(
-    { name: "ECDH", namedCurve: "P-256" },
-    true,
-    ["deriveBits"],
-  );
+  const ecdhKeyPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, [
+    "deriveBits",
+  ]);
 
   const sharedBits = await crypto.subtle.deriveBits(
     { name: "ECDH", public: dhKey },
@@ -225,10 +203,7 @@ async function encryptPayload(
 
   const ikm = new Uint8Array(sharedBits);
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const publicKeyRaw = await crypto.subtle.exportKey(
-    "raw",
-    ecdhKeyPair.publicKey,
-  );
+  const publicKeyRaw = await crypto.subtle.exportKey("raw", ecdhKeyPair.publicKey);
 
   const prk = await hkdf(ikm, authBytes, "Content-Encoding: auth\0", 32);
   const context = concatUint8Arrays(
@@ -264,9 +239,7 @@ async function encryptPayload(
 
   const pubKeyBytes = new Uint8Array(publicKeyRaw);
   const encBytes = new Uint8Array(encrypted);
-  const result = new Uint8Array(
-    salt.length + 4 + 1 + 1 + pubKeyBytes.length + encBytes.length,
-  );
+  const result = new Uint8Array(salt.length + 4 + 1 + 1 + pubKeyBytes.length + encBytes.length);
   let offset = 0;
   result.set(salt, offset);
   offset += salt.length;
@@ -289,9 +262,7 @@ async function hkdf(
   info: Uint8Array | string,
   length: number,
 ): Promise<Uint8Array> {
-  const infoBytes = typeof info === "string"
-    ? new TextEncoder().encode(info)
-    : info;
+  const infoBytes = typeof info === "string" ? new TextEncoder().encode(info) : info;
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     ikm.buffer as ArrayBuffer,

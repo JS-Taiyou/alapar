@@ -17,7 +17,7 @@ Fresh build while this migration lands)_
 A la Par was born as a **Deno** project, built on Deno's own web framework
 **Fresh** (Preact + server-rendered islands) and deployed on **Deno Deploy**.
 When Deno's acquisition by Cloudflare was announced, the project was ported to
-**Astro 5 running on Node**, with Netlify as the new hosting target. The
+**Astro 7 running on Node**, with Netlify as the new hosting target. The
 original Fresh codebase remains on the `main` branch; the migration lives on
 `migration/astro` — see [`MIGRATION.md`](MIGRATION.md) for the port map,
 verification status, and what remains.
@@ -48,14 +48,15 @@ direct payments between members.
 
 ## Tech stack
 
-| Layer     | Tech                                                           |
-| --------- | -------------------------------------------------------------- |
-| Frontend  | Astro 5 + Preact (+ Signals), server-rendered with islands     |
-| Runtime   | Node.js 20+ (npm, Astro CLI; Vite under the hood)              |
-| Backend   | Supabase — Postgres, Auth (email/password + Google OAuth), RLS |
-| Styling   | Tailwind CSS + DaisyUI (dark theme)                            |
-| Hosting   | Netlify (SSR via @astrojs/netlify) — migration in progress     |
-| Packaging | PWA (web manifest + service worker + Web Push)                 |
+| Layer     | Tech                                                             |
+| --------- | ---------------------------------------------------------------- |
+| Frontend  | Astro 7 + Preact (+ Signals), server-rendered with islands       |
+| Runtime   | Node.js 22.12+ (npm, Astro CLI; Vite 8 under the hood via Vite+) |
+| Tooling   | Vite+ (`vp`) — lint (Oxlint), format (Oxfmt), tests (Vitest)     |
+| Backend   | Supabase — Postgres, Auth (email/password + Google OAuth), RLS   |
+| Styling   | Tailwind CSS + DaisyUI (dark theme)                              |
+| Hosting   | Netlify (SSR via @astrojs/netlify) — migration in progress       |
+| Packaging | PWA (web manifest + service worker + Web Push)                   |
 
 ## Engineering highlights
 
@@ -82,7 +83,7 @@ direct payments between members.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) 20+ and npm
+- [Node.js](https://nodejs.org) 22.12+ and npm 9.6.5+
 - A [Supabase](https://supabase.com) project (free tier works) — or just a
   local Postgres for development
 
@@ -109,14 +110,18 @@ listed in [`docs/DATABASE.md`](docs/DATABASE.md#migrations).
 npm run dev        # dev server
 npm run build      # production build (Netlify SSR function)
 npm run preview    # preview the build
-npx astro check    # type-check (.astro + .ts)
+npm run check      # type-check (.astro + .ts via astro check)
+npm run lint       # Oxlint via Vite+ (type-aware)
+npm run fmt        # Oxfmt via Vite+ (use fmt:check to verify only)
+npm test           # Vitest via Vite+ (passes while the suite is being ported)
 ```
 
 ## Testing
 
 The original Deno test suite (balance engine, split math, route validation,
-typed DB/Supabase stubs) is being ported from `deno test` to **Vitest** — it
-still lives on `main` for reference. See [`MIGRATION.md`](MIGRATION.md).
+typed DB/Supabase stubs) is being ported from `deno test` to **Vitest** (run
+with `npm test`, provided by Vite+) — it still lives on `main` for reference.
+See [`MIGRATION.md`](MIGRATION.md).
 
 ## Documentation
 

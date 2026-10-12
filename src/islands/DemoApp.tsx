@@ -37,19 +37,13 @@ export default function DemoApp(props: DemoAppProps) {
   const $currentUserId = useSignal(props.currentUserId);
   const $registryId = useSignal(props.registryId);
   const $balance = useSignal(props.balance);
-  const $balanceEntries = useSignal<BalanceBreakdownEntry[]>(
-    props.balanceBreakdown,
-  );
+  const $balanceEntries = useSignal<BalanceBreakdownEntry[]>(props.balanceBreakdown);
   const $defaultSplit = useSignal<DefaultSplit | null>(null);
   const $spawnCandidates = useSignal([]);
   const $lastModified = useSignal<string | null>(null);
   const $entityIds = useSignal<Set<string>>(new Set());
-  const $entities = useSignal<{ id: string; name: string; color: string }[]>(
-    props.entities,
-  );
-  const $transactionPayments = useSignal<TransactionPayment[]>(
-    props.transactionPayments,
-  );
+  const $entities = useSignal<{ id: string; name: string; color: string }[]>(props.entities);
+  const $transactionPayments = useSignal<TransactionPayment[]>(props.transactionPayments);
 
   const hasMultipleParticipants = $users.value.length > 1;
 
@@ -70,12 +64,7 @@ export default function DemoApp(props: DemoAppProps) {
               class="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
               title="Inicio"
             >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
                   stroke-linecap="round"

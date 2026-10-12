@@ -8,22 +8,24 @@ import type { Locale } from "../lib/i18n";
  * `full` stretches the control to its container's width (sidebar footer);
  * otherwise it sizes to its content (landing corner, demo header).
  */
-export default function LocaleToggle(
-  { locale, class: className, full }: {
-    locale: Locale;
-    class?: string;
-    full?: boolean;
-  },
-) {
+export default function LocaleToggle({
+  locale,
+  class: className,
+  full,
+}: {
+  locale: Locale;
+  class?: string;
+  full?: boolean;
+}) {
   function switchLocale(newLocale: Locale) {
     if (newLocale === locale) return;
     fetch("/api/locale", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale: newLocale }),
-    }).then(() => globalThis.location.reload()).catch(() =>
-      globalThis.location.reload()
-    );
+    })
+      .then(() => globalThis.location.reload())
+      .catch(() => globalThis.location.reload());
   }
 
   const labels: Record<Locale, string> = { es: "ES", en: "EN" };

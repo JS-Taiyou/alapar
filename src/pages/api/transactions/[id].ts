@@ -35,22 +35,29 @@ export const PUT: APIRoute = async (ctx) => {
   // must be participants of the transaction's registry, and every referenced
   // transaction must live in that same registry.
   const registryId = tx.registry_id;
-  const participantIds = registryId === ctx.locals.activeRegistry?.id
-    ? ctx.locals.participants.map((p) => p.id)
-    : [
-      ...(await getUsers(registryId)).map((u) => u.id),
-      ...(await getEntities(registryId, userId)).map((e) => e.id),
-    ];
+  const participantIds =
+    registryId === ctx.locals.activeRegistry?.id
+      ? ctx.locals.participants.map((p) => p.id)
+      : [
+          ...(await getUsers(registryId)).map((u) => u.id),
+          ...(await getEntities(registryId, userId)).map((e) => e.id),
+        ];
   if (!participantIds.includes(data.userPaid)) {
-    return Response.json({ error: "Usuario pagador inválido" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Usuario pagador inválido" },
+      {
+        status: 400,
+      },
+    );
   }
   const splitUserIds = data.splitJson.splits.map((s) => s.userId);
   if (splitUserIds.some((id2) => !participantIds.includes(id2))) {
-    return Response.json({ error: "Participante inválido en el split" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Participante inválido en el split" },
+      {
+        status: 400,
+      },
+    );
   }
 
   const refIds = [
@@ -61,9 +68,12 @@ export const PUT: APIRoute = async (ctx) => {
     const refs = await getTransactionsByIds(refIds);
     const refRegistryById = new Map(refs.map((t) => [t.id, t.registry_id]));
     if (refIds.some((refId) => refRegistryById.get(refId) !== registryId)) {
-      return Response.json({ error: "Referencia inválida" }, {
-        status: 400,
-      });
+      return Response.json(
+        { error: "Referencia inválida" },
+        {
+          status: 400,
+        },
+      );
     }
   }
 
@@ -90,12 +100,16 @@ export const PUT: APIRoute = async (ctx) => {
 
   invalidateRegistry(tx.registry_id);
 
-  sendPushToRegistry(tx.registry_id, {
-    title: "Transacción actualizada",
-    body: `${data.description} — $${formatMoney(data.originalAmount)}`,
-    registryId: tx.registry_id,
-    url: "/dashboard",
-  }, userId).catch(() => {});
+  sendPushToRegistry(
+    tx.registry_id,
+    {
+      title: "Transacción actualizada",
+      body: `${data.description} — $${formatMoney(data.originalAmount)}`,
+      registryId: tx.registry_id,
+      url: "/dashboard",
+    },
+    userId,
+  ).catch(() => {});
 
   // Fresh stamp so the editing client labels its snapshot with the version
   // its own write produced.
@@ -119,12 +133,16 @@ export const DELETE: APIRoute = async (ctx) => {
   if (tx) {
     invalidateRegistry(tx.registry_id);
 
-    sendPushToRegistry(tx.registry_id, {
-      title: "Transacción eliminada",
-      body: tx.description,
-      registryId: tx.registry_id,
-      url: "/dashboard",
-    }, userId).catch(() => {});
+    sendPushToRegistry(
+      tx.registry_id,
+      {
+        title: "Transacción eliminada",
+        body: tx.description,
+        registryId: tx.registry_id,
+        url: "/dashboard",
+      },
+      userId,
+    ).catch(() => {});
 
     // 200 + the fresh stamp (204 can't carry a body) so the deleting
     // client can label its snapshot with the version its write produced.

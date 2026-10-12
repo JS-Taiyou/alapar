@@ -8,10 +8,7 @@ import type {
 } from "./types";
 import { fromCents, splitCents, toCents } from "./splits";
 
-export function calculateBalance(
-  transactions: Transaction[],
-  userId: string,
-): number {
+export function calculateBalance(transactions: Transaction[], userId: string): number {
   let balance = 0;
   for (const tx of transactions) {
     if (tx.type === "pago" || tx.type === "ajuste") {
@@ -25,9 +22,7 @@ export function calculateBalance(
     }
     const userSplit = tx.splitJson.splits.find((s) => s.userId === userId);
     if (!userSplit) continue;
-    const divisor = tx.type === "parcialidad" && tx.installmentTotal
-      ? tx.installmentTotal
-      : 1;
+    const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
     const totalAmount = tx.originalAmount / divisor;
     const splitAmount = userSplit.amount / divisor;
     if (tx.userPaid === userId) {
@@ -56,9 +51,7 @@ export function calculatePairwiseBreakdown(
         if (recipient && net[recipient.userId] !== undefined) {
           net[recipient.userId] += tx.originalAmount;
         }
-      } else if (
-        tx.splitJson.splits.some((s) => s.userId === currentUserId)
-      ) {
+      } else if (tx.splitJson.splits.some((s) => s.userId === currentUserId)) {
         if (net[tx.userPaid] !== undefined) {
           net[tx.userPaid] -= tx.originalAmount;
         }
@@ -66,12 +59,8 @@ export function calculatePairwiseBreakdown(
       continue;
     }
 
-    const divisor = tx.type === "parcialidad" && tx.installmentTotal
-      ? tx.installmentTotal
-      : 1;
-    const currentUserSplit = tx.splitJson.splits.find((s) =>
-      s.userId === currentUserId
-    );
+    const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
+    const currentUserSplit = tx.splitJson.splits.find((s) => s.userId === currentUserId);
     if (!currentUserSplit) continue;
 
     if (tx.userPaid === currentUserId) {
@@ -137,9 +126,7 @@ export function calculateFullPairwiseBalances(
       continue;
     }
 
-    const divisor = tx.type === "parcialidad" && tx.installmentTotal
-      ? tx.installmentTotal
-      : 1;
+    const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
 
     for (const split of tx.splitJson.splits) {
       if (split.userId !== tx.userPaid) {
@@ -155,9 +142,7 @@ export function calculateFullPairwiseBalances(
     for (let j = i + 1; j < userIds.length; j++) {
       const a = userIds[i];
       const b = userIds[j];
-      const netAmount = Math.round(
-        ((net[a][b] ?? 0) - (net[b][a] ?? 0)) * 100,
-      ) / 100;
+      const netAmount = Math.round(((net[a][b] ?? 0) - (net[b][a] ?? 0)) * 100) / 100;
       if (Math.abs(netAmount) < 0.01) continue;
 
       if (netAmount > 0) {
@@ -191,15 +176,11 @@ export function computeDefaultPercentages(
     const userIds = new Set(participants.map((u) => u.id));
     const allPresent = defaultSplit.splits.every((s) => userIds.has(s.userId));
     if (allPresent) {
-      return Object.fromEntries(
-        defaultSplit.splits.map((s) => [s.userId, s.percentage]),
-      );
+      return Object.fromEntries(defaultSplit.splits.map((s) => [s.userId, s.percentage]));
     }
   }
   return Object.fromEntries(
-    participants.map((
-      u,
-    ) => [u.id, Math.round(10000 / participants.length) / 100]),
+    participants.map((u) => [u.id, Math.round(10000 / participants.length) / 100]),
   );
 }
 
@@ -226,7 +207,7 @@ export function buildPercentageSplit(
   const splits: SplitEntry[] = percentages.map((p) => ({
     userId: p.userId,
     percentage: p.percentage,
-    amount: fromCents(Math.round(totalCents * p.percentage / 100)),
+    amount: fromCents(Math.round((totalCents * p.percentage) / 100)),
   }));
   return { splits };
 }
@@ -238,9 +219,7 @@ export function buildFixedSplit(
   const totalCents = toCents(total);
   const splits: SplitEntry[] = amounts.map((a) => ({
     userId: a.userId,
-    percentage: totalCents > 0
-      ? Math.round((toCents(a.amount) / totalCents) * 10000) / 100
-      : 0,
+    percentage: totalCents > 0 ? Math.round((toCents(a.amount) / totalCents) * 10000) / 100 : 0,
     amount: a.amount,
   }));
   return { splits };

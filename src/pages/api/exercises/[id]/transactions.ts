@@ -1,8 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  getExerciseByIdForUser,
-  getTransactionsByExerciseForUser,
-} from "@/lib/store";
+import { getExerciseByIdForUser, getTransactionsByExerciseForUser } from "@/lib/store";
 
 export const GET: APIRoute = async (ctx) => {
   const exerciseId = ctx.params.id;
@@ -23,9 +20,6 @@ export const GET: APIRoute = async (ctx) => {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
 
-  const transactions = await getTransactionsByExerciseForUser(
-    exerciseId,
-    userId,
-  );
+  const transactions = await getTransactionsByExerciseForUser(exerciseId, userId);
   return Response.json({ transactions });
 };

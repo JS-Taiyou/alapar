@@ -7,17 +7,9 @@ import {
   getTransactionsByIds,
   getUsers,
 } from "@/lib/store";
-import {
-  getCachedTransactions,
-  getStamp,
-  invalidateRegistry,
-} from "@/lib/server-cache";
+import { getCachedTransactions, getStamp, invalidateRegistry } from "@/lib/server-cache";
 import { sendPushToRegistry } from "@/lib/push";
-import {
-  countActiveTemplates,
-  getRegistryPlan,
-  upgradeRequired,
-} from "@/lib/entitlements";
+import { countActiveTemplates, getRegistryPlan, upgradeRequired } from "@/lib/entitlements";
 import { parseTransactionForm } from "@/lib/transaction-validation";
 import { formatMoney } from "@/lib/format";
 import { generateETag } from "@/lib/etag";
@@ -28,16 +20,11 @@ export const GET: APIRoute = async (ctx) => {
     return Response.json({ transactions: [] });
   }
 
-  const { transactions } = await getCachedTransactions(
-    registryId,
-    () => getActiveTransactions(registryId),
+  const { transactions } = await getCachedTransactions(registryId, () =>
+    getActiveTransactions(registryId),
   );
-  const transactionPayments = await getTransactionPaymentsForRegistry(
-    registryId,
-  );
-  const participantMap = new Map(
-    ctx.locals.participants.map((p) => [p.id, p]),
-  );
+  const transactionPayments = await getTransactionPaymentsForRegistry(registryId);
+  const participantMap = new Map(ctx.locals.participants.map((p) => [p.id, p]));
   const enriched = transactions.map((tx) => ({
     ...tx,
     paidByUser: participantMap.get(tx.userPaid) ?? null,
@@ -49,9 +36,12 @@ export const GET: APIRoute = async (ctx) => {
     return new Response(null, { status: 304, headers: { ETag: etag } });
   }
 
-  return Response.json({ transactions: enriched, transactionPayments }, {
-    headers: { ETag: etag, "Cache-Control": "no-cache" },
-  });
+  return Response.json(
+    { transactions: enriched, transactionPayments },
+    {
+      headers: { ETag: etag, "Cache-Control": "no-cache" },
+    },
+  );
 };
 
 export const POST: APIRoute = async (ctx) => {
@@ -74,22 +64,29 @@ export const POST: APIRoute = async (ctx) => {
   // Cross-reference validation (S7): the payer and every split recipient
   // must be participants (users or entities) of the TARGET registry, and
   // every referenced transaction must live in that same registry.
-  const participantIds = registryId === ctx.locals.activeRegistry?.id
-    ? ctx.locals.participants.map((p) => p.id)
-    : [
-      ...(await getUsers(registryId)).map((u) => u.id),
-      ...(await getEntities(registryId, userId)).map((e) => e.id),
-    ];
+  const participantIds =
+    registryId === ctx.locals.activeRegistry?.id
+      ? ctx.locals.participants.map((p) => p.id)
+      : [
+          ...(await getUsers(registryId)).map((u) => u.id),
+          ...(await getEntities(registryId, userId)).map((e) => e.id),
+        ];
   if (!participantIds.includes(data.userPaid)) {
-    return Response.json({ error: "Usuario pagador inválido" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Usuario pagador inválido" },
+      {
+        status: 400,
+      },
+    );
   }
   const splitUserIds = data.splitJson.splits.map((s) => s.userId);
   if (splitUserIds.some((id) => !participantIds.includes(id))) {
-    return Response.json({ error: "Participante inválido en el split" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Participante inválido en el split" },
+      {
+        status: 400,
+      },
+    );
   }
 
   const refIds = [
@@ -100,9 +97,12 @@ export const POST: APIRoute = async (ctx) => {
     const refs = await getTransactionsByIds(refIds);
     const refRegistryById = new Map(refs.map((t) => [t.id, t.registry_id]));
     if (refIds.some((refId) => refRegistryById.get(refId) !== registryId)) {
-      return Response.json({ error: "Referencia inválida" }, {
-        status: 400,
-      });
+      return Response.json(
+        { error: "Referencia inválida" },
+        {
+          status: 400,
+        },
+      );
     }
   }
 
@@ -159,14 +159,16 @@ export const POST: APIRoute = async (ctx) => {
 
   invalidateRegistry(registryId);
 
-  sendPushToRegistry(registryId, {
-    title: "Nueva transacción",
-    body: `${data.description} — $${formatMoney(data.originalAmount)}`,
+  sendPushToRegistry(
     registryId,
-    url: "/dashboard",
-  }, userId).catch((err) =>
-    console.error("[push] sendPushToRegistry failed:", err)
-  );
+    {
+      title: "Nueva transacción",
+      body: `${data.description} — $${formatMoney(data.originalAmount)}`,
+      registryId,
+      url: "/dashboard",
+    },
+    userId,
+  ).catch((err) => console.error("[push] sendPushToRegistry failed:", err));
 
   // The fresh stamp lets the creating client label its snapshot with the
   // version its own write produced (otherwise it stores the pre-mutation

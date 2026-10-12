@@ -32,72 +32,54 @@ export const POST: APIRoute = async (ctx) => {
   }
 
   const body = await ctx.request.json().catch(() => ({}));
-  const interval = (body as { interval?: string }).interval === "yearly"
-    ? "yearly"
-    : "monthly";
+  const interval = (body as { interval?: string }).interval === "yearly" ? "yearly" : "monthly";
 
   if (!billingConfigured()) {
-    return Response.json({ error: "Billing is not configured" }, {
-      status: 503,
-    });
+    return Response.json(
+      { error: "Billing is not configured" },
+      {
+        status: 503,
+      },
+    );
   }
 
   const sub = await query(
     `SELECT polar_subscription_id FROM registry_subscriptions WHERE user_id = $1`,
     [userId],
   );
-  const subscriptionId = (sub.rows[0] as
-    | { polar_subscription_id?: string }
-    | undefined)?.polar_subscription_id;
+  const subscriptionId = (sub.rows[0] as { polar_subscription_id?: string } | undefined)
+    ?.polar_subscription_id;
   if (!subscriptionId) {
-    return Response.json(
-      { error: "No subscription found for this account" },
-      { status: 404 },
-    );
+    return Response.json({ error: "No subscription found for this account" }, { status: 404 });
   }
 
   const [target, current] = await Promise.all([
     getPolarProductIds(),
     getSubscription(subscriptionId),
   ]);
-  const targetProductId = interval === "yearly"
-    ? target.yearly
-    : target.monthly;
+  const targetProductId = interval === "yearly" ? target.yearly : target.monthly;
   if (!targetProductId) {
-    return Response.json(
-      { error: "That plan is not available" },
-      { status: 404 },
-    );
+    return Response.json({ error: "That plan is not available" }, { status: 404 });
   }
   if (!current) {
-    return Response.json(
-      { error: "Subscription lookup failed" },
-      { status: 502 },
-    );
+    return Response.json({ error: "Subscription lookup failed" }, { status: 502 });
   }
   if (
-    current.status === "canceled" || current.status === "revoked" ||
-    current.status === "incomplete_expired" || current.status === "unpaid"
+    current.status === "canceled" ||
+    current.status === "revoked" ||
+    current.status === "incomplete_expired" ||
+    current.status === "unpaid"
   ) {
-    return Response.json(
-      { error: "Subscription is no longer switchable" },
-      { status: 409 },
-    );
+    return Response.json({ error: "Subscription is no longer switchable" }, { status: 409 });
   }
   if (current.productId === targetProductId) {
     // Already on the target plan — nothing to charge, nothing to do.
     return Response.json({ ok: true, unchanged: true });
   }
 
-  const updated = await switchSubscriptionProduct(
-    subscriptionId,
-    targetProductId,
-  );
+  const updated = await switchSubscriptionProduct(subscriptionId, targetProductId);
   if (!updated) {
-    return Response.json(
-      { error: "Polar rejected the plan change" },
-      { status: 502 },
-    );
+    return Response.json({ error: "Polar rejected the plan change" }, { status: 502 });
   }
 
   // Mirror the new period end so the UI is right before the webhook lands;

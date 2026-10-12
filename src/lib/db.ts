@@ -47,9 +47,7 @@ async function runLogged(
   try {
     const result = await executor(text, params);
     if (isDev) {
-      console.log(
-        `[DB] << OK (${Date.now() - start}ms, ${result.rows.length} rows)`,
-      );
+      console.log(`[DB] << OK (${Date.now() - start}ms, ${result.rows.length} rows)`);
     }
     return result as QueryResult<Record<string, unknown>>;
   } catch (err) {
@@ -69,12 +67,9 @@ async function runLogged(
  * in the unit go through the `q` passed to `fn` — using the module-level
  * `query` inside would escape the transaction.
  */
-export async function withTransaction<T>(
-  fn: (q: QueryFn) => Promise<T>,
-): Promise<T> {
+export async function withTransaction<T>(fn: (q: QueryFn) => Promise<T>): Promise<T> {
   const client: PoolClient = await pool.connect();
-  const q: QueryFn = (text, params) =>
-    runLogged(client.query.bind(client), text, params);
+  const q: QueryFn = (text, params) => runLogged(client.query.bind(client), text, params);
   try {
     await client.query("BEGIN");
     const result = await fn(q);

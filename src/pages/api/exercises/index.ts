@@ -22,9 +22,7 @@ export const GET: APIRoute = async (ctx) => {
 
 export const POST: APIRoute = async (ctx) => {
   let body: { registryId?: unknown } = {};
-  const hasJsonBody = (ctx.request.headers.get("content-type") ?? "").includes(
-    "application/json",
-  );
+  const hasJsonBody = (ctx.request.headers.get("content-type") ?? "").includes("application/json");
   if (hasJsonBody) {
     try {
       body = await ctx.request.json();
@@ -37,9 +35,7 @@ export const POST: APIRoute = async (ctx) => {
     }
   }
 
-  const requestedRegistryId = typeof body.registryId === "string"
-    ? body.registryId
-    : undefined;
+  const requestedRegistryId = typeof body.registryId === "string" ? body.registryId : undefined;
   const registryId = requestedRegistryId ?? ctx.locals.activeRegistry?.id;
   const userId = ctx.locals.user?.id;
   if (!registryId || !userId) {
@@ -55,9 +51,12 @@ export const POST: APIRoute = async (ctx) => {
   if (!ctx.locals.ownerRegistryIds.has(registryId)) {
     const accept = ctx.request.headers.get("Accept") ?? "";
     if (accept.includes("application/json")) {
-      return Response.json({ error: "Only owners can close an exercise" }, {
-        status: 403,
-      });
+      return Response.json(
+        { error: "Only owners can close an exercise" },
+        {
+          status: 403,
+        },
+      );
     }
     return ctx.redirect("/dashboard");
   }
@@ -95,8 +94,7 @@ export const POST: APIRoute = async (ctx) => {
         const ajuste = await createTransaction(
           {
             registry_id: registryId,
-            description:
-              `Pendiente de ${debt.fromUserName} a favor de ${debt.toUserName}`,
+            description: `Pendiente de ${debt.fromUserName} a favor de ${debt.toUserName}`,
             amount: debt.amount,
             originalAmount: debt.amount,
             type: "ajuste" as const,
@@ -108,11 +106,13 @@ export const POST: APIRoute = async (ctx) => {
             recurringGroupId: crypto.randomUUID(),
             notes: "Ajuste de balance pendiente del ejercicio anterior",
             splitJson: {
-              splits: [{
-                userId: debt.fromUserId,
-                percentage: 100,
-                amount: debt.amount,
-              }],
+              splits: [
+                {
+                  userId: debt.fromUserId,
+                  percentage: 100,
+                  amount: debt.amount,
+                },
+              ],
             },
             creatorId: debt.toUserId,
             userPaid: debt.toUserId,

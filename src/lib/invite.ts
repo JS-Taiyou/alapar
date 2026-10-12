@@ -47,9 +47,7 @@ export function validateInvitation(
   if (invitation.expiresAt && invitation.expiresAt < now) {
     return { ok: false, reason: "expired" };
   }
-  if (
-    invitation.maxUses !== null && invitation.currentUses >= invitation.maxUses
-  ) {
+  if (invitation.maxUses !== null && invitation.currentUses >= invitation.maxUses) {
     return { ok: false, reason: "max-uses" };
   }
   return { ok: true };
@@ -97,9 +95,7 @@ export const INVITE_ALPHABET_CHARS = INVITE_ALPHABET;
  *   - `parcialidad` is a candidate only when `installmentCurrent` and
  *     `installmentTotal` are both non-null and `current < total`.
  */
-export function filterSpawnCandidates(
-  transactions: Transaction[],
-): Transaction[] {
+export function filterSpawnCandidates(transactions: Transaction[]): Transaction[] {
   const disabledGroups = new Set<string>();
   for (const t of transactions) {
     if (t.recurringDisabled) disabledGroups.add(t.recurringGroupId);
@@ -120,7 +116,8 @@ export function filterSpawnCandidates(
       if (t.exerciseId !== null) candidates.push(t);
     } else if (t.type === "parcialidad") {
       if (
-        t.installmentCurrent !== null && t.installmentTotal !== null &&
+        t.installmentCurrent !== null &&
+        t.installmentTotal !== null &&
         t.installmentCurrent < t.installmentTotal
       ) {
         candidates.push(t);

@@ -1,11 +1,6 @@
 import type { Participant, Transaction } from "../lib/types";
 import { formatMoney } from "../lib/format";
-import {
-  formatDate,
-  formatTime,
-  type Locale,
-  t as translate,
-} from "../lib/i18n";
+import { formatDate, formatTime, type Locale, t as translate } from "../lib/i18n";
 
 interface TransactionCardProps {
   transaction: Transaction;
@@ -17,13 +12,7 @@ interface TransactionCardProps {
 }
 
 export default function TransactionCard(props: TransactionCardProps) {
-  const {
-    transaction: tx,
-    paidByUser,
-    currentUserId,
-    allUsers,
-    relatedDescription,
-  } = props;
+  const { transaction: tx, paidByUser, currentUserId, allUsers, relatedDescription } = props;
 
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(props.locale ?? "es", key, params);
@@ -31,21 +20,17 @@ export default function TransactionCard(props: TransactionCardProps) {
   if (tx.type === "pago" || tx.type === "ajuste") {
     const isPayer = tx.userPaid === currentUserId;
     const recipientSplit = tx.splitJson.splits[0];
-    const recipientUser = recipientSplit && allUsers
-      ? allUsers.find((u) => u.id === recipientSplit.userId)
-      : null;
+    const recipientUser =
+      recipientSplit && allUsers ? allUsers.find((u) => u.id === recipientSplit.userId) : null;
     const payerUser = paidByUser;
     const formattedAmount = formatMoney(tx.originalAmount);
 
-    const badgeBg = tx.type === "pago"
-      ? "bg-indigo-500/20 text-indigo-300 border-l-indigo-500"
-      : "bg-amber-500/20 text-amber-300 border-l-amber-500";
-    const badgeText = tx.type === "pago"
-      ? t("tx.badge_payment")
-      : t("tx.badge_adjustment");
-    const amountColor = tx.type === "pago"
-      ? "text-indigo-400"
-      : "text-amber-400";
+    const badgeBg =
+      tx.type === "pago"
+        ? "bg-indigo-500/20 text-indigo-300 border-l-indigo-500"
+        : "bg-amber-500/20 text-amber-300 border-l-amber-500";
+    const badgeText = tx.type === "pago" ? t("tx.badge_payment") : t("tx.badge_adjustment");
+    const amountColor = tx.type === "pago" ? "text-indigo-400" : "text-amber-400";
 
     let label = "";
     if (isPayer && recipientUser) {
@@ -61,26 +46,21 @@ export default function TransactionCard(props: TransactionCardProps) {
         <div class="flex flex-col">
           <span class="text-lg font-semibold text-white flex items-center gap-2">
             {tx.description}
-            <span
-              class={`text-xs font-medium px-2 py-0.5 rounded ${badgeBg}`}
-            >
-              {badgeText}
-            </span>
+            <span class={`text-xs font-medium px-2 py-0.5 rounded ${badgeBg}`}>{badgeText}</span>
           </span>
           <span class="text-sm text-gray-500">
             {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
             {formatTime(tx.createdAt, props.locale ?? "es")}
             {label && (
               <>
-                {" "}&bull; <span class={amountColor}>{label}</span>
+                {" "}
+                &bull; <span class={amountColor}>{label}</span>
               </>
             )}
             {relatedDescription && (
               <>
-                {" "}&bull;{" "}
-                <span class="text-slate-400">
-                  Vinculado: {relatedDescription}
-                </span>
+                {" "}
+                &bull; <span class="text-slate-400">Vinculado: {relatedDescription}</span>
               </>
             )}
           </span>
@@ -96,9 +76,7 @@ export default function TransactionCard(props: TransactionCardProps) {
 
   const isPaidByMe = tx.userPaid === currentUserId;
   const userSplit = tx.splitJson.splits.find((s) => s.userId === currentUserId);
-  const divisor = tx.type === "parcialidad" && tx.installmentTotal
-    ? tx.installmentTotal
-    : 1;
+  const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
   const perInstallmentTotal = tx.originalAmount / divisor;
   const perInstallmentSplit = (userSplit?.amount ?? 0) / divisor;
   const personalBalance = isPaidByMe
@@ -115,7 +93,8 @@ export default function TransactionCard(props: TransactionCardProps) {
           {formatTime(tx.createdAt, props.locale ?? "es")}
           {paidByUser && (
             <>
-              {" "}&bull;{" "}
+              {" "}
+              &bull;{" "}
               <span
                 class={`text-xs px-1.5 py-0.5 rounded ${
                   isPaidByMe
@@ -127,10 +106,10 @@ export default function TransactionCard(props: TransactionCardProps) {
               </span>
             </>
           )}
-          {tx.type === "parcialidad" && tx.installmentCurrent &&
-            tx.installmentTotal && (
+          {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
             <>
-              {" "}&bull;{" "}
+              {" "}
+              &bull;{" "}
               <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400">
                 {t("tx.badge_installment", {
                   current: tx.installmentCurrent,
@@ -142,11 +121,7 @@ export default function TransactionCard(props: TransactionCardProps) {
         </span>
       </div>
       <div class="text-right flex flex-col items-end">
-        <span
-          class={`text-xl font-bold ${
-            isPositive ? "text-green-500" : "text-red-500"
-          }`}
-        >
+        <span class={`text-xl font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}>
           {isPositive ? "+" : "-"} ${formatMoney(Math.abs(personalBalance))}
         </span>
         <span class="text-xs text-slate-500">

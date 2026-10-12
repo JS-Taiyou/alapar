@@ -55,31 +55,24 @@ export function rowToUser(row: Record<string, unknown>): User {
   };
 }
 
-export function rowToTransaction(
-  row: Record<string, unknown>,
-): Transaction {
+export function rowToTransaction(row: Record<string, unknown>): Transaction {
   return {
     id: row.id as string,
     registry_id: row.registry_id as string,
     description: row.description as string,
     amount: num(row.amount),
     originalAmount: num(row.original_amount),
-    type: row.type as
-      | "unico"
-      | "parcialidad"
-      | "recurrente"
-      | "pago"
-      | "ajuste",
+    type: row.type as "unico" | "parcialidad" | "recurrente" | "pago" | "ajuste",
     exerciseId: row.exercise_id as string | null,
     installmentCurrent: row.installment_current as number | null,
     installmentTotal: row.installment_total as number | null,
     recurringDisabled: (row.recurring_disabled as boolean) ?? false,
-    recurringGroupId: (row.recurring_group_id as string) ??
-      row.id as string,
+    recurringGroupId: (row.recurring_group_id as string) ?? (row.id as string),
     notes: row.notes as string,
-    splitJson: typeof row.split_json === "string"
-      ? JSON.parse(row.split_json)
-      : row.split_json as TransactionSplit,
+    splitJson:
+      typeof row.split_json === "string"
+        ? JSON.parse(row.split_json)
+        : (row.split_json as TransactionSplit),
     relatedTransactionId: (row.related_transaction_id as string) ?? null,
     creatorId: row.creator_id as string,
     userPaid: row.user_paid as string,
@@ -87,9 +80,7 @@ export function rowToTransaction(
   };
 }
 
-export function rowToTransactionPayment(
-  row: Record<string, unknown>,
-): TransactionPayment {
+export function rowToTransactionPayment(row: Record<string, unknown>): TransactionPayment {
   return {
     id: row.id as string,
     pagoId: row.pago_id as string,
@@ -99,9 +90,7 @@ export function rowToTransactionPayment(
   };
 }
 
-export function rowToExercise(
-  row: Record<string, unknown>,
-): Exercise {
+export function rowToExercise(row: Record<string, unknown>): Exercise {
   return {
     id: row.id as string,
     registry_id: row.registry_id as string,
@@ -119,15 +108,12 @@ export function rowToRegistry(row: Record<string, unknown>): Registry {
     isDefault: row.is_default as boolean,
     latestAccessed: new Date(row.latest_accessed as string),
     defaultSplit: row.default_split_json
-      ? (typeof row.default_split_json === "string"
+      ? typeof row.default_split_json === "string"
         ? JSON.parse(row.default_split_json)
-        : row.default_split_json as DefaultSplit)
+        : (row.default_split_json as DefaultSplit)
       : null,
-    defaultSplitMemberCount: (row.default_split_member_count as number) ??
-      null,
-    lastModified: row.last_modified
-      ? new Date(row.last_modified as string)
-      : null,
+    defaultSplitMemberCount: (row.default_split_member_count as number) ?? null,
+    lastModified: row.last_modified ? new Date(row.last_modified as string) : null,
   };
 }
 

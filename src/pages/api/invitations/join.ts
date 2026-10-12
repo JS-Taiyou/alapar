@@ -20,14 +20,20 @@ export const POST: APIRoute = async (ctx) => {
     // localized message; every other failure stays a plain 400.
     // instanceof (vs message matching) keeps the contract drift-proof.
     if (err instanceof GroupFullError) {
-      return Response.json({
-        code: "upgrade_required",
-        reason: "members",
-        error: t(ctx.locals.locale, "billing.group_full"),
-      }, { status: 402 });
+      return Response.json(
+        {
+          code: "upgrade_required",
+          reason: "members",
+          error: t(ctx.locals.locale, "billing.group_full"),
+        },
+        { status: 402 },
+      );
     }
-    return Response.json({
-      error: err instanceof Error ? err.message : "Unknown error",
-    }, { status: 400 });
+    return Response.json(
+      {
+        error: err instanceof Error ? err.message : "Unknown error",
+      },
+      { status: 400 },
+    );
   }
 };

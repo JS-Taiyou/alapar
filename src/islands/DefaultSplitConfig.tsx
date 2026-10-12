@@ -24,25 +24,15 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
   const currentMembers = props.users;
 
   const initialPercentages = (): Record<string, number> => {
-    if (
-      props.defaultSplit &&
-      props.defaultSplit.splits.length === currentMembers.length
-    ) {
+    if (props.defaultSplit && props.defaultSplit.splits.length === currentMembers.length) {
       const userIds = new Set(currentMembers.map((u) => u.id));
-      const allPresent = props.defaultSplit.splits.every((s) =>
-        userIds.has(s.userId)
-      );
+      const allPresent = props.defaultSplit.splits.every((s) => userIds.has(s.userId));
       if (allPresent) {
-        return Object.fromEntries(
-          props.defaultSplit.splits.map((s) => [s.userId, s.percentage]),
-        );
+        return Object.fromEntries(props.defaultSplit.splits.map((s) => [s.userId, s.percentage]));
       }
     }
     return Object.fromEntries(
-      currentMembers.map((u) => [
-        u.id,
-        Math.round((100 / currentMembers.length) * 100) / 100,
-      ]),
+      currentMembers.map((u) => [u.id, Math.round((100 / currentMembers.length) * 100) / 100]),
     );
   };
 
@@ -53,8 +43,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
       const otherId = currentMembers.find((u) => u.id !== userId)?.id;
       if (otherId) {
         const newPcts = { ...percentages.value };
-        newPcts[otherId] = Math.round((100 - (newPcts[userId] ?? 0)) * 100) /
-          100;
+        newPcts[otherId] = Math.round((100 - (newPcts[userId] ?? 0)) * 100) / 100;
         percentages.value = newPcts;
       }
     }
@@ -66,10 +55,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
 
   function resetToEqual() {
     percentages.value = Object.fromEntries(
-      currentMembers.map((u) => [
-        u.id,
-        Math.round((100 / currentMembers.length) * 100) / 100,
-      ]),
+      currentMembers.map((u) => [u.id, Math.round((100 / currentMembers.length) * 100) / 100]),
     );
   }
 
@@ -80,9 +66,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
 
     const total = totalPercentage();
     if (Math.abs(total - 100) >= 0.01) {
-      error.value = `Los porcentajes suman ${
-        total.toFixed(1)
-      }%, deben sumar 100%`;
+      error.value = `Los porcentajes suman ${total.toFixed(1)}%, deben sumar 100%`;
       loading.value = false;
       return;
     }
@@ -147,15 +131,10 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
       {!props.autoOpen && (
         <button
           type="button"
-          onClick={() => isOpen.value = true}
+          onClick={() => (isOpen.value = true)}
           class="w-full flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-white justify-center py-2.5 px-3"
         >
-          <svg
-            class="w-5 h-5 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
               stroke-linecap="round"
@@ -208,20 +187,14 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
         >
           <div class="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
             {error.value && <p class="text-sm text-red-300">{error.value}</p>}
-            {success.value && (
-              <p class="text-sm text-emerald-300">Guardado exitosamente</p>
-            )}
+            {success.value && <p class="text-sm text-emerald-300">Guardado exitosamente</p>}
 
             <div class="border border-white/10 rounded-custom overflow-hidden">
               <table class="w-full text-left border-collapse">
                 <thead class="bg-white/5">
                   <tr>
-                    <th class="px-4 py-3 text-xs font-semibold text-zinc-400">
-                      MIEMBRO
-                    </th>
-                    <th class="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">
-                      %
-                    </th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-400">MIEMBRO</th>
+                    <th class="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">%</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-border-custom">
@@ -239,10 +212,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                             </div>
                             <span class="text-sm font-medium text-white flex items-center gap-1.5">
                               {user.name}
-                              <ProBadge
-                                pro={user.pro}
-                                locale={props.locale}
-                              />
+                              <ProBadge pro={user.pro} locale={props.locale} />
                             </span>
                           </div>
                         </td>
@@ -257,8 +227,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                                 const sanitized = sanitizeDecimal(
                                   (e.target as HTMLInputElement).value,
                                 );
-                                (e.target as HTMLInputElement).value =
-                                  sanitized;
+                                (e.target as HTMLInputElement).value = sanitized;
                                 const v = parseFloat(sanitized) || 0;
                                 percentages.value = {
                                   ...percentages.value,
@@ -276,9 +245,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                 </tbody>
                 <tfoot class="bg-white/5">
                   <tr>
-                    <td class="px-4 py-2 text-xs font-bold text-zinc-400 italic">
-                      TOTAL
-                    </td>
+                    <td class="px-4 py-2 text-xs font-bold text-zinc-400 italic">TOTAL</td>
                     <td
                       class={`px-4 py-2 text-right text-xs font-bold ${
                         isValid ? "text-white" : "text-red-400"

@@ -36,13 +36,13 @@ export default function AuthForm(props: AuthFormProps) {
   const successMessage = useSignal("");
   const loading = useSignal(false);
 
-  const redirectParam = typeof globalThis.location !== "undefined"
-    ? new URL(globalThis.location.href).searchParams.get("redirect")
-    : null;
+  const redirectParam =
+    typeof globalThis.location !== "undefined"
+      ? new URL(globalThis.location.href).searchParams.get("redirect")
+      : null;
   // Open-redirect guard: only relative same-origin paths are honored.
-  const redirectPath = redirectParam && /^\/(?!\/)/.test(redirectParam)
-    ? redirectParam
-    : "/dashboard";
+  const redirectPath =
+    redirectParam && /^\/(?!\/)/.test(redirectParam) ? redirectParam : "/dashboard";
 
   let client: SupabaseClient;
   try {
@@ -68,23 +68,19 @@ export default function AuthForm(props: AuthFormProps) {
       // here (and only here): the PKCE code verifier must survive the
       // redirect round-trip to Google and back, which means web storage.
       // AuthCallback wipes the stored keys once the exchange completes.
-      const oauthClient = createClient(
-        props.supabaseUrl,
-        props.supabaseAnonKey,
-        {
-          auth: {
-            flowType: "pkce",
-            persistSession: true,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-          },
+      const oauthClient = createClient(props.supabaseUrl, props.supabaseAnonKey, {
+        auth: {
+          flowType: "pkce",
+          persistSession: true,
+          autoRefreshToken: false,
+          detectSessionInUrl: false,
         },
-      );
+      });
       const { error: oauthError } = await oauthClient.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: globalThis.location.origin + "/auth/callback?next=" +
-            encodeURIComponent(redirectPath),
+          redirectTo:
+            globalThis.location.origin + "/auth/callback?next=" + encodeURIComponent(redirectPath),
         },
       });
       if (oauthError) {
@@ -94,9 +90,7 @@ export default function AuthForm(props: AuthFormProps) {
       }
       // On success the browser navigates away to Google — nothing to clean up.
     } catch (err) {
-      error.value = err instanceof Error
-        ? err.message
-        : t("common.error_unknown");
+      error.value = err instanceof Error ? err.message : t("common.error_unknown");
       loading.value = false;
     }
   }
@@ -115,24 +109,21 @@ export default function AuthForm(props: AuthFormProps) {
         // returned #access_token=… to the target page, where nothing
         // consumed it: confirmed, but forced to log in again.) Same config
         // as the Google client below, for the same redirect-survival reason.
-        const signupClient = createClient(
-          props.supabaseUrl,
-          props.supabaseAnonKey,
-          {
-            auth: {
-              flowType: "pkce",
-              persistSession: true,
-              autoRefreshToken: false,
-              detectSessionInUrl: false,
-            },
+        const signupClient = createClient(props.supabaseUrl, props.supabaseAnonKey, {
+          auth: {
+            flowType: "pkce",
+            persistSession: true,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
           },
-        );
+        });
         const { data, error: signUpError } = await signupClient.auth.signUp({
           email: email.value,
           password: password.value,
           options: {
             data: { name: name.value },
-            emailRedirectTo: globalThis.location.origin +
+            emailRedirectTo:
+              globalThis.location.origin +
               "/auth/callback?next=" +
               encodeURIComponent(redirectPath),
           },
@@ -147,37 +138,28 @@ export default function AuthForm(props: AuthFormProps) {
           // Confirmation disabled: we hold the session in memory, cookies
           // carry it from here — nothing may stay in web storage.
           clearSupabaseBrowserStorage();
-          await sendCallback(
-            data.session.access_token,
-            data.session.refresh_token,
-          );
+          await sendCallback(data.session.access_token, data.session.refresh_token);
         } else {
           successMessage.value = t("auth.check_email");
           loading.value = false;
           return;
         }
       } else {
-        const { data, error: signInError } = await client.auth
-          .signInWithPassword({
-            email: email.value,
-            password: password.value,
-          });
+        const { data, error: signInError } = await client.auth.signInWithPassword({
+          email: email.value,
+          password: password.value,
+        });
         if (signInError) {
           error.value = friendlyAuthError(signInError.message, t);
           loading.value = false;
           return;
         }
         if (data.session) {
-          await sendCallback(
-            data.session.access_token,
-            data.session.refresh_token,
-          );
+          await sendCallback(data.session.access_token, data.session.refresh_token);
         }
       }
     } catch (err) {
-      error.value = err instanceof Error
-        ? err.message
-        : t("common.error_unknown");
+      error.value = err instanceof Error ? err.message : t("common.error_unknown");
       loading.value = false;
     }
   }
@@ -203,222 +185,183 @@ export default function AuthForm(props: AuthFormProps) {
 
   return (
     <form onSubmit={handleSubmit} class="space-y-5">
-      {successMessage.value
-        ? (
-          <div class="text-sm text-blue-200 bg-blue-500/20 border border-blue-500/30 rounded-custom px-4 py-3 text-center">
-            {successMessage.value}
-          </div>
-        )
-        : (
-          <>
-            {props.mode === "signup" && (
-              <div>
-                <label
-                  class="block text-sm font-medium text-zinc-300 mb-1.5"
-                  for="name"
-                >
-                  {t("auth.name")}
-                </label>
-                <input
-                  class="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
-                  id="name"
-                  type="text"
-                  placeholder={t("auth.name_placeholder")}
-                  value={name.value}
-                  onInput={(e) =>
-                    name.value = (e.target as HTMLInputElement).value}
-                  required
-                />
-              </div>
-            )}
+      {successMessage.value ? (
+        <div class="text-sm text-blue-200 bg-blue-500/20 border border-blue-500/30 rounded-custom px-4 py-3 text-center">
+          {successMessage.value}
+        </div>
+      ) : (
+        <>
+          {props.mode === "signup" && (
             <div>
-              <label
-                class="block text-sm font-medium text-zinc-300 mb-1.5"
-                for="email"
-              >
-                {t("auth.email")}
+              <label class="block text-sm font-medium text-zinc-300 mb-1.5" for="name">
+                {t("auth.name")}
               </label>
               <input
                 class="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
-                id="email"
-                type="email"
-                placeholder={t("auth.email_placeholder")}
-                value={email.value}
-                onInput={(e) =>
-                  email.value = (e.target as HTMLInputElement).value}
+                id="name"
+                type="text"
+                placeholder={t("auth.name_placeholder")}
+                value={name.value}
+                onInput={(e) => (name.value = (e.target as HTMLInputElement).value)}
                 required
               />
             </div>
-            <div>
-              <label
-                class="block text-sm font-medium text-zinc-300 mb-1.5"
-                for="password"
-              >
-                {t("auth.password")}
-              </label>
-              <div class="relative">
-                <input
-                  class="block w-full px-4 py-2.5 pr-11 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
-                  id="password"
-                  type={showPassword.value ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password.value}
-                  onInput={(e) =>
-                    password.value = (e.target as HTMLInputElement).value}
-                  minLength={6}
-                  required
-                />
-                <button
-                  type="button"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300"
-                  onClick={() => showPassword.value = !showPassword.value}
-                  tabIndex={-1}
-                  aria-label={showPassword.value
-                    ? t("auth.hide_password")
-                    : t("auth.show_password")}
-                >
-                  {showPassword.value
-                    ? (
-                      <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"
-                        />
-                      </svg>
-                    )
-                    : (
-                      <svg
-                        class="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                    )}
-                </button>
-              </div>
-            </div>
-
-            {error.value && (
-              <div class="text-sm text-red-300 bg-red-500/20 border border-red-500/30 rounded-custom px-4 py-2">
-                {error.value}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={loading.value}
-              class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-medium rounded-custom transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-            >
-              <svg class="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  fill="#EA4335"
-                />
-              </svg>
-              {loading.value ? t("common.loading") : t("auth.google")}
-            </button>
-
+          )}
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1.5" for="email">
+              {t("auth.email")}
+            </label>
+            <input
+              class="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+              id="email"
+              type="email"
+              placeholder={t("auth.email_placeholder")}
+              value={email.value}
+              onInput={(e) => (email.value = (e.target as HTMLInputElement).value)}
+              required
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-zinc-300 mb-1.5" for="password">
+              {t("auth.password")}
+            </label>
             <div class="relative">
-              <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-white/10" />
-              </div>
-              <div class="relative flex justify-center text-sm">
-                <span class="bg-surface px-3 text-zinc-500">
-                  {t("auth.or")}
-                </span>
-              </div>
+              <input
+                class="block w-full px-4 py-2.5 pr-11 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+                id="password"
+                type={showPassword.value ? "text" : "password"}
+                placeholder="••••••••"
+                value={password.value}
+                onInput={(e) => (password.value = (e.target as HTMLInputElement).value)}
+                minLength={6}
+                required
+              />
+              <button
+                type="button"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-300"
+                onClick={() => (showPassword.value = !showPassword.value)}
+                tabIndex={-1}
+                aria-label={showPassword.value ? t("auth.hide_password") : t("auth.show_password")}
+              >
+                {showPassword.value ? (
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L6.59 6.59m7.532 7.532l3.29 3.29M3 3l18 18"
+                    />
+                  </svg>
+                ) : (
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
+          </div>
 
-            <button
-              type="submit"
-              disabled={loading.value}
-              class="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
-            >
-              {loading.value
-                ? t("common.loading")
-                : props.mode === "login"
+          {error.value && (
+            <div class="text-sm text-red-300 bg-red-500/20 border border-red-500/30 rounded-custom px-4 py-2">
+              {error.value}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading.value}
+            class="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/20 text-white font-medium rounded-custom transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            <svg class="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                fill="#4285F4"
+              />
+              <path
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                fill="#34A853"
+              />
+              <path
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                fill="#FBBC05"
+              />
+              <path
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                fill="#EA4335"
+              />
+            </svg>
+            {loading.value ? t("common.loading") : t("auth.google")}
+          </button>
+
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-white/10" />
+            </div>
+            <div class="relative flex justify-center text-sm">
+              <span class="bg-surface px-3 text-zinc-500">{t("auth.or")}</span>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading.value}
+            class="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
+          >
+            {loading.value
+              ? t("common.loading")
+              : props.mode === "login"
                 ? t("auth.login")
                 : t("auth.signup")}
-            </button>
-          </>
-        )}
+          </button>
+        </>
+      )}
 
       {props.mode === "login" && (
         <p class="text-center text-sm">
-          <a
-            href="/forgot-password"
-            class="text-zinc-400 hover:text-primary hover:underline"
-          >
+          <a href="/forgot-password" class="text-zinc-400 hover:text-primary hover:underline">
             {t("auth.forgot_link")}
           </a>
         </p>
       )}
 
       <p class="text-center text-sm text-zinc-400">
-        {props.mode === "login"
-          ? (
-            <>
-              {t("auth.no_account")}{" "}
-              <a
-                href={`/signup${
-                  redirectPath !== "/dashboard"
-                    ? `?redirect=${encodeURIComponent(redirectPath)}`
-                    : ""
-                }`}
-                class="text-primary hover:underline"
-              >
-                {t("auth.signup_link")}
-              </a>
-            </>
-          )
-          : (
-            <>
-              {t("auth.has_account")}{" "}
-              <a
-                href={`/login${
-                  redirectPath !== "/dashboard"
-                    ? `?redirect=${encodeURIComponent(redirectPath)}`
-                    : ""
-                }`}
-                class="text-primary hover:underline"
-              >
-                {t("auth.login_link")}
-              </a>
-            </>
-          )}
+        {props.mode === "login" ? (
+          <>
+            {t("auth.no_account")}{" "}
+            <a
+              href={`/signup${
+                redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""
+              }`}
+              class="text-primary hover:underline"
+            >
+              {t("auth.signup_link")}
+            </a>
+          </>
+        ) : (
+          <>
+            {t("auth.has_account")}{" "}
+            <a
+              href={`/login${
+                redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""
+              }`}
+              class="text-primary hover:underline"
+            >
+              {t("auth.login_link")}
+            </a>
+          </>
+        )}
       </p>
     </form>
   );

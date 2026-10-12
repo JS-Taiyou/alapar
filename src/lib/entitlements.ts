@@ -126,12 +126,13 @@ export function resolveEffectivePlan(
     // activation webhook lag (column still 'free').
     return "pro";
   }
-  const paidThrough = subStatus === "canceled" && !!currentPeriodEnd &&
-    currentPeriodEnd.getTime() > now;
+  const paidThrough =
+    subStatus === "canceled" && !!currentPeriodEnd && currentPeriodEnd.getTime() > now;
   if (paidThrough) return "pro";
-  const inGrace = !!graceUntil && graceUntil.getTime() > now &&
-    (subStatus === "past_due" || subStatus === "canceled" ||
-      subStatus === "revoked");
+  const inGrace =
+    !!graceUntil &&
+    graceUntil.getTime() > now &&
+    (subStatus === "past_due" || subStatus === "canceled" || subStatus === "revoked");
   if (inGrace) return "pro";
   if (plan === "pro" && subStatus === null) {
     // Column says pro and there is no subscription row contradicting it.
@@ -158,9 +159,7 @@ export function resolveEffectivePlan(
  * source of truth the UI reads via ctx.state.activeRegistryPlan (populated
  * with this same function on full-state paths) and enforcement must call.
  */
-export async function getRegistryPlan(
-  registryId: string,
-): Promise<RegistryPlanInfo | null> {
+export async function getRegistryPlan(registryId: string): Promise<RegistryPlanInfo | null> {
   const result = await query(
     `SELECT r.plan,
             rs.status AS sub_status,
@@ -191,9 +190,7 @@ export async function getRegistryPlan(
         "free",
         subStatus,
         row.grace_until ? new Date(row.grace_until as string) : null,
-        row.current_period_end
-          ? new Date(row.current_period_end as string)
-          : null,
+        row.current_period_end ? new Date(row.current_period_end as string) : null,
       ) !== "free"
     ) {
       anyMemberPro = true;
@@ -257,9 +254,7 @@ export async function countOwnedRegistries(userId: string): Promise<number> {
 }
 
 /** Count members of a registry (for the join cap). */
-export async function countRegistryMembers(
-  registryId: string,
-): Promise<number> {
+export async function countRegistryMembers(registryId: string): Promise<number> {
   const result = await query(
     `SELECT count(*)::int AS cnt FROM registry_members WHERE registry_id = $1`,
     [registryId],
@@ -272,9 +267,7 @@ export async function countRegistryMembers(
  * spawn-candidate eligibility rules (recurring not disabled; parcialidad not
  * fully paid), regardless of archived state since clones reset exercise_id.
  */
-export async function countActiveTemplates(
-  registryId: string,
-): Promise<number> {
+export async function countActiveTemplates(registryId: string): Promise<number> {
   const result = await query(
     `SELECT count(DISTINCT recurring_group_id)::int AS cnt
      FROM transactions

@@ -10,11 +10,10 @@ interface ExerciseCardProps {
 export default function ExerciseCard(props: ExerciseCardProps) {
   const { exercise, monthName, personalTotal } = props;
 
-  const totalDisplay = personalTotal !== undefined
-    ? `${personalTotal >= 0 ? "+" : "-"}$${
-      formatMoney(Math.abs(personalTotal))
-    }`
-    : `$${formatMoney(exercise.totalAmount)}`;
+  const totalDisplay =
+    personalTotal !== undefined
+      ? `${personalTotal >= 0 ? "+" : "-"}$${formatMoney(Math.abs(personalTotal))}`
+      : `$${formatMoney(exercise.totalAmount)}`;
 
   return (
     <a
@@ -28,14 +27,15 @@ export default function ExerciseCard(props: ExerciseCardProps) {
         </div>
         <div>
           <p class="font-medium text-zinc-100 leading-tight">
-            Corte {exercise.endDate.toLocaleDateString("es-MX", {
+            Corte{" "}
+            {exercise.endDate.toLocaleDateString("es-MX", {
               month: "long",
               year: "numeric",
             })}
           </p>
           <p class="text-xs text-zinc-400">
-            {exercise.transactionCount} Gastos &bull; Total: {totalDisplay}{" "}
-            &bull; {exercise.endDate.toLocaleDateString("es-MX", {
+            {exercise.transactionCount} Gastos &bull; Total: {totalDisplay} &bull;{" "}
+            {exercise.endDate.toLocaleDateString("es-MX", {
               day: "numeric",
               month: "short",
               year: "numeric",
@@ -49,12 +49,7 @@ export default function ExerciseCard(props: ExerciseCardProps) {
         stroke="currentColor"
         viewBox="0 0 24 24"
       >
-        <path
-          d="M9 5l7 7-7 7"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-        />
+        <path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
       </svg>
     </a>
   );

@@ -34,16 +34,14 @@ export default function BillingActions(props: BillingActionsProps) {
   // needing the webhook (which only carries the flag on the next event).
   const scheduled = useSignal(props.cancelScheduled);
 
-  const targetInterval = props.currentInterval === "monthly"
-    ? "yearly"
-    : "monthly";
+  const targetInterval = props.currentInterval === "monthly" ? "yearly" : "monthly";
 
   const activeUntilText = props.activeUntil
     ? formatDate(new Date(props.activeUntil), props.locale, {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
     : null;
 
   async function post(body: Record<string, unknown>): Promise<Response> {
@@ -89,7 +87,7 @@ export default function BillingActions(props: BillingActionsProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      const data = await res.json() as { url?: string };
+      const data = (await res.json()) as { url?: string };
       if (res.ok && data.url) {
         globalThis.location.href = data.url;
         return; // keep busy on while the redirect lands
@@ -123,34 +121,32 @@ export default function BillingActions(props: BillingActionsProps) {
 
   return (
     <div class="space-y-2">
-      {scheduled.value
-        ? (
-          <>
-            <p class="text-xs text-amber-300">
-              {activeUntilText
-                ? t("pricing.cancel_scheduled", { date: activeUntilText })
-                : t("pricing.cancel_scheduled", { date: "" })}
-            </p>
-            <button
-              type="button"
-              onClick={handleReactivate}
-              disabled={busy.value}
-              class="text-xs font-semibold text-primary hover:text-primary-light transition-colors disabled:opacity-50"
-            >
-              {t("pricing.reactivate")}
-            </button>
-          </>
-        )
-        : (
+      {scheduled.value ? (
+        <>
+          <p class="text-xs text-amber-300">
+            {activeUntilText
+              ? t("pricing.cancel_scheduled", { date: activeUntilText })
+              : t("pricing.cancel_scheduled", { date: "" })}
+          </p>
           <button
             type="button"
-            onClick={() => showCancelModal.value = true}
+            onClick={handleReactivate}
             disabled={busy.value}
-            class="text-xs text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
+            class="text-xs font-semibold text-primary hover:text-primary-light transition-colors disabled:opacity-50"
           >
-            {t("pricing.cancel_link")}
+            {t("pricing.reactivate")}
           </button>
-        )}
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => (showCancelModal.value = true)}
+          disabled={busy.value}
+          class="text-xs text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
+        >
+          {t("pricing.cancel_link")}
+        </button>
+      )}
 
       <button
         type="button"
@@ -164,7 +160,7 @@ export default function BillingActions(props: BillingActionsProps) {
       {props.currentInterval && !scheduled.value && (
         <button
           type="button"
-          onClick={() => showSwitchModal.value = true}
+          onClick={() => (showSwitchModal.value = true)}
           disabled={busy.value}
           class="block text-xs text-zinc-500 hover:text-primary-light transition-colors disabled:opacity-50"
         >
@@ -178,14 +174,14 @@ export default function BillingActions(props: BillingActionsProps) {
 
       {showCancelModal.value && (
         <Modal
-          onClose={() => showCancelModal.value = false}
+          onClose={() => (showCancelModal.value = false)}
           title={t("pricing.cancel_title")}
           closeLabel={t("common.close")}
           footer={
             <>
               <button
                 type="button"
-                onClick={() => showCancelModal.value = false}
+                onClick={() => (showCancelModal.value = false)}
                 disabled={busy.value}
                 class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
               >
@@ -214,14 +210,14 @@ export default function BillingActions(props: BillingActionsProps) {
 
       {showSwitchModal.value && (
         <Modal
-          onClose={() => showSwitchModal.value = false}
+          onClose={() => (showSwitchModal.value = false)}
           title={t("billing.switch_title")}
           closeLabel={t("common.close")}
           footer={
             <>
               <button
                 type="button"
-                onClick={() => showSwitchModal.value = false}
+                onClick={() => (showSwitchModal.value = false)}
                 disabled={busy.value}
                 class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
               >
@@ -241,9 +237,7 @@ export default function BillingActions(props: BillingActionsProps) {
           <div class="p-6">
             <p class="text-sm text-zinc-300 leading-relaxed">
               {t("billing.switch_body", {
-                plan: targetInterval === "yearly"
-                  ? t("billing.yearly")
-                  : t("billing.monthly"),
+                plan: targetInterval === "yearly" ? t("billing.yearly") : t("billing.monthly"),
               })}
             </p>
           </div>

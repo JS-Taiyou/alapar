@@ -1,8 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  handleSubscriptionEvent,
-  verifyWebhook,
-} from "@/lib/billing";
+import { handleSubscriptionEvent, verifyWebhook } from "@/lib/billing";
 
 /**
  * POST /api/webhooks/polar — Polar subscription lifecycle events.

@@ -9,11 +9,7 @@ import {
   getTransactionPaymentsForRegistry,
   getUsers,
 } from "@/lib/store";
-import {
-  getCachedSpawnCandidates,
-  getCachedTransactions,
-  getStamp,
-} from "@/lib/server-cache";
+import { getCachedSpawnCandidates, getCachedTransactions, getStamp } from "@/lib/server-cache";
 import { generateETag } from "@/lib/etag";
 
 export const GET: APIRoute = async (ctx) => {
@@ -38,11 +34,10 @@ export const GET: APIRoute = async (ctx) => {
   }
 
   const requestedId = ctx.url.searchParams.get("registryId");
-  const registryId = requestedId && ctx.locals.registries.some((r) =>
-      r.id === requestedId
-    )
-    ? requestedId
-    : ctx.locals.activeRegistry?.id;
+  const registryId =
+    requestedId && ctx.locals.registries.some((r) => r.id === requestedId)
+      ? requestedId
+      : ctx.locals.activeRegistry?.id;
 
   if (!registryId) {
     return Response.json(
@@ -74,9 +69,7 @@ export const GET: APIRoute = async (ctx) => {
     () => getActiveTransactions(registryId),
     stamp,
   );
-  const transactionPayments = await getTransactionPaymentsForRegistry(
-    registryId,
-  );
+  const transactionPayments = await getTransactionPaymentsForRegistry(registryId);
   // Use persisted deltas for the authoritative balance (exact NUMERIC sum,
   // no floating-point residue). Falls back to the in-memory calculation if
   // the deltas table doesn't exist yet (pre-migration).
@@ -129,11 +122,7 @@ export const GET: APIRoute = async (ctx) => {
     installmentTotal: c.installmentTotal,
   }));
 
-  const balanceBreakdown = calculatePairwiseBreakdown(
-    transactions,
-    userId,
-    participants,
-  );
+  const balanceBreakdown = calculatePairwiseBreakdown(transactions, userId, participants);
 
   const entityIds = entities.map((e) => e.id);
 
@@ -150,8 +139,8 @@ export const GET: APIRoute = async (ctx) => {
       ? ctx.locals.entities
       : entities.map((e) => ({ id: e.id, name: e.name, color: e.color })),
     currentUserId: userId,
-    lastModified: ctx.locals.registries.find((r) => r.id === registryId)
-      ?.lastModified?.toISOString() ?? null,
+    lastModified:
+      ctx.locals.registries.find((r) => r.id === registryId)?.lastModified?.toISOString() ?? null,
   };
 
   const etag = generateETag(data);

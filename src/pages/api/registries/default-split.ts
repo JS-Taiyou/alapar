@@ -1,10 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  clearDefaultSplitForOwner,
-  getEntities,
-  getUsers,
-  setDefaultSplit,
-} from "@/lib/store";
+import { clearDefaultSplitForOwner, getEntities, getUsers, setDefaultSplit } from "@/lib/store";
 
 export const POST: APIRoute = async (ctx) => {
   const body = await ctx.request.json();
@@ -20,16 +15,22 @@ export const POST: APIRoute = async (ctx) => {
   const userId = ctx.locals.user?.id;
   // Ownership of the TARGET registry (not just the active one).
   if (!userId || !ctx.locals.ownerRegistryIds.has(registryId)) {
-    return Response.json({ error: "Solo el owner puede configurar esto" }, {
-      status: 403,
-    });
+    return Response.json(
+      { error: "Solo el owner puede configurar esto" },
+      {
+        status: 403,
+      },
+    );
   }
 
   const total = splits.reduce((s, sp) => s + sp.percentage, 0);
   if (Math.abs(total - 100) >= 0.01) {
-    return Response.json({ error: "Los porcentajes deben sumar 100%" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Los porcentajes deben sumar 100%" },
+      {
+        status: 400,
+      },
+    );
   }
 
   // Validate split userIds against the TARGET registry's participants
@@ -42,16 +43,16 @@ export const POST: APIRoute = async (ctx) => {
       getUsers(registryId),
       getEntities(registryId, userId),
     ]);
-    participantIds = [
-      ...users.map((u) => u.id),
-      ...entities.map((e) => e.id),
-    ];
+    participantIds = [...users.map((u) => u.id), ...entities.map((e) => e.id)];
   }
   const allValid = splits.every((s) => participantIds.includes(s.userId));
   if (!allValid) {
-    return Response.json({ error: "Usuario no encontrado en el registro" }, {
-      status: 400,
-    });
+    return Response.json(
+      { error: "Usuario no encontrado en el registro" },
+      {
+        status: 400,
+      },
+    );
   }
 
   if (splits.length === 0) {

@@ -59,10 +59,7 @@ export function clearAll(): void {
 }
 
 export async function getStamp(registryId: string): Promise<string | null> {
-  const result = await query(
-    "SELECT last_modified FROM registries WHERE id = $1",
-    [registryId],
-  );
+  const result = await query("SELECT last_modified FROM registries WHERE id = $1", [registryId]);
   if (result.rows.length === 0) return null;
   const lm = result.rows[0].last_modified;
   return lm ? new Date(lm as string).toISOString() : null;
@@ -78,17 +75,18 @@ export async function getCachedTransactions(
   fetcher: () => Promise<Transaction[]>,
   prefetchedStamp?: string | null,
 ): Promise<{ transactions: Transaction[]; hit: boolean }> {
-  const stamp = prefetchedStamp !== undefined
-    ? prefetchedStamp
-    : await getStamp(registryId);
+  const stamp = prefetchedStamp !== undefined ? prefetchedStamp : await getStamp(registryId);
   const entry = cache.get(registryId);
 
   // `stamp !== null`: a NULL last_modified means "version unknown" and must
   // never be a hit — comparing null === null would pin pre-mutation data in
   // the cache (and in the client's snapshot) forever.
   if (
-    entry && entry.transactions !== undefined && stamp !== null &&
-    entry.lastModified === stamp && Date.now() - entry.cachedAt < CACHE_TTL_MS
+    entry &&
+    entry.transactions !== undefined &&
+    stamp !== null &&
+    entry.lastModified === stamp &&
+    Date.now() - entry.cachedAt < CACHE_TTL_MS
   ) {
     return { transactions: entry.transactions, hit: true };
   }
@@ -110,15 +108,16 @@ export async function getCachedSpawnCandidates(
   fetcher: () => Promise<Transaction[]>,
   prefetchedStamp?: string | null,
 ): Promise<Transaction[]> {
-  const stamp = prefetchedStamp !== undefined
-    ? prefetchedStamp
-    : await getStamp(registryId);
+  const stamp = prefetchedStamp !== undefined ? prefetchedStamp : await getStamp(registryId);
   const entry = cache.get(registryId);
 
   // Same null guard as getCachedTransactions: unknown version, no hits.
   if (
-    entry && entry.spawnCandidates !== undefined && stamp !== null &&
-    entry.lastModified === stamp && Date.now() - entry.cachedAt < CACHE_TTL_MS
+    entry &&
+    entry.spawnCandidates !== undefined &&
+    stamp !== null &&
+    entry.lastModified === stamp &&
+    Date.now() - entry.cachedAt < CACHE_TTL_MS
   ) {
     return entry.spawnCandidates;
   }
@@ -156,16 +155,14 @@ function writeDataset(
   cache.set(registryId, fresh);
 }
 
-export function getCachedTransactionCounts(
-  registryIds: string[],
-): { counts: Map<string, number>; hit: boolean } {
+export function getCachedTransactionCounts(registryIds: string[]): {
+  counts: Map<string, number>;
+  hit: boolean;
+} {
   const now = Date.now();
   for (const id of registryIds) {
     const entry = cache.get(id);
-    if (
-      !entry || entry.transactionCounts === undefined ||
-      now - entry.cachedAt >= CACHE_TTL_MS
-    ) {
+    if (!entry || entry.transactionCounts === undefined || now - entry.cachedAt >= CACHE_TTL_MS) {
       return { counts: new Map(), hit: false };
     }
   }
@@ -182,9 +179,7 @@ export function getCachedTransactionCounts(
   return { counts, hit: true };
 }
 
-export function setCachedTransactionCounts(
-  counts: Map<string, number>,
-): void {
+export function setCachedTransactionCounts(counts: Map<string, number>): void {
   for (const [registryId] of counts) {
     const entry = cache.get(registryId);
     if (entry) {
@@ -197,9 +192,6 @@ export function getUserActiveRegistry(userId: string): string | null {
   return userActiveRegistries.get(userId) ?? null;
 }
 
-export function setUserActiveRegistry(
-  userId: string,
-  registryId: string,
-): void {
+export function setUserActiveRegistry(userId: string, registryId: string): void {
   userActiveRegistries.set(userId, registryId);
 }

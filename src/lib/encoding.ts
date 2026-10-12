@@ -21,7 +21,7 @@ export function base64url(input: string | Uint8Array): string {
  * url-safe alphabet (`-`→`+`, `_`→`/`).
  */
 export function base64urlToBytes(base64: string): Uint8Array {
-  const padding = "=".repeat((4 - base64.length % 4) % 4);
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
   const b64 = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(b64);
   return Uint8Array.from(binary.split("").map((c) => c.charCodeAt(0)));

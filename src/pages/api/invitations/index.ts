@@ -12,22 +12,18 @@ export const POST: APIRoute = async (ctx) => {
 
   const role = await getUserRole(systemUserId, registryId);
   if (role !== "owner") {
-    return Response.json({ error: "Only owners can create invitations" }, {
-      status: 403,
-    });
+    return Response.json(
+      { error: "Only owners can create invitations" },
+      {
+        status: 403,
+      },
+    );
   }
 
-  const expiresAt = body.expiresAt
-    ? new Date(body.expiresAt as string)
-    : undefined;
+  const expiresAt = body.expiresAt ? new Date(body.expiresAt as string) : undefined;
   const maxUses = body.maxUses as number | undefined;
 
-  const invitation = await createInvitation(
-    registryId,
-    systemUserId,
-    expiresAt,
-    maxUses,
-  );
+  const invitation = await createInvitation(registryId, systemUserId, expiresAt, maxUses);
 
   return Response.json({
     id: invitation.id,

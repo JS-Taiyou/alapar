@@ -11,13 +11,12 @@ self.addEventListener("activate", (event) => {
   // Purge every cache that isn't the current build cache — including older
   // caches (alapar-api-*, alapar-html-*) that may hold authenticated data.
   event.waitUntil(
-    caches.keys().then((names) =>
-      Promise.all(
-        names
-          .filter((n) => n !== BUILD_CACHE)
-          .map((n) => caches.delete(n)),
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(names.filter((n) => n !== BUILD_CACHE).map((n) => caches.delete(n))),
       )
-    ).then(() => self.clients.claim()),
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -80,11 +79,13 @@ self.addEventListener("fetch", (event) => {
 });
 
 function isStaticAsset(pathname) {
-  return pathname.startsWith("/assets/") ||
+  return (
+    pathname.startsWith("/assets/") ||
     pathname === "/logo.svg" ||
     pathname === "/favicon.ico" ||
     pathname === "/manifest.json" ||
-    pathname === "/sw-register.js";
+    pathname === "/sw-register.js"
+  );
 }
 
 async function cacheFirst(request) {
@@ -130,17 +131,15 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url ?? "/dashboard";
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(
-      (clients) => {
-        for (const client of clients) {
-          if (client.url.includes("/dashboard") && "focus" in client) {
-            client.postMessage({ type: "navigate", url: targetUrl });
-            return client.focus();
-          }
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes("/dashboard") && "focus" in client) {
+          client.postMessage({ type: "navigate", url: targetUrl });
+          return client.focus();
         }
-        return self.clients.openWindow(targetUrl);
-      },
-    ),
+      }
+      return self.clients.openWindow(targetUrl);
+    }),
   );
 });
 
@@ -148,10 +147,6 @@ self.addEventListener("message", (event) => {
   // Sent by the logout flow: drop every cached response so nothing
   // authenticated survives on a shared device.
   if (event.data?.type === "CLEAR_CACHES") {
-    event.waitUntil(
-      caches.keys().then((names) =>
-        Promise.all(names.map((n) => caches.delete(n)))
-      ),
-    );
+    event.waitUntil(caches.keys().then((names) => Promise.all(names.map((n) => caches.delete(n)))));
   }
 });

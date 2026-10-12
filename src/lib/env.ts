@@ -4,9 +4,7 @@
  * process.env. Check both so server code works identically in all three.
  */
 export function env(name: string): string | undefined {
-  const fromVite = (import.meta.env as Record<string, string | undefined>)[
-    name
-  ];
+  const fromVite = (import.meta.env as Record<string, string | undefined>)[name];
   return fromVite ?? process.env[name];
 }
 

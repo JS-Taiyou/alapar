@@ -8,10 +8,7 @@ export const POST: APIRoute = async (ctx) => {
   // Best-effort server-side revocation: admin.signOut invalidates every
   // session (incl. refresh tokens) for the user owning this access JWT.
   // Cookie clearing below happens regardless of the outcome.
-  const accessToken = getCookie(
-    ctx.request.headers.get("cookie") ?? "",
-    "sb-access-token",
-  );
+  const accessToken = getCookie(ctx.request.headers.get("cookie") ?? "", "sb-access-token");
   if (accessToken) {
     try {
       await createServerClient().auth.admin.signOut(accessToken);

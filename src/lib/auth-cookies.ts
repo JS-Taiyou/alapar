@@ -13,14 +13,12 @@
  * Look up a cookie value by name from a raw `Cookie` header string.
  * Returns the value, or `null` if not found.
  */
-export function getCookie(
-  cookieHeader: string,
-  name: string,
-): string | null {
+export function getCookie(cookieHeader: string, name: string): string | null {
   // Split on ; or , — see module docstring re: edge proxy behavior.
-  const cookies = cookieHeader.split(/[;,]/).map((c) => c.trim()).filter(
-    Boolean,
-  );
+  const cookies = cookieHeader
+    .split(/[;,]/)
+    .map((c) => c.trim())
+    .filter(Boolean);
   for (const cookie of cookies) {
     if (cookie.startsWith(`${name}=`)) {
       return cookie.substring(name.length + 1);

@@ -26,8 +26,7 @@ export async function subscribeToPush(registryId?: string): Promise<boolean> {
 
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicKey)
-        .buffer as ArrayBuffer,
+      applicationServerKey: urlBase64ToUint8Array(publicKey).buffer as ArrayBuffer,
     });
   }
 
@@ -37,14 +36,8 @@ export async function subscribeToPush(registryId?: string): Promise<boolean> {
     body: JSON.stringify({
       endpoint: subscription.endpoint,
       keys: {
-        p256dh: btoa(
-          String.fromCharCode(
-            ...new Uint8Array(subscription.getKey("p256dh")!),
-          ),
-        ),
-        auth: btoa(
-          String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!)),
-        ),
+        p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("p256dh")!))),
+        auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey("auth")!))),
       },
       registryId,
     }),

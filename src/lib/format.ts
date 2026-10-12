@@ -30,6 +30,10 @@ export function formatMoney(amount: number): string {
 
 /** Up-to-two uppercase initials for avatar chips, e.g. "Ana Lucía" → "AL". */
 export function initials(name: string): string {
-  return name.split(" ").map((n) => n[0]).join("").substring(0, 2)
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
     .toUpperCase();
 }

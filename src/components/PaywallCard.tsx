@@ -4,13 +4,15 @@ import { type Locale, t } from "../lib/i18n";
  * Locked-history placeholder: shows that older cuts exist and teases the Pro
  * upgrade. Rendered by the history page for free registries.
  */
-export default function PaywallCard(
-  { locale, lockedCount, registryId }: {
-    locale: Locale;
-    lockedCount: number;
-    registryId?: string;
-  },
-) {
+export default function PaywallCard({
+  locale,
+  lockedCount,
+  registryId,
+}: {
+  locale: Locale;
+  lockedCount: number;
+  registryId?: string;
+}) {
   return (
     <div class="relative rounded-custom border border-dashed border-white/15 bg-white/[0.02] p-5 text-center overflow-hidden">
       {/* Blur hint of "hidden" rows */}

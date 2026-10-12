@@ -1,10 +1,6 @@
 import type { APIRoute } from "astro";
 import { createRegistry, getRegistriesForUser } from "@/lib/store";
-import {
-  countOwnedRegistries,
-  FREE_LIMITS,
-  upgradeRequired,
-} from "@/lib/entitlements";
+import { countOwnedRegistries, FREE_LIMITS, upgradeRequired } from "@/lib/entitlements";
 
 export const GET: APIRoute = async (ctx) => {
   const userId = ctx.locals.user?.id;
@@ -21,7 +17,8 @@ export const GET: APIRoute = async (ctx) => {
 
 export const POST: APIRoute = async (ctx) => {
   const accept = ctx.request.headers.get("Accept") ?? "";
-  const isJson = accept.includes("application/json") ||
+  const isJson =
+    accept.includes("application/json") ||
     ctx.request.headers.get("Content-Type")?.includes("application/json");
 
   let name: string;

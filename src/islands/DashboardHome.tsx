@@ -44,24 +44,15 @@ export default function DashboardHome(props: DashboardHomeProps) {
   const $currentUserId = useSignal(props.currentUserId);
   const $registryId = useSignal(props.registryId);
   const $balance = useSignal(props.balance);
-  const $balanceEntries = useSignal<BalanceBreakdownEntry[]>(
-    props.balanceBreakdown,
-  );
+  const $balanceEntries = useSignal<BalanceBreakdownEntry[]>(props.balanceBreakdown);
   const $defaultSplit = useSignal<DefaultSplit | null>(props.defaultSplit);
   const $spawnCandidates = useSignal(props.spawnCandidates);
   const $lastModified = useSignal<string | null>(props.lastModified);
-  const $entities = useSignal<{ id: string; name: string; color: string }[]>(
-    props.entities,
-  );
-  const $entityIds = useSignal<Set<string>>(
-    new Set(props.entities.map((e) => e.id)),
-  );
-  const $transactionPayments = useSignal<TransactionPayment[]>(
-    props.transactionPayments,
-  );
+  const $entities = useSignal<{ id: string; name: string; color: string }[]>(props.entities);
+  const $entityIds = useSignal<Set<string>>(new Set(props.entities.map((e) => e.id)));
+  const $transactionPayments = useSignal<TransactionPayment[]>(props.transactionPayments);
 
-  const hasMultipleParticipants =
-    $users.value.length + $entities.value.length > 1;
+  const hasMultipleParticipants = $users.value.length + $entities.value.length > 1;
 
   return (
     <>
@@ -80,12 +71,7 @@ export default function DashboardHome(props: DashboardHomeProps) {
               class="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
               title="Histórico"
             >
-              <svg
-                class="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   stroke-linecap="round"
@@ -94,10 +80,7 @@ export default function DashboardHome(props: DashboardHomeProps) {
                 />
               </svg>
             </a>
-            <CortarButton
-              hasTransactions={props.hasTransactions}
-              registryId={$registryId.value}
-            />
+            <CortarButton hasTransactions={props.hasTransactions} registryId={$registryId.value} />
           </div>
         </header>
       )}

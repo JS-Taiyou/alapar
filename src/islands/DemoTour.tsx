@@ -41,7 +41,7 @@ export default function DemoTour(props: DemoTourProps) {
     const seen = localStorage.getItem("demo-tour-seen");
     if (!seen) {
       // Small delay so the page finishes rendering.
-      const timer = setTimeout(() => showMenu.value = true, 800);
+      const timer = setTimeout(() => (showMenu.value = true), 800);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -57,9 +57,7 @@ export default function DemoTour(props: DemoTourProps) {
     const mobile = document.querySelector(`[data-tour="${base}-mobile"]`);
     if (mobile && mobile.checkVisibility?.()) return mobile;
     // Fallback: offsetParent is non-null for visible elements.
-    const all = document.querySelectorAll(
-      `[data-tour="${base}"], [data-tour="${base}-mobile"]`,
-    );
+    const all = document.querySelectorAll(`[data-tour="${base}"], [data-tour="${base}-mobile"]`);
     for (const el of all) {
       if ((el as HTMLElement).offsetParent !== null) return el;
     }
@@ -72,9 +70,7 @@ export default function DemoTour(props: DemoTourProps) {
 
   function closeModals() {
     // Close any open modal by pressing Escape (the modal listens for it).
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
-    );
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
   }
 
   function openModal(base: "add-expense" | "add-payment"): Promise<void> {
@@ -274,16 +270,11 @@ export default function DemoTour(props: DemoTourProps) {
       {/* Floating tour button */}
       <button
         type="button"
-        onClick={() => showMenu.value = !showMenu.value}
+        onClick={() => (showMenu.value = !showMenu.value)}
         class="fixed bottom-8 left-8 z-50 w-14 h-14 bg-primary hover:bg-primary-light text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
         title={t("tour.button_title")}
       >
-        <svg
-          class="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
             stroke-linecap="round"
@@ -297,27 +288,18 @@ export default function DemoTour(props: DemoTourProps) {
       {showMenu.value && (
         <>
           {/* Backdrop */}
-          <div
-            class="fixed inset-0 z-40"
-            onClick={() => showMenu.value = false}
-          />
+          <div class="fixed inset-0 z-40" onClick={() => (showMenu.value = false)} />
           {/* Menu card */}
           <div class="fixed bottom-24 left-8 z-50 bg-surface border border-border-custom rounded-custom shadow-2xl p-4 w-72 animate-fade-up">
-            <h3 class="text-sm font-bold text-zinc-200 mb-3">
-              {t("tour.menu_title")}
-            </h3>
-            <p class="text-xs text-zinc-400 mb-4">
-              {t("tour.menu_desc")}
-            </p>
+            <h3 class="text-sm font-bold text-zinc-200 mb-3">{t("tour.menu_title")}</h3>
+            <p class="text-xs text-zinc-400 mb-4">{t("tour.menu_desc")}</p>
             <button
               type="button"
               onClick={startQuickTour}
               class="w-full mb-2 px-4 py-3 bg-primary hover:bg-primary-light text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
             >
               <span class="block font-bold">{t("tour.quick_title")}</span>
-              <span class="block text-xs opacity-80 mt-0.5">
-                {t("tour.quick_sub")}
-              </span>
+              <span class="block text-xs opacity-80 mt-0.5">{t("tour.quick_sub")}</span>
             </button>
             <button
               type="button"
@@ -325,9 +307,7 @@ export default function DemoTour(props: DemoTourProps) {
               class="w-full px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm font-semibold rounded-custom transition-all active:scale-95 text-left"
             >
               <span class="block font-bold">{t("tour.full_title")}</span>
-              <span class="block text-xs opacity-60 mt-0.5">
-                {t("tour.full_sub")}
-              </span>
+              <span class="block text-xs opacity-60 mt-0.5">{t("tour.full_sub")}</span>
             </button>
           </div>
         </>

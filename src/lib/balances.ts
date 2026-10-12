@@ -52,9 +52,7 @@ export function computeDeltas(tx: Transaction): BalanceDelta[] {
   }
 
   // Expense (unico, parcialidad, recurrente) — all math in cents.
-  const divisor = tx.type === "parcialidad" && tx.installmentTotal
-    ? tx.installmentTotal
-    : 1;
+  const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
   const perTotalCents = Math.round(toCents(tx.originalAmount) / divisor);
 
   const splits = tx.splitJson?.splits ?? [];

@@ -19,17 +19,14 @@ export const en: Record<string, string> = {
 
   // --- App / page titles ---
   "app.name": "A la Par",
-  "app.tagline":
-    "The easiest way to split expenses with friends, family, or travel buddies.",
+  "app.tagline": "The easiest way to split expenses with friends, family, or travel buddies.",
 
   // --- Landing page ---
   "landing.new_registry": "New group",
-  "landing.new_registry_desc":
-    "Create a new expense group for your next trip or event.",
+  "landing.new_registry_desc": "Create a new expense group for your next trip or event.",
   "landing.start": "Get started",
   "landing.join_registry": "Join a group",
-  "landing.join_registry_desc":
-    "Enter an invite code to join an existing group.",
+  "landing.join_registry_desc": "Enter an invite code to join an existing group.",
   "landing.copyright": "© 2024 A la Par. Transparent finances.",
 
   // --- Auth ---
@@ -38,8 +35,7 @@ export const en: Record<string, string> = {
   "auth.signup": "Sign up",
   "auth.signup_subtitle": "Create an account to start splitting expenses",
   "auth.forgot_password": "Reset password",
-  "auth.forgot_password_subtitle":
-    "Enter your email and we'll send you a link to reset it",
+  "auth.forgot_password_subtitle": "Enter your email and we'll send you a link to reset it",
   "auth.reset_password": "New password",
   "auth.reset_password_subtitle": "Enter your new password",
   "auth.name": "Name",
@@ -65,8 +61,7 @@ export const en: Record<string, string> = {
   "forgot.submit": "Send recovery link",
   "forgot.sending": "Sending...",
   "forgot.back_login": "Back to log in",
-  "forgot.success":
-    "We sent you an email with the link to reset your password.",
+  "forgot.success": "We sent you an email with the link to reset your password.",
 
   // --- Reset password ---
   "reset.new_password": "New password",
@@ -75,8 +70,7 @@ export const en: Record<string, string> = {
   "reset.updating": "Updating...",
   "reset.success": "Your password was updated successfully.",
   "reset.invalid_link": "Invalid or expired recovery link. Request a new one.",
-  "reset.session_failed":
-    "Could not establish session. The link may have expired.",
+  "reset.session_failed": "Could not establish session. The link may have expired.",
   "reset.password_too_short": "Password must be at least 6 characters.",
   "reset.password_mismatch": "Passwords don't match.",
   "reset.request_new": "Request a new link",
@@ -122,8 +116,7 @@ export const en: Record<string, string> = {
   "tx.badge_adjustment": "Pending balance",
   "tx.badge_installment": "{current}/{total}",
   "tx.single_user_title": "It's lonely here",
-  "tx.single_user_desc":
-    "Make sure to invite other users or create a third-party",
+  "tx.single_user_desc": "Make sure to invite other users or create a third-party",
   "tx.tercero_tooltip":
     "A third-party is an entity different from you that won't register as a user, for example: a bank!",
 
@@ -164,8 +157,7 @@ export const en: Record<string, string> = {
   "modal.owes_you": "Owes you {amount}",
   "modal.you_owe_them": "You owe {amount}",
   "modal.link_expenses": "Link this payment to existing expenses",
-  "modal.link_expenses_tooltip":
-    "You can only link payments when you have a balance to pay!",
+  "modal.link_expenses_tooltip": "You can only link payments when you have a balance to pay!",
   "modal.search_expense": "Search expense...",
   "modal.no_expenses_found": "No expenses found.",
   "modal.paid_by_name": "Paid by {name}",
@@ -212,8 +204,7 @@ export const en: Record<string, string> = {
   "billing.upgrade": "Upgrade to Pro",
   "billing.pro_badge": "PRO",
   "billing.grandfathered_badge": "PRO",
-  "billing.upgrade_hint_owner":
-    "Unlock unlimited members and templates, plus full history.",
+  "billing.upgrade_hint_owner": "Unlock unlimited members and templates, plus full history.",
   "billing.group_full":
     "This group reached the free plan's member limit. The owner can upgrade to Pro to invite more people.",
   "billing.templates_full":
@@ -226,8 +217,7 @@ export const en: Record<string, string> = {
   "billing.yearly": "Yearly",
   "billing.manage": "Manage subscription",
   "billing.success_title": "Pro activated!",
-  "billing.success_desc":
-    "Your group now has unlimited access. Every member benefits.",
+  "billing.success_desc": "Your group now has unlimited access. Every member benefits.",
   "billing.success_pending_title": "Processing payment…",
   "billing.success_pending_desc":
     "Your payment is being confirmed. This can take a few seconds; Pro will activate automatically.",
@@ -241,8 +231,7 @@ export const en: Record<string, string> = {
   "pricing.free_members": "Up to {n} members per group",
   "pricing.free_templates": "Up to {n} recurring templates",
   "pricing.free_history": "Latest cut in history",
-  "pricing.unlimited_core":
-    "Unlimited transactions, payments and cuts from day one",
+  "pricing.unlimited_core": "Unlimited transactions, payments and cuts from day one",
   "pricing.pro_name": "Pro",
   "pricing.pro_includes": "Everything in the free plan, plus:",
   "pricing.pro_members": "Unlimited members per group",
@@ -268,8 +257,7 @@ export const en: Record<string, string> = {
   "pricing.keep_sub": "Keep subscription",
   "pricing.reactivate": "Reactivate",
   "pricing.create_first": "Create your first group",
-  "pricing.create_first_hint":
-    "Pro is purchased per group — create yours to get started.",
+  "pricing.create_first_hint": "Pro is purchased per group — create yours to get started.",
 
   // --- Billing: already-subscribed guard + plan switch ---
   "billing.already_subscribed":
@@ -299,8 +287,7 @@ export const en: Record<string, string> = {
   "tour.balance_desc":
     "This is your net balance. Green = you're owed, red = you owe. Click it for a detailed per-person breakdown.",
   "tour.search_title": "🔍 Search & Filter",
-  "tour.search_desc":
-    "Search transactions by name or filter by person with the buttons above.",
+  "tour.search_desc": "Search transactions by name or filter by person with the buttons above.",
   "tour.transactions_title": "📋 Transactions",
   "tour.transactions_desc":
     "All the expenses and payments in the current registry, sorted by date.",
@@ -312,11 +299,9 @@ export const en: Record<string, string> = {
   "tour.add_expense_full_desc":
     "Let's open the form to create an expense and see the available options.",
   "tour.add_payment_title": "💸 Add Payment",
-  "tour.add_payment_desc":
-    "Use this button to record a payment between people and settle debts.",
+  "tour.add_payment_desc": "Use this button to record a payment between people and settle debts.",
   "tour.edit_title": "✏️ Edit Transactions",
-  "tour.edit_desc":
-    "Click any transaction to see its details, edit it, or delete it.",
+  "tour.edit_desc": "Click any transaction to see its details, edit it, or delete it.",
   "tour.expense_type_title": "🏷️ Expense Type",
   "tour.expense_type_desc":
     "Choose the type: One-time (single payment), Installment (paid in parts, e.g. a laptop over months), or Recurring (repeats every period, e.g. rent).",

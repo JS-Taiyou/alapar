@@ -48,8 +48,7 @@ function oat(): string {
 
 /** True when checkout redirects can work (token + link present). */
 export function billingConfigured(): boolean {
-  return !!(env("POLAR_ACCESS_TOKEN") &&
-    env("POLAR_CHECKOUT_LINK"));
+  return !!(env("POLAR_ACCESS_TOKEN") && env("POLAR_CHECKOUT_LINK"));
 }
 
 // ---------------------------------------------------------------------------
@@ -89,9 +88,7 @@ export function getCheckoutUrl(
   // product means a second Checkout Link pointed at the yearly product
   // (POLAR_CHECKOUT_LINK_YEARLY). The ?interval=yearly param below is still
   // appended for dashboards/links that do honor it — harmless if dropped.
-  const base = interval === "yearly"
-    ? env("POLAR_CHECKOUT_LINK_YEARLY") ?? monthly
-    : monthly;
+  const base = interval === "yearly" ? (env("POLAR_CHECKOUT_LINK_YEARLY") ?? monthly) : monthly;
   const url = new URL(base);
   url.searchParams.set("metadata[user_id]", userId);
   url.searchParams.set("reference_id", userId);
@@ -114,15 +111,11 @@ export function getCheckoutUrl(
  * landing on /billing/success with a hand-crafted checkout_id gains nothing:
  * the page only shows a message, and entitlements still come from the DB.
  */
-export async function syncCheckout(
-  checkoutId: string,
-): Promise<
-  {
-    subscriptionId: string | null;
-    status: string;
-    currentPeriodEnd: string | null;
-  } | null
-> {
+export async function syncCheckout(checkoutId: string): Promise<{
+  subscriptionId: string | null;
+  status: string;
+  currentPeriodEnd: string | null;
+} | null> {
   const res = await fetch(`${apiBase()}/checkouts/${checkoutId}`, {
     headers: { Authorization: `Bearer ${oat()}` },
   });
@@ -135,7 +128,7 @@ export async function syncCheckout(
     );
     return null;
   }
-  const checkout = await res.json() as {
+  const checkout = (await res.json()) as {
     status: string;
     subscription_id?: string | null;
   };
@@ -148,17 +141,16 @@ export async function syncCheckout(
   }
 
   // Pull the subscription for status/period detail.
-  const subRes = await fetch(
-    `${apiBase()}/subscriptions/${checkout.subscription_id}`,
-    { headers: { Authorization: `Bearer ${oat()}` } },
-  );
+  const subRes = await fetch(`${apiBase()}/subscriptions/${checkout.subscription_id}`, {
+    headers: { Authorization: `Bearer ${oat()}` },
+  });
   if (!subRes.ok) {
     console.error(
       `[billing] syncCheckout: GET /subscriptions/${checkout.subscription_id} -> ${subRes.status} ${subRes.statusText}`,
     );
     return null;
   }
-  const sub = await subRes.json() as {
+  const sub = (await subRes.json()) as {
     status: string;
     current_period_end: string | null;
   };
@@ -191,9 +183,7 @@ export async function syncCheckout(
  * A user owning two Pro registries (same Polar customer) gets a portal
  * listing both subscriptions — which is the correct UX.
  */
-export async function createPortalSession(
-  userId: string,
-): Promise<string | null> {
+export async function createPortalSession(userId: string): Promise<string | null> {
   const sub = await query(
     `SELECT polar_customer_id FROM registry_subscriptions WHERE user_id = $1`,
     [userId],
@@ -210,7 +200,7 @@ export async function createPortalSession(
     body: JSON.stringify({ customer_id: customerId }),
   });
   if (!res.ok) return null;
-  const data = await res.json() as { customer_portal_url?: string };
+  const data = (await res.json()) as { customer_portal_url?: string };
   return data.customer_portal_url ?? null;
 }
 
@@ -255,16 +245,11 @@ export async function cancelSubscriptionAtPeriodEnd(
  * which plan the user is currently on (the local mirror deliberately doesn't
  * store product info) and to validate before a switch.
  */
-export async function getSubscription(
-  subscriptionId: string,
-): Promise<
-  | {
-    status: string;
-    productId: string | null;
-    currentPeriodEnd: string | null;
-  }
-  | null
-> {
+export async function getSubscription(subscriptionId: string): Promise<{
+  status: string;
+  productId: string | null;
+  currentPeriodEnd: string | null;
+} | null> {
   // Called from the public pricing page — a missing token must degrade to
   // "interval unknown" (hides the switch button), never a 500.
   const token = env("POLAR_ACCESS_TOKEN");
@@ -278,7 +263,7 @@ export async function getSubscription(
     );
     return null;
   }
-  const sub = await res.json() as {
+  const sub = (await res.json()) as {
     status: string;
     product_id?: string | null;
     current_period_end?: string | null;
@@ -326,7 +311,7 @@ export async function switchSubscriptionProduct(
     );
     return null;
   }
-  const sub = await res.json() as { current_period_end?: string | null };
+  const sub = (await res.json()) as { current_period_end?: string | null };
   return { currentPeriodEnd: sub.current_period_end ?? null };
 }
 
@@ -360,9 +345,7 @@ export interface PolarProductIds {
  * public page view isn't right either). */
 const PRICE_CACHE_MS = 10 * 60 * 1000;
 
-let priceCache:
-  | { at: number; prices: PolarPrices; productIds: PolarProductIds }
-  | null = null;
+let priceCache: { at: number; prices: PolarPrices; productIds: PolarProductIds } | null = null;
 
 interface PolarCatalog {
   prices: PolarPrices;
@@ -404,7 +387,7 @@ async function fetchPolarCatalog(): Promise<PolarCatalog> {
     });
     if (res.ok) {
       fetched = true;
-      const data = await res.json() as {
+      const data = (await res.json()) as {
         items?: {
           id?: string;
           prices?: {
@@ -423,8 +406,7 @@ async function fetchPolarCatalog(): Promise<PolarCatalog> {
         for (const price of item.prices ?? []) {
           if (
             price.type === "recurring" &&
-            (price.recurring_interval === "month" ||
-              price.recurring_interval === "year") &&
+            (price.recurring_interval === "month" || price.recurring_interval === "year") &&
             typeof price.amount === "number"
           ) {
             found[price.recurring_interval].push(price.amount / 100);
@@ -446,9 +428,7 @@ async function fetchPolarCatalog(): Promise<PolarCatalog> {
     } else {
       // A bad token must not be silent: the pricing page quietly falls back
       // to hardcoded prices and the mismatch looks like a Polar bug.
-      console.error(
-        `[billing] getPolarPrices: GET /products/ -> ${res.status} ${res.statusText}`,
-      );
+      console.error(`[billing] getPolarPrices: GET /products/ -> ${res.status} ${res.statusText}`);
     }
   } catch {
     // Network failure — fall through with nulls; the page uses fallbacks.
@@ -515,9 +495,7 @@ const HMAC_TOLERANCE_SECONDS = 5 * 60;
  */
 export async function verifyWebhook(
   req: Request,
-): Promise<
-  { valid: boolean; reason?: string; payload?: Record<string, unknown> }
-> {
+): Promise<{ valid: boolean; reason?: string; payload?: Record<string, unknown> }> {
   const secret = env("POLAR_WEBHOOK_SECRET");
   if (!secret) return { valid: false, reason: "POLAR_WEBHOOK_SECRET unset" }; // fail-closed when unconfigured
 
@@ -556,11 +534,7 @@ export async function verifyWebhook(
     false,
     ["sign"],
   );
-  const mac = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    new TextEncoder().encode(signedContent),
-  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedContent));
   const expected = base64Encode(new Uint8Array(mac));
 
   // Accept any v1 scheme entry in the header (rotation-friendly). Non-v1
@@ -603,7 +577,7 @@ function base64Encode(bytes: Uint8Array): string {
  * always backed by a plain ArrayBuffer, so the constructor guarantees it.
  */
 function base64Decode(b64: string): Uint8Array<ArrayBuffer> {
-  const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
+  const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
   const bin = atob(padded);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -665,9 +639,7 @@ const GRACE_DAYS = 3;
  *                         subscription before trusting the column). The
  *                         column self-heals on the next resubscribe.
  */
-export async function handleSubscriptionEvent(
-  payload: Record<string, unknown>,
-): Promise<void> {
+export async function handleSubscriptionEvent(payload: Record<string, unknown>): Promise<void> {
   const data = payload.data as Record<string, unknown> | undefined;
   if (!data) return;
 
@@ -681,7 +653,8 @@ export async function handleSubscriptionEvent(
   // end-to-end sandbox check of which channel actually fires — this fallback
   // makes the mapping robust either way. Events with none of them are not
   // ours (another product on the org, or a checkout created elsewhere).
-  const userId = metadata.user_id ??
+  const userId =
+    metadata.user_id ??
     (typeof data.reference_id === "string" ? data.reference_id : undefined) ??
     metadata.reference_id;
   if (!userId) return;
@@ -691,20 +664,18 @@ export async function handleSubscriptionEvent(
   if (!subscriptionId || !status) return;
 
   const customerId =
-    (data.customer as Record<string, unknown> | undefined)?.id as string ??
-      undefined;
-  const currentPeriodEnd = (data.current_period_end as string | undefined) ??
-    null;
+    ((data.customer as Record<string, unknown> | undefined)?.id as string) ?? undefined;
+  const currentPeriodEnd = (data.current_period_end as string | undefined) ?? null;
   const cancelAtPeriodEnd = data.cancel_at_period_end === true;
 
   // Grace is set on past_due too, not just canceled/revoked: a single failed
   // charge (card expired, bank decline) must not hard-cut a paying customer
   // while Polar retries. The window bounds the maximum time ANY lapsed
   // payment still grants access — see getRegistryPlan's matrix.
-  const graceUntil = status === "canceled" || status === "revoked" ||
-      status === "past_due"
-    ? new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString()
-    : null;
+  const graceUntil =
+    status === "canceled" || status === "revoked" || status === "past_due"
+      ? new Date(Date.now() + GRACE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+      : null;
 
   await query(
     `INSERT INTO registry_subscriptions
@@ -719,19 +690,10 @@ export async function handleSubscriptionEvent(
        grace_until = EXCLUDED.grace_until,
        cancel_at_period_end = EXCLUDED.cancel_at_period_end,
        updated_at = now()`,
-    [
-      userId,
-      subscriptionId,
-      customerId,
-      status,
-      currentPeriodEnd,
-      graceUntil,
-      cancelAtPeriodEnd,
-    ],
+    [userId, subscriptionId, customerId, status, currentPeriodEnd, graceUntil, cancelAtPeriodEnd],
   );
 
-  const proAgain = status === "trialing" || status === "active" ||
-    status === "past_due";
+  const proAgain = status === "trialing" || status === "active" || status === "past_due";
   if (proAgain) {
     // One subscription makes every group the user belongs to Pro — benefits
     // are per-user (a subscribed member carries their whole group). Only

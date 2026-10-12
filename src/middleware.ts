@@ -56,8 +56,7 @@ function isRateLimitedRoute(path: string, method: string): boolean {
     return true;
   }
   if (method !== "POST") return false;
-  return path === "/api/invitations/join" ||
-    path === "/api/auth/callback";
+  return path === "/api/invitations/join" || path === "/api/auth/callback";
 }
 
 const rateLimit = defineMiddleware(async (context, next) => {
@@ -75,12 +74,8 @@ const rateLimit = defineMiddleware(async (context, next) => {
     }
   }
 
-  const ip =
-    context.request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
-      "unknown";
-  const hits = (rateLimitHits.get(ip) ?? []).filter((t) =>
-    now - t < RATE_LIMIT_WINDOW_MS
-  );
+  const ip = context.request.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  const hits = (rateLimitHits.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
   if (hits.length >= RATE_LIMIT_MAX) {
     return new Response("Too Many Requests", { status: 429 });
   }
@@ -114,9 +109,7 @@ const authState = defineMiddleware(async (context, next) => {
   if (path === "/demo") {
     devLog("  Demo page, skipping auth");
     const response = await next();
-    devLog(
-      `<< RESPONSE ${req.method} ${path} (demo, status=${response?.status})`,
-    );
+    devLog(`<< RESPONSE ${req.method} ${path} (demo, status=${response?.status})`);
     return response;
   }
 
@@ -125,9 +118,7 @@ const authState = defineMiddleware(async (context, next) => {
   if (!authResult) {
     devLog("  No auth result, continuing without user");
     const response = await next();
-    devLog(
-      `<< RESPONSE ${req.method} ${path} (no user, status=${response?.status})`,
-    );
+    devLog(`<< RESPONSE ${req.method} ${path} (no user, status=${response?.status})`);
     return response;
   }
 
@@ -136,7 +127,8 @@ const authState = defineMiddleware(async (context, next) => {
   // Stash the validated access token (the refreshed one when the middleware
   // just renewed it) so /api/auth/token can serve it without re-validating
   // against possibly-spent cookies.
-  context.locals.accessToken = authResult.refreshedTokens?.accessToken ??
+  context.locals.accessToken =
+    authResult.refreshedTokens?.accessToken ??
     getCookie(req.headers.get("cookie") ?? "", "sb-access-token");
   devLog(`  Authed user: ${authUser.email}`);
 
@@ -161,10 +153,10 @@ const authState = defineMiddleware(async (context, next) => {
     } else {
       const row = userResult.rows[0];
       if (authUser.name && row.name !== authUser.name) {
-        await query(
-          "UPDATE users SET name = $1 WHERE supabase_auth_id = $2",
-          [authUser.name, authUser.id],
-        );
+        await query("UPDATE users SET name = $1 WHERE supabase_auth_id = $2", [
+          authUser.name,
+          authUser.id,
+        ]);
         row.name = authUser.name;
       }
       context.locals.user = {
@@ -178,9 +170,7 @@ const authState = defineMiddleware(async (context, next) => {
       };
     }
     const response = await next();
-    devLog(
-      `<< RESPONSE ${req.method} ${path} (lightweight, status=${response?.status})`,
-    );
+    devLog(`<< RESPONSE ${req.method} ${path} (lightweight, status=${response?.status})`);
     if (authResult.refreshedTokens && response) {
       devLog("  Setting refreshed cookies");
       setAuthCookies(
@@ -194,12 +184,7 @@ const authState = defineMiddleware(async (context, next) => {
 
   devLog("  Full state path, resolving...");
   const state = await resolveUserState(authUser.id);
-  devLog(
-    "  State resolved, user:",
-    state.user?.email,
-    "hasRegistry:",
-    !!state.activeRegistry,
-  );
+  devLog("  State resolved, user:", state.user?.email, "hasRegistry:", !!state.activeRegistry);
 
   if (!state.user) {
     // First request from a never-seen Supabase user: open signup.
@@ -221,10 +206,7 @@ const authState = defineMiddleware(async (context, next) => {
   }
 
   if (authUser.name && state.user.name !== authUser.name) {
-    await query(
-      "UPDATE users SET name = $1 WHERE id = $2",
-      [authUser.name, state.user.id],
-    );
+    await query("UPDATE users SET name = $1 WHERE id = $2", [authUser.name, state.user.id]);
     state.user = { ...state.user, name: authUser.name };
   }
 
@@ -263,10 +245,9 @@ const guard = defineMiddleware(async (context, next) => {
   // single cheap existence check so we can still redirect authed users with a
   // registry to /dashboard without the full 4-query resolveUserState.
   if (hasUser && !hasRegistry && path2 === "/") {
-    const membership = await query(
-      "SELECT 1 FROM registry_members WHERE user_id = $1 LIMIT 1",
-      [context.locals.user!.id],
-    );
+    const membership = await query("SELECT 1 FROM registry_members WHERE user_id = $1 LIMIT 1", [
+      context.locals.user!.id,
+    ]);
     hasRegistry = membership.rows.length > 0;
   }
 
@@ -294,10 +275,4 @@ const guard = defineMiddleware(async (context, next) => {
   return await next();
 });
 
-export const onRequest = sequence(
-  csrf,
-  securityHeaders,
-  rateLimit,
-  authState,
-  guard,
-);
+export const onRequest = sequence(csrf, securityHeaders, rateLimit, authState, guard);

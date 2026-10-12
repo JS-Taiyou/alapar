@@ -29,11 +29,7 @@ const DATE_LOCALE: Record<Locale, string> = {
  * Look up a translation key in the active locale.
  * Falls back to ES, then to the key itself.
  */
-export function t(
-  locale: Locale,
-  key: string,
-  params?: Record<string, string | number>,
-): string {
+export function t(locale: Locale, key: string, params?: Record<string, string | number>): string {
   let str = dictionaries[locale]?.[key] ?? dictionaries.es[key] ?? key;
   if (params) {
     for (const [k, v] of Object.entries(params)) {
@@ -54,10 +50,7 @@ export function tt(
 }
 
 /** Resolve locale from a cookie value, Accept-Language header, or default. */
-export function resolveLocale(
-  cookieValue?: string | null,
-  acceptLanguage?: string | null,
-): Locale {
+export function resolveLocale(cookieValue?: string | null, acceptLanguage?: string | null): Locale {
   if (cookieValue === "es" || cookieValue === "en") return cookieValue;
   if (acceptLanguage?.toLowerCase().startsWith("en")) return "en";
   return "es";
@@ -77,25 +70,13 @@ export function formatDate(
 }
 
 /** Format a time according to the active locale. */
-export function formatTime(
-  date: Date | string,
-  locale: Locale,
-): string {
+export function formatTime(date: Date | string, locale: Locale): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleTimeString(
-    DATE_LOCALE[locale],
-    { hour: "2-digit", minute: "2-digit" },
-  );
+  return d.toLocaleTimeString(DATE_LOCALE[locale], { hour: "2-digit", minute: "2-digit" });
 }
 
 /** Format a month + year for exercise/corte headings. */
-export function formatMonthYear(
-  date: Date | string,
-  locale: Locale,
-): string {
+export function formatMonthYear(date: Date | string, locale: Locale): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString(
-    DATE_LOCALE[locale],
-    { month: "long", year: "numeric" },
-  );
+  return d.toLocaleDateString(DATE_LOCALE[locale], { month: "long", year: "numeric" });
 }

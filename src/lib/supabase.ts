@@ -41,9 +41,7 @@ function devLog(...args: unknown[]) {
   if (isDev) console.log("[AUTH]", ...args);
 }
 
-export async function getUserFromRequest(
-  req: Request,
-): Promise<AuthResult | null> {
+export async function getUserFromRequest(req: Request): Promise<AuthResult | null> {
   const cookieHeader = req.headers.get("cookie") ?? "";
   const accessToken = getCookie(cookieHeader, "sb-access-token");
   const refreshToken = getCookie(cookieHeader, "sb-refresh-token");
@@ -93,8 +91,9 @@ async function refreshSessionSingleFlight(
 
   const promise = (async (): Promise<AuthResult | null> => {
     devLog("Attempting token refresh...");
-    const { data: refreshData, error: refreshError } = await client.auth
-      .refreshSession({ refresh_token: refreshToken });
+    const { data: refreshData, error: refreshError } = await client.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
     if (refreshError || !refreshData.session || !refreshData.user) {
       devLog("Refresh failed:", refreshError?.message);
       return null;
@@ -128,16 +127,10 @@ async function refreshSessionSingleFlight(
 // Secure is on by default in production. Local dev runs over plain HTTP,
 // where browsers reject Secure cookies, so it stays off there unless
 // COOKIE_SECURE=true. COOKIE_SECURE=false forces it off in any environment.
-const cookieSecure = env("COOKIE_SECURE") !== "false" &&
-    (!isDev || env("COOKIE_SECURE") === "true")
-  ? "; Secure"
-  : "";
+const cookieSecure =
+  env("COOKIE_SECURE") !== "false" && (!isDev || env("COOKIE_SECURE") === "true") ? "; Secure" : "";
 
-export function setAuthCookies(
-  headers: Headers,
-  accessToken: string,
-  refreshToken: string,
-): void {
+export function setAuthCookies(headers: Headers, accessToken: string, refreshToken: string): void {
   headers.append(
     "Set-Cookie",
     `sb-access-token=${accessToken}; HttpOnly${cookieSecure}; SameSite=Lax; Path=/; Max-Age=${

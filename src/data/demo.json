@@ -114,9 +114,7 @@
       "recurringGroupId": "demo-tx-0004",
       "notes": "",
       "splitJson": {
-        "splits": [
-          { "userId": "demo-user-0002", "percentage": 100, "amount": 5000 }
-        ]
+        "splits": [{ "userId": "demo-user-0002", "percentage": 100, "amount": 5000 }]
       },
       "relatedTransactionId": null,
       "creatorId": "demo-user-0001",

@@ -34,15 +34,10 @@ export const GET: APIRoute = async (ctx) => {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const interval = ctx.url.searchParams.get("interval") === "yearly"
-    ? "yearly"
-    : "monthly";
+  const interval = ctx.url.searchParams.get("interval") === "yearly" ? "yearly" : "monthly";
 
   if (!billingConfigured()) {
-    return Response.json(
-      { error: "Billing is not configured" },
-      { status: 503 },
-    );
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
   }
 
   const sub = await query(
@@ -52,19 +47,19 @@ export const GET: APIRoute = async (ctx) => {
   );
   const row = sub.rows[0] as
     | {
-      status: string;
-      grace_until: string | null;
-      current_period_end: string | null;
-    }
+        status: string;
+        grace_until: string | null;
+        current_period_end: string | null;
+      }
     | undefined;
   if (
     row &&
     resolveEffectivePlan(
-        "free",
-        row.status,
-        row.grace_until ? new Date(row.grace_until) : null,
-        row.current_period_end ? new Date(row.current_period_end) : null,
-      ) !== "free"
+      "free",
+      row.status,
+      row.grace_until ? new Date(row.grace_until) : null,
+      row.current_period_end ? new Date(row.current_period_end) : null,
+    ) !== "free"
   ) {
     return new Response(null, {
       status: 302,
@@ -72,11 +67,7 @@ export const GET: APIRoute = async (ctx) => {
     });
   }
 
-  const checkoutUrl = getCheckoutUrl(
-    userId,
-    interval,
-    ctx.locals.locale,
-  );
+  const checkoutUrl = getCheckoutUrl(userId, interval, ctx.locals.locale);
   return new Response(null, {
     status: 302,
     headers: { Location: checkoutUrl },

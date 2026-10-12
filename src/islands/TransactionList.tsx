@@ -1,9 +1,4 @@
-import {
-  type Signal,
-  useComputed,
-  useSignal,
-  useSignalEffect,
-} from "@preact/signals";
+import { type Signal, useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import type {
   BalanceBreakdownEntry,
   DefaultSplit,
@@ -11,11 +6,7 @@ import type {
   SpawnCandidate,
   TransactionPayment,
 } from "../lib/types";
-import {
-  type EnrichedTransaction,
-  entitiesChanged,
-  registrySwitch,
-} from "./shared-signals";
+import { type EnrichedTransaction, entitiesChanged, registrySwitch } from "./shared-signals";
 import { rowToEnrichedTransaction } from "../lib/rows";
 import ProBadge from "../components/ProBadge";
 
@@ -27,10 +18,7 @@ function dedupById<T extends { id: string }>(items: T[]): T[] {
     return true;
   });
 }
-import {
-  calculateBalance,
-  calculatePairwiseBreakdown,
-} from "../lib/calculations";
+import { calculateBalance, calculatePairwiseBreakdown } from "../lib/calculations";
 import {
   resubscribe,
   setOnResync,
@@ -39,19 +27,11 @@ import {
   unsubscribeAll,
 } from "../lib/realtime";
 import { isAuthFailure, redirectToLogin } from "../lib/auth-client";
-import {
-  requestNotificationPermission,
-  subscribeToPush,
-} from "../lib/notifications";
+import { requestNotificationPermission, subscribeToPush } from "../lib/notifications";
 import { cache } from "../lib/cache";
 import TransactionModal from "../components/TransactionModal";
 import { formatMoney, initials } from "../lib/format";
-import {
-  formatDate,
-  formatTime,
-  type Locale,
-  t as translate,
-} from "../lib/i18n";
+import { formatDate, formatTime, type Locale, t as translate } from "../lib/i18n";
 
 let lastPushSubscribedRegistry: string | null = null;
 
@@ -106,9 +86,7 @@ function TransactionCardClickable(props: {
           </span>
         </div>
         <div class="text-right flex flex-col items-end">
-          <span class="text-xl font-bold text-amber-400">
-            ${formattedAmount}
-          </span>
+          <span class="text-xl font-bold text-amber-400">${formattedAmount}</span>
         </div>
       </div>
     );
@@ -117,9 +95,7 @@ function TransactionCardClickable(props: {
   if (tx.type === "pago") {
     const isPayer = tx.userPaid === currentUserId;
     const recipientSplit = tx.splitJson.splits[0];
-    const recipientUser = recipientSplit
-      ? users.find((u) => u.id === recipientSplit.userId)
-      : null;
+    const recipientUser = recipientSplit ? users.find((u) => u.id === recipientSplit.userId) : null;
     const payerUser = tx.paidByUser;
     const formattedAmount = formatMoney(tx.originalAmount);
 
@@ -130,14 +106,13 @@ function TransactionCardClickable(props: {
       label = t("tx.received_from", { name: payerUser.name });
     }
 
-    const linkedExpenseIds = tpList
-      .filter((tp) => tp.pagoId === tx.id)
-      .map((tp) => tp.expenseId);
-    const linkedExpenses = linkedExpenseIds.length > 0
-      ? (props.allTxs ?? []).filter((t) => linkedExpenseIds.includes(t.id))
-      : (tx.relatedTransactionId
-        ? (props.allTxs ?? []).filter((t) => t.id === tx.relatedTransactionId)
-        : []);
+    const linkedExpenseIds = tpList.filter((tp) => tp.pagoId === tx.id).map((tp) => tp.expenseId);
+    const linkedExpenses =
+      linkedExpenseIds.length > 0
+        ? (props.allTxs ?? []).filter((t) => linkedExpenseIds.includes(t.id))
+        : tx.relatedTransactionId
+          ? (props.allTxs ?? []).filter((t) => t.id === tx.relatedTransactionId)
+          : [];
 
     return (
       <div class="w-full">
@@ -160,15 +135,14 @@ function TransactionCardClickable(props: {
               {formatTime(tx.createdAt, props.locale ?? "es")}
               {label && (
                 <>
-                  {" "}&bull; <span class="text-indigo-400">{label}</span>
+                  {" "}
+                  &bull; <span class="text-indigo-400">{label}</span>
                 </>
               )}
             </span>
           </div>
           <div class="text-right flex flex-col items-end">
-            <span class="text-xl font-bold text-indigo-400">
-              ${formattedAmount}
-            </span>
+            <span class="text-xl font-bold text-indigo-400">${formattedAmount}</span>
           </div>
         </button>
         {linkedExpenses.length > 0 &&
@@ -185,9 +159,13 @@ function TransactionCardClickable(props: {
                     el.classList.remove("highlight-pulse");
                     void el.offsetWidth;
                     el.classList.add("highlight-pulse");
-                    el.addEventListener("animationend", () => {
-                      el.classList.remove("highlight-pulse");
-                    }, { once: true });
+                    el.addEventListener(
+                      "animationend",
+                      () => {
+                        el.classList.remove("highlight-pulse");
+                      },
+                      { once: true },
+                    );
                   }, 450);
                 }
               }}
@@ -215,9 +193,7 @@ function TransactionCardClickable(props: {
                 />
               </svg>
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-medium text-zinc-300 truncate">
-                  {relatedTx.description}
-                </p>
+                <p class="text-xs font-medium text-zinc-300 truncate">{relatedTx.description}</p>
                 <p class="text-[10px] text-zinc-400">
                   {formatDate(relatedTx.createdAt, props.locale ?? "es", {
                     month: "short",
@@ -247,9 +223,7 @@ function TransactionCardClickable(props: {
 
   const isPaidByMe = tx.userPaid === currentUserId;
   const userSplit = tx.splitJson.splits.find((s) => s.userId === currentUserId);
-  const divisor = tx.type === "parcialidad" && tx.installmentTotal
-    ? tx.installmentTotal
-    : 1;
+  const divisor = tx.type === "parcialidad" && tx.installmentTotal ? tx.installmentTotal : 1;
   const perInstallmentTotal = tx.originalAmount / divisor;
   const perInstallmentSplit = (userSplit?.amount ?? 0) / divisor;
   const personalBalance = isPaidByMe
@@ -259,9 +233,7 @@ function TransactionCardClickable(props: {
   const linkedPaymentTps = tpList.filter((tp) => tp.expenseId === tx.id);
   const linkedPaymentIds = new Set(linkedPaymentTps.map((tp) => tp.pagoId));
   const linkedPayments = (props.allTxs ?? []).filter(
-    (t) =>
-      linkedPaymentIds.has(t.id) ||
-      (t.type === "pago" && t.relatedTransactionId === tx.id),
+    (t) => linkedPaymentIds.has(t.id) || (t.type === "pago" && t.relatedTransactionId === tx.id),
   );
 
   let paymentsAffectingMe = 0;
@@ -305,9 +277,7 @@ function TransactionCardClickable(props: {
       class="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2"
     >
       <div class="flex flex-col min-w-0">
-        <span class="text-lg font-semibold text-white truncate">
-          {tx.description}
-        </span>
+        <span class="text-lg font-semibold text-white truncate">{tx.description}</span>
         <div class="text-sm text-zinc-400">
           <span class="block sm:inline">
             {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
@@ -338,8 +308,7 @@ function TransactionCardClickable(props: {
               </span>
             </>
           )}
-          {tx.type === "parcialidad" && tx.installmentCurrent &&
-            tx.installmentTotal && (
+          {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
             <>
               {" • "}
               <span class="text-xs font-semibold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400">
@@ -355,16 +324,10 @@ function TransactionCardClickable(props: {
       <div class="text-right flex flex-col items-end">
         <span
           class={`text-xl font-bold ${
-            isZero
-              ? "text-green-500"
-              : isPositive
-              ? "text-green-500"
-              : "text-red-500"
+            isZero ? "text-green-500" : isPositive ? "text-green-500" : "text-red-500"
           }`}
         >
-          {isZero ? "" : isPositive ? "+" : "-"}${formatMoney(
-            Math.abs(remainingBalance),
-          )}
+          {isZero ? "" : isPositive ? "+" : "-"}${formatMoney(Math.abs(remainingBalance))}
         </span>
         <span class="text-xs text-zinc-400">
           {t("tx.of_total", {
@@ -408,100 +371,87 @@ export default function TransactionList(props: TransactionListProps) {
     // stamp-gated fetch every time the channel (re)establishes.
     setOnResync(() => void syncRegistry());
 
-    subscribeToRegistry(
-      rid,
-      (payload) => {
-        const participantMap = new Map(users.value.map((u) => [u.id, u]));
+    subscribeToRegistry(rid, (payload) => {
+      const participantMap = new Map(users.value.map((u) => [u.id, u]));
 
-        const mapRow = (row: Record<string, unknown>): EnrichedTransaction =>
-          rowToEnrichedTransaction(row, participantMap);
+      const mapRow = (row: Record<string, unknown>): EnrichedTransaction =>
+        rowToEnrichedTransaction(row, participantMap);
 
-        if (payload.eventType === "INSERT" && payload.new?.id) {
-          const existing = transactions.value.find((t) =>
-            t.id === payload.new.id
-          );
-          if (!existing) {
-            const creator = payload.new.creator_id as string;
-            const desc = payload.new.description as string;
-            const amt = typeof payload.new.amount === "string"
+      if (payload.eventType === "INSERT" && payload.new?.id) {
+        const existing = transactions.value.find((t) => t.id === payload.new.id);
+        if (!existing) {
+          const creator = payload.new.creator_id as string;
+          const desc = payload.new.description as string;
+          const amt =
+            typeof payload.new.amount === "string"
               ? parseFloat(payload.new.amount)
               : (payload.new.amount as number);
-            const type = payload.new.type as string;
+          const type = payload.new.type as string;
 
-            if (creator === currentUserId.value) {
-              const optimisticIndex = transactions.value.findIndex((t) =>
+          if (creator === currentUserId.value) {
+            const optimisticIndex = transactions.value.findIndex(
+              (t) =>
                 t.creatorId === creator &&
                 t.description === desc &&
                 t.amount === amt &&
                 t.type === type &&
-                t.id !== payload.new.id
-              );
-              if (optimisticIndex !== -1) {
-                const updated = [...transactions.value];
-                updated[optimisticIndex] = mapRow(payload.new);
-                transactions.value = updated;
-              } else {
-                transactions.value = [
-                  mapRow(payload.new),
-                  ...transactions.value,
-                ];
-              }
+                t.id !== payload.new.id,
+            );
+            if (optimisticIndex !== -1) {
+              const updated = [...transactions.value];
+              updated[optimisticIndex] = mapRow(payload.new);
+              transactions.value = updated;
             } else {
               transactions.value = [mapRow(payload.new), ...transactions.value];
             }
-            if (creator !== currentUserId.value) {
-              const now = Date.now();
-              if (
-                now - lastNotificationAt >= NOTIFICATION_COOLDOWN &&
-                Notification.permission === "granted"
-              ) {
-                lastNotificationAt = now;
-                const desc = (payload.new.description as string) ??
-                  t("tx.notification_body");
-                const amt = typeof payload.new.amount === "number"
-                  ? payload.new.amount
-                  : 0;
-                new Notification(t("tx.notification_title"), {
-                  body: `${desc} — $${formatMoney(amt)}`,
-                  icon: "/logo.svg",
-                });
-              }
+          } else {
+            transactions.value = [mapRow(payload.new), ...transactions.value];
+          }
+          if (creator !== currentUserId.value) {
+            const now = Date.now();
+            if (
+              now - lastNotificationAt >= NOTIFICATION_COOLDOWN &&
+              Notification.permission === "granted"
+            ) {
+              lastNotificationAt = now;
+              const desc = (payload.new.description as string) ?? t("tx.notification_body");
+              const amt = typeof payload.new.amount === "number" ? payload.new.amount : 0;
+              new Notification(t("tx.notification_title"), {
+                body: `${desc} — $${formatMoney(amt)}`,
+                icon: "/logo.svg",
+              });
             }
           }
-        } else if (payload.eventType === "DELETE" && payload.old?.id) {
-          transactions.value = transactions.value.filter((t) =>
-            t.id !== payload.old.id
-          );
-        } else if (payload.eventType === "UPDATE" && payload.new?.id) {
-          transactions.value = transactions.value.map((t) =>
-            t.id === payload.new.id ? mapRow(payload.new) : t
-          );
         }
-        const allParticipants = dedupById([
-          ...users.value.map((u) => ({
-            id: u.id,
-            name: u.name,
-            color: u.color,
-          })),
-          ...props.entities.value.map((e) => ({
-            id: e.id,
-            name: e.name,
-            color: e.color,
-          })),
-        ]);
-        balance.value = calculateBalance(
-          transactions.value as Parameters<typeof calculateBalance>[0],
-          currentUserId.value,
+      } else if (payload.eventType === "DELETE" && payload.old?.id) {
+        transactions.value = transactions.value.filter((t) => t.id !== payload.old.id);
+      } else if (payload.eventType === "UPDATE" && payload.new?.id) {
+        transactions.value = transactions.value.map((t) =>
+          t.id === payload.new.id ? mapRow(payload.new) : t,
         );
-        balanceEntries.value = calculatePairwiseBreakdown(
-          transactions.value as Parameters<
-            typeof calculatePairwiseBreakdown
-          >[0],
-          currentUserId.value,
-          allParticipants,
-        );
-      },
-    );
+      }
+      const allParticipants = dedupById([
+        ...users.value.map((u) => ({
+          id: u.id,
+          name: u.name,
+          color: u.color,
+        })),
+        ...props.entities.value.map((e) => ({
+          id: e.id,
+          name: e.name,
+          color: e.color,
+        })),
+      ]);
+      balance.value = calculateBalance(
+        transactions.value as Parameters<typeof calculateBalance>[0],
+        currentUserId.value,
+      );
+      balanceEntries.value = calculatePairwiseBreakdown(
+        transactions.value as Parameters<typeof calculatePairwiseBreakdown>[0],
+        currentUserId.value,
+        allParticipants,
+      );
+    });
 
     requestNotificationPermission().then((granted) => {
       if (granted && rid !== lastPushSubscribedRegistry) {
@@ -529,15 +479,13 @@ export default function TransactionList(props: TransactionListProps) {
     const eids = [...props.entityIds.value];
     const ents = props.entities.value;
     const tps = transactionPayments.value;
-    if (!rid || txs.length === 0 && lm === null) return;
+    if (!rid || (txs.length === 0 && lm === null)) return;
     if (props.isDemo) return;
     cache.setRegistrySnapshot({
       registryId: rid,
       transactions: txs.map((t) => ({
         ...t,
-        createdAt: typeof t.createdAt === "string"
-          ? t.createdAt
-          : t.createdAt.toISOString(),
+        createdAt: typeof t.createdAt === "string" ? t.createdAt : t.createdAt.toISOString(),
       })),
       transactionPayments: tps,
       balance: bal,
@@ -593,16 +541,14 @@ export default function TransactionList(props: TransactionListProps) {
     const announcement = entitiesChanged.value;
     if (!announcement) return;
     if (announcement.entities) {
-      props.entityIds.value = new Set(
-        announcement.entities.map((ent) => ent.id),
-      );
+      props.entityIds.value = new Set(announcement.entities.map((ent) => ent.id));
       return;
     }
     const rid = registryId.value;
     if (!rid) return;
     if (props.isDemo) return;
     fetch(`/api/entities?registryId=${rid}`)
-      .then((res) => res.ok ? res.json() as Promise<{ id: string }[]> : null)
+      .then((res) => (res.ok ? (res.json() as Promise<{ id: string }[]>) : null))
       .then((data) => {
         if (!data) return;
         if (rid !== registryId.value) return;
@@ -639,14 +585,12 @@ export default function TransactionList(props: TransactionListProps) {
     if (syncInFlight) return;
     syncInFlight = true;
     try {
-      for (let attempt = 0;; attempt++) {
+      for (let attempt = 0; ; attempt++) {
         if (rid !== registryId.value) return;
         const outcome = await trySyncOnce(rid);
         if (outcome === "done") return;
         if (attempt >= SYNC_RETRY_DELAYS_MS.length) {
-          console.warn(
-            "[sync] catch-up failed after retries; waiting for next wake signal",
-          );
+          console.warn("[sync] catch-up failed after retries; waiting for next wake signal");
           return;
         }
         await new Promise((r) => setTimeout(r, SYNC_RETRY_DELAYS_MS[attempt]));
@@ -671,7 +615,7 @@ export default function TransactionList(props: TransactionListProps) {
         return "done";
       }
       if (!stampRes.ok) return "retry";
-      const { lastModified } = await stampRes.json() as {
+      const { lastModified } = (await stampRes.json()) as {
         lastModified: string | null;
       };
       const cached = await cache.getRegistrySnapshot(rid);
@@ -688,7 +632,7 @@ export default function TransactionList(props: TransactionListProps) {
         return "done";
       }
       if (!dashRes.ok) return "retry";
-      const data = await dashRes.json() as {
+      const data = (await dashRes.json()) as {
         transactions: unknown[];
         transactionPayments: TransactionPayment[];
         balance: number;
@@ -700,9 +644,7 @@ export default function TransactionList(props: TransactionListProps) {
         entities: { id: string; name: string; color: string }[];
       };
 
-      transactions.value = (data.transactions as EnrichedTransaction[]).map((
-        t,
-      ) => ({
+      transactions.value = (data.transactions as EnrichedTransaction[]).map((t) => ({
         ...t,
         createdAt:
           typeof (t as unknown as { createdAt: unknown }).createdAt === "string"
@@ -805,12 +747,11 @@ export default function TransactionList(props: TransactionListProps) {
       // shown on the card — so "1613", "$1,613" and "1,613.00" all find a
       // $1,613 transaction (161300 cents contains every prefix of those).
       const digits = q.replace(/[^0-9]/g, "");
-      const centsContains = (n: number) =>
-        String(Math.round(n * 100)).includes(digits);
-      list = list.filter((tx) =>
-        tx.description.toLowerCase().includes(q) ||
-        (digits.length > 0 &&
-          (centsContains(tx.originalAmount) || centsContains(tx.amount)))
+      const centsContains = (n: number) => String(Math.round(n * 100)).includes(digits);
+      list = list.filter(
+        (tx) =>
+          tx.description.toLowerCase().includes(q) ||
+          (digits.length > 0 && (centsContains(tx.originalAmount) || centsContains(tx.amount))),
       );
     }
     return [...list].sort((a, b) => {
@@ -840,17 +781,14 @@ export default function TransactionList(props: TransactionListProps) {
               />
             </svg>
           </div>
-          <h3 class="text-2xl font-bold text-white">
-            {t("tx.single_user_title")}
-          </h3>
+          <h3 class="text-2xl font-bold text-white">{t("tx.single_user_title")}</h3>
           <p class="text-zinc-400 text-base leading-relaxed">
             {t("tx.single_user_desc")}{" "}
             <span
               class="font-bold underline cursor-pointer text-orange-400 relative"
-              onClick={() =>
-                showTerceroPopover.value = !showTerceroPopover.value}
-              onMouseEnter={() => showTerceroPopover.value = true}
-              onMouseLeave={() => showTerceroPopover.value = false}
+              onClick={() => (showTerceroPopover.value = !showTerceroPopover.value)}
+              onMouseEnter={() => (showTerceroPopover.value = true)}
+              onMouseLeave={() => (showTerceroPopover.value = false)}
             >
               tercero
               {showTerceroPopover.value && (
@@ -914,9 +852,8 @@ export default function TransactionList(props: TransactionListProps) {
           <h2 class="text-lg font-semibold text-zinc-200">
             {filterUserId.value
               ? t("tx.current_period_filtered", {
-                name: users.value.find((u) => u.id === filterUserId.value)
-                  ?.name ?? "",
-              })
+                  name: users.value.find((u) => u.id === filterUserId.value)?.name ?? "",
+                })
               : t("tx.current_period")}
           </h2>
         </div>
@@ -927,7 +864,7 @@ export default function TransactionList(props: TransactionListProps) {
               <div class="flex gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={() => filterUserId.value = null}
+                  onClick={() => (filterUserId.value = null)}
                   class={`text-xs font-semibold px-3 py-1.5 rounded transition-colors cursor-pointer ${
                     filterUserId.value === null
                       ? "bg-primary text-white shadow-sm"
@@ -963,11 +900,7 @@ export default function TransactionList(props: TransactionListProps) {
                         {userInitials}
                       </div>
                       {user.name.split(" ")[0]}
-                      <ProBadge
-                        pro={user.pro ?? null}
-                        locale={props.locale}
-                        linked={false}
-                      />
+                      <ProBadge pro={user.pro ?? null} locale={props.locale} linked={false} />
                     </button>
                   );
                 })}
@@ -975,12 +908,7 @@ export default function TransactionList(props: TransactionListProps) {
             )}
             <div class="relative">
               <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
-                <svg
-                  class="h-5 w-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                     stroke-linecap="round"
@@ -994,22 +922,16 @@ export default function TransactionList(props: TransactionListProps) {
                 data-tour="search-bar"
                 placeholder={t("tx.search_placeholder")}
                 value={searchQuery.value}
-                onInput={(e) =>
-                  searchQuery.value = (e.target as HTMLInputElement).value}
+                onInput={(e) => (searchQuery.value = (e.target as HTMLInputElement).value)}
                 class="w-full bg-white/5 border border-white/15 rounded-custom pl-10 text-white placeholder-zinc-500 focus:ring-primary focus:border-primary py-2.5"
               />
               {searchQuery.value && (
                 <button
                   type="button"
-                  onClick={() => searchQuery.value = ""}
+                  onClick={() => (searchQuery.value = "")}
                   class="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white"
                 >
-                  <svg
-                    class="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       d="M6 18L18 6M6 6l12 12"
                       stroke-linecap="round"
@@ -1030,12 +952,7 @@ export default function TransactionList(props: TransactionListProps) {
             data-tour="add-payment-mobile"
             class="flex-1 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
                 stroke-linecap="round"
@@ -1051,12 +968,7 @@ export default function TransactionList(props: TransactionListProps) {
             data-tour="add-expense-mobile"
             class="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
           >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
                 stroke-linecap="round"
@@ -1068,64 +980,55 @@ export default function TransactionList(props: TransactionListProps) {
           </button>
         </div>
 
-        {transactions.value.length === 0
-          ? (
-            <div class="flex flex-col items-center justify-center py-20 text-center">
-              <div class="bg-white/5 p-4 rounded-full mb-4">
-                <svg
-                  class="h-12 w-12 text-zinc-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-lg font-medium text-zinc-300">
-                {t("tx.empty_title")}
-              </h3>
-              <p class="text-zinc-400 mt-2">
-                {t("tx.empty_desc")}
-              </p>
-            </div>
-          )
-          : filteredTransactions.value.length === 0
-          ? (
-            <div class="flex flex-col items-center justify-center py-12 text-center">
-              <p class="text-zinc-400">
-                {t("tx.no_results")}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  searchQuery.value = "";
-                  filterUserId.value = null;
-                }}
-                class="mt-2 text-sm text-primary hover:underline"
+        {transactions.value.length === 0 ? (
+          <div class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="bg-white/5 p-4 rounded-full mb-4">
+              <svg
+                class="h-12 w-12 text-zinc-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                {t("tx.clear_filters")}
-              </button>
+                <path
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                />
+              </svg>
             </div>
-          )
-          : filteredTransactions.value.map((tx) => (
+            <h3 class="text-lg font-medium text-zinc-300">{t("tx.empty_title")}</h3>
+            <p class="text-zinc-400 mt-2">{t("tx.empty_desc")}</p>
+          </div>
+        ) : filteredTransactions.value.length === 0 ? (
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <p class="text-zinc-400">{t("tx.no_results")}</p>
+            <button
+              type="button"
+              onClick={() => {
+                searchQuery.value = "";
+                filterUserId.value = null;
+              }}
+              class="mt-2 text-sm text-primary hover:underline"
+            >
+              {t("tx.clear_filters")}
+            </button>
+          </div>
+        ) : (
+          filteredTransactions.value.map((tx) => (
             <div key={tx.id} id={`tx-${tx.id}`} data-tour="transaction-card">
               <TransactionCardClickable
                 tx={tx}
                 users={users.value}
                 currentUserId={currentUserId.value}
-                onClick={() =>
-                  tx.type !== "ajuste" && openEdit(tx)}
+                onClick={() => tx.type !== "ajuste" && openEdit(tx)}
                 allTxs={transactions.value}
                 transactionPayments={transactionPayments.value}
                 locale={props.locale}
               />
             </div>
-          ))}
+          ))
+        )}
         <div class="h-12" />
       </main>
 
@@ -1140,12 +1043,7 @@ export default function TransactionList(props: TransactionListProps) {
             data-tour="add-payment"
             class="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
           >
-            <svg
-              class="w-8 h-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
                 stroke-linecap="round"
@@ -1165,12 +1063,7 @@ export default function TransactionList(props: TransactionListProps) {
             data-tour="add-expense"
             class="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
           >
-            <svg
-              class="w-8 h-8"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
                 stroke-linecap="round"
@@ -1196,7 +1089,7 @@ export default function TransactionList(props: TransactionListProps) {
         entities={props.entities}
         transactionPayments={transactionPayments}
         onRecalculate={recalculate}
-        onServerStamp={(stamp) => props.lastModified.value = stamp}
+        onServerStamp={(stamp) => (props.lastModified.value = stamp)}
         isDemo={props.isDemo}
         locale={props.locale}
       />

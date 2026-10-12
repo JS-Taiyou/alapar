@@ -16,7 +16,7 @@ original de Fresh mientras aterriza esta migración)_
 A la Par nació como un proyecto de **Deno**, construido sobre **Fresh**, el
 framework web de Deno (Preact + islas renderizadas en servidor), y desplegado
 en **Deno Deploy**. Cuando se anunció la adquisición de Deno por Cloudflare, el
-proyecto fue portado a **Astro 5 sobre Node**, con Netlify como nuevo destino
+proyecto fue portado a **Astro 7 sobre Node**, con Netlify como nuevo destino
 de hosting. El código original de Fresh sigue en la rama `main`; la migración
 vive en `migration/astro` — consulta [`MIGRATION.md`](MIGRATION.md) para el
 mapa del port, el estado de verificación y lo que falta.
@@ -47,14 +47,15 @@ cargos recurrentes y pagos directos entre miembros.
 
 ## Stack técnico
 
-| Capa     | Tecnología                                                        |
-| -------- | ----------------------------------------------------------------- |
-| Frontend | Astro 5 + Preact (+ Signals), renderizado en servidor con islas   |
-| Runtime  | Node.js 20+ (npm, Astro CLI; Vite por debajo)                     |
-| Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS  |
-| Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                              |
-| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso           |
-| Empaque  | PWA (web manifest + service worker + Web Push)                    |
+| Capa     | Tecnología                                                       |
+| -------- | ---------------------------------------------------------------- |
+| Frontend | Astro 7 + Preact (+ Signals), renderizado en servidor con islas  |
+| Runtime  | Node.js 22.12+ (npm, Astro CLI; Vite 8 por debajo vía Vite+)     |
+| Tooling  | Vite+ (`vp`) — lint (Oxlint), formato (Oxfmt), pruebas (Vitest)  |
+| Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS |
+| Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                             |
+| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso          |
+| Empaque  | PWA (web manifest + service worker + Web Push)                   |
 
 ## Detalles de ingeniería
 
@@ -82,7 +83,7 @@ cargos recurrentes y pagos directos entre miembros.
 
 ### Requisitos
 
-- [Node.js](https://nodejs.org) 20+ y npm
+- [Node.js](https://nodejs.org) 22.12+ y npm 9.6.5+
 - Un proyecto de [Supabase](https://supabase.com) (el plan gratuito funciona) —
   o solo un Postgres local para desarrollo
 
@@ -109,14 +110,18 @@ en el orden indicado en [`docs/DATABASE.md`](docs/DATABASE.md#migrations).
 npm run dev        # servidor de desarrollo
 npm run build      # build de producción (función SSR de Netlify)
 npm run preview    # previsualiza la build
-npx astro check    # type-check (.astro + .ts)
+npm run check      # type-check (.astro + .ts vía astro check)
+npm run lint       # Oxlint vía Vite+ (con tipos)
+npm run fmt        # Oxfmt vía Vite+ (usa fmt:check para solo verificar)
+npm test           # Vitest vía Vite+ (pasa mientras se porta la suite)
 ```
 
 ## Pruebas
 
 La suite original de Deno (motor de saldos, repartos, validación de rutas,
-stubs tipados de BD/Supabase) se está portando de `deno test` a **Vitest** —
-sigue disponible en `main` como referencia. Ver [`MIGRATION.md`](MIGRATION.md).
+stubs tipados de BD/Supabase) se está portando de `deno test` a **Vitest**
+(corre con `npm test`, provisto por Vite+) — sigue disponible en `main` como
+referencia. Ver [`MIGRATION.md`](MIGRATION.md).
 
 ## Documentación
 

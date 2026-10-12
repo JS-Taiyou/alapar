@@ -45,14 +45,7 @@ interface SidebarProps {
   showUpgrade?: boolean;
 }
 
-const REGISTRY_COLORS = [
-  "#3b82f6",
-  "#22c55e",
-  "#f97316",
-  "#a855f7",
-  "#ef4444",
-  "#14b8a6",
-];
+const REGISTRY_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444", "#14b8a6"];
 
 export default function Sidebar(props: SidebarProps) {
   const registries = useSignal(props.registries);
@@ -61,12 +54,11 @@ export default function Sidebar(props: SidebarProps) {
 
   useSignalEffect(() => {
     if (typeof globalThis.indexedDB === "undefined") return;
-    cache.cleanOrphanedEntries(props.registries.map((r) => r.id)).catch(
-      () => {},
-    );
+    cache.cleanOrphanedEntries(props.registries.map((r) => r.id)).catch(() => {});
     cache.getLastActiveRegistry().then((cachedId) => {
       if (
-        cachedId && cachedId !== props.activeRegistryId &&
+        cachedId &&
+        cachedId !== props.activeRegistryId &&
         props.registries.some((r) => r.id === cachedId)
       ) {
         switchRegistry(cachedId);
@@ -84,7 +76,7 @@ export default function Sidebar(props: SidebarProps) {
     const rid = activeRegistryId.value;
     if (!rid) return;
     fetch(`/api/entities?registryId=${rid}`)
-      .then((res) => res.ok ? res.json() : null)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) $entities.value = data as Entity[];
       })
@@ -96,9 +88,7 @@ export default function Sidebar(props: SidebarProps) {
   const sortedRegistries = useComputed(() => {
     const active = activeRegistryId.value;
     const list = registries.value;
-    const rest = list.filter((r) => r.id !== active).sort((a, b) =>
-      a.name.localeCompare(b.name)
-    );
+    const rest = list.filter((r) => r.id !== active).sort((a, b) => a.name.localeCompare(b.name));
     const activeReg = list.find((r) => r.id === active);
     return activeReg ? [activeReg, ...rest] : rest;
   });
@@ -140,18 +130,14 @@ export default function Sidebar(props: SidebarProps) {
       if (e.touches.length >= 2) {
         return (e.touches[0].clientX + e.touches[1].clientX) / 2;
       }
-      return e.changedTouches.length > 0
-        ? e.changedTouches[0].clientX
-        : e.touches[0].clientX;
+      return e.changedTouches.length > 0 ? e.changedTouches[0].clientX : e.touches[0].clientX;
     }
 
     function getY(e: TouchEvent): number {
       if (e.touches.length >= 2) {
         return (e.touches[0].clientY + e.touches[1].clientY) / 2;
       }
-      return e.changedTouches.length > 0
-        ? e.changedTouches[0].clientY
-        : e.touches[0].clientY;
+      return e.changedTouches.length > 0 ? e.changedTouches[0].clientY : e.touches[0].clientY;
     }
 
     function onTouchStart(e: TouchEvent) {
@@ -238,9 +224,7 @@ export default function Sidebar(props: SidebarProps) {
         }
       } else {
         const offset = dragOffset.value ?? SIDEBAR_WIDTH;
-        if (
-          dx < -SWIPE_THRESHOLD || offset < SIDEBAR_WIDTH * (1 - SETTLE_RATIO)
-        ) {
+        if (dx < -SWIPE_THRESHOLD || offset < SIDEBAR_WIDTH * (1 - SETTLE_RATIO)) {
           mobileOpen.value = false;
         }
       }
@@ -306,9 +290,7 @@ export default function Sidebar(props: SidebarProps) {
       applyRegistrySwitch({
         registryId: id,
         transactions: cached.transactions as EnrichedTransaction[],
-        transactionPayments: cached.transactionPayments as
-          | TransactionPayment[]
-          | undefined,
+        transactionPayments: cached.transactionPayments as TransactionPayment[] | undefined,
         balance: cached.balance,
         balanceEntries: cached.balanceEntries as BalanceBreakdownEntry[],
         users: cached.users as Participant[],
@@ -330,7 +312,7 @@ export default function Sidebar(props: SidebarProps) {
       });
       if (gen !== switchGen.value) return;
       if (!res.ok) throw new Error();
-      const data = await res.json() as DashboardApiResponse;
+      const data = (await res.json()) as DashboardApiResponse;
 
       applyRegistrySwitch({
         registryId: id,
@@ -363,7 +345,7 @@ export default function Sidebar(props: SidebarProps) {
       });
       if (gen !== switchGen.value) return;
       if (!stampRes.ok) return;
-      const { lastModified } = await stampRes.json() as {
+      const { lastModified } = (await stampRes.json()) as {
         lastModified: string | null;
       };
 
@@ -375,7 +357,7 @@ export default function Sidebar(props: SidebarProps) {
       });
       if (gen !== switchGen.value) return;
       if (!dashRes.ok) return;
-      const data = await dashRes.json() as DashboardApiResponse;
+      const data = (await dashRes.json()) as DashboardApiResponse;
 
       applyRegistrySwitch({
         registryId,
@@ -390,7 +372,9 @@ export default function Sidebar(props: SidebarProps) {
         entities: data.entities ?? [],
         lastModified,
       });
-    } catch { /* background validation failure is non-critical */ }
+    } catch {
+      /* background validation failure is non-critical */
+    }
   }
 
   async function handleLogout() {
@@ -478,9 +462,7 @@ export default function Sidebar(props: SidebarProps) {
       return;
     }
     const oldRegistries = registries.value;
-    registries.value = registries.value.map((r) =>
-      r.id === id ? { ...r, name } : r
-    );
+    registries.value = registries.value.map((r) => (r.id === id ? { ...r, name } : r));
     renamingId.value = null;
     try {
       const res = await fetch(`/api/registries/${id}`, {
@@ -559,26 +541,26 @@ export default function Sidebar(props: SidebarProps) {
         showUpgradeToast(props.locale ?? "es", "billing.registries_full");
       }
       if (!res.ok) throw new Error("create failed");
-      const { registry } = await res.json() as { registry: Registry };
-      registries.value = registries.value.map((r) =>
-        r.id === tempId ? registry : r
-      );
+      const { registry } = (await res.json()) as { registry: Registry };
+      registries.value = registries.value.map((r) => (r.id === tempId ? registry : r));
       newRegistryPendingId.value = null;
 
-      cache.setRegistrySnapshot({
-        registryId: registry.id,
-        transactions: [],
-        transactionPayments: [],
-        balance: 0,
-        balanceEntries: [],
-        users: [],
-        currentUserId: "",
-        defaultSplit: null,
-        spawnCandidates: [],
-        entityIds: [],
-        entities: [],
-        lastModified: null,
-      }).catch(() => {});
+      cache
+        .setRegistrySnapshot({
+          registryId: registry.id,
+          transactions: [],
+          transactionPayments: [],
+          balance: 0,
+          balanceEntries: [],
+          users: [],
+          currentUserId: "",
+          defaultSplit: null,
+          spawnCandidates: [],
+          entityIds: [],
+          entities: [],
+          lastModified: null,
+        })
+        .catch(() => {});
     } catch {
       registries.value = registries.value.filter((r) => r.id !== tempId);
     } finally {
@@ -590,16 +572,12 @@ export default function Sidebar(props: SidebarProps) {
     <>
       <div
         class={`border-b border-white/10 flex items-center transition-all duration-300 ${
-          collapsed.value && !mobileOpen.value
-            ? "p-1.5 justify-center"
-            : "p-4 justify-between"
+          collapsed.value && !mobileOpen.value ? "p-1.5 justify-center" : "p-4 justify-between"
         }`}
       >
         <div
           class={`flex items-center gap-3 min-w-0 transition-opacity duration-200 overflow-hidden ${
-            collapsed.value && !mobileOpen.value
-              ? "opacity-0 w-0"
-              : "opacity-100"
+            collapsed.value && !mobileOpen.value ? "opacity-0 w-0" : "opacity-100"
           }`}
         >
           <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center font-bold text-white shrink-0">
@@ -620,54 +598,42 @@ export default function Sidebar(props: SidebarProps) {
               mobileOpen.value = false;
             } else {
               collapsed.value = !collapsed.value;
-              document.cookie =
-                `sidebar-collapsed=${collapsed.value};path=/;max-age=${
-                  60 * 60 * 24 * 365
-                };samesite=lax`;
+              document.cookie = `sidebar-collapsed=${collapsed.value};path=/;max-age=${
+                60 * 60 * 24 * 365
+              };samesite=lax`;
             }
           }}
           class={`hover:bg-white/10 rounded-custom text-zinc-400 hover:text-white transition-all duration-300 shrink-0 hidden md:flex items-center justify-center bg-white/5 border border-white/10 ${
             collapsed.value && !mobileOpen.value ? "p-2.5 w-full" : "p-2.5"
           }`}
         >
-          <svg
-            class="w-5 h-5 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {collapsed.value
-              ? (
-                <path
-                  d="M13 5l7 7-7 7M5 5l7 7-7 7"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                />
-              )
-              : (
-                <path
-                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                />
-              )}
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {collapsed.value ? (
+              <path
+                d="M13 5l7 7-7 7M5 5l7 7-7 7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+              />
+            ) : (
+              <path
+                d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+              />
+            )}
           </svg>
         </button>
       </div>
       <div
         class={`flex-1 overflow-hidden space-y-2 transition-all duration-300 ${
-          collapsed.value && !mobileOpen.value
-            ? "p-1.5"
-            : "p-4 overflow-y-auto custom-scrollbar"
+          collapsed.value && !mobileOpen.value ? "p-1.5" : "p-4 overflow-y-auto custom-scrollbar"
         }`}
       >
         <h3
           class={`px-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 whitespace-nowrap transition-opacity duration-200 ${
-            collapsed.value && !mobileOpen.value
-              ? "opacity-0 h-0"
-              : "opacity-100"
+            collapsed.value && !mobileOpen.value ? "opacity-0 h-0" : "opacity-100"
           }`}
         >
           Registros
@@ -675,184 +641,173 @@ export default function Sidebar(props: SidebarProps) {
         {sortedRegistries.value.map((r, i) => {
           const isPending = r.id === newRegistryPendingId.value;
           const isOwnedByMe = isPending || props.ownerRegistryIds.has(r.id);
-          const isDeletable = isPending ||
-            props.deletableRegistryIds.has(r.id);
+          const isDeletable = isPending || props.deletableRegistryIds.has(r.id);
           return (
             <div key={r.id} class="group relative">
-              {renamingId.value === r.id
-                ? (
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      confirmRename(r.id);
-                    }}
-                    class={`w-full flex items-center rounded-custom ${
-                      collapsed.value && !mobileOpen.value
-                        ? "justify-center p-2.5"
-                        : "gap-3 px-3 py-2.5"
-                    } bg-white/5 border border-white/10 text-white`}
-                  >
-                    <div
-                      class="w-2 h-2 rounded-full flex-shrink-0"
-                      style={`background-color: ${
-                        REGISTRY_COLORS[i % REGISTRY_COLORS.length]
-                      }`}
-                    />
-                    <input
-                      type="text"
-                      value={renameValue.value}
-                      onInput={(e) =>
-                        renameValue.value =
-                          (e.target as HTMLInputElement).value}
-                      onBlur={() => confirmRename(r.id)}
-                      class={`flex-1 min-w-0 bg-white/5 border border-white/10 rounded text-sm font-medium text-white p-1 px-2 focus:outline-none focus:ring-1 focus:ring-white/20 ${
-                        collapsed.value && !mobileOpen.value
-                          ? "opacity-0 w-0 p-0"
-                          : ""
-                      }`}
-                      autofocus
-                    />
-                  </form>
-                )
-                : (
-                  <button
-                    type="button"
-                    onClick={() => !isPending && switchRegistry(r.id)}
-                    disabled={isPending}
-                    class={`w-full flex items-center rounded-custom transition-all duration-300 ${
-                      collapsed.value && !mobileOpen.value
-                        ? "justify-center p-2.5"
-                        : "gap-3 px-3 py-2.5"
-                    } ${
-                      isPending
-                        ? "bg-primary/10 border border-primary/30 text-primary"
-                        : collapsed.value && !mobileOpen.value
+              {renamingId.value === r.id ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    confirmRename(r.id);
+                  }}
+                  class={`w-full flex items-center rounded-custom ${
+                    collapsed.value && !mobileOpen.value
+                      ? "justify-center p-2.5"
+                      : "gap-3 px-3 py-2.5"
+                  } bg-white/5 border border-white/10 text-white`}
+                >
+                  <div
+                    class="w-2 h-2 rounded-full flex-shrink-0"
+                    style={`background-color: ${REGISTRY_COLORS[i % REGISTRY_COLORS.length]}`}
+                  />
+                  <input
+                    type="text"
+                    value={renameValue.value}
+                    onInput={(e) => (renameValue.value = (e.target as HTMLInputElement).value)}
+                    onBlur={() => confirmRename(r.id)}
+                    class={`flex-1 min-w-0 bg-white/5 border border-white/10 rounded text-sm font-medium text-white p-1 px-2 focus:outline-none focus:ring-1 focus:ring-white/20 ${
+                      collapsed.value && !mobileOpen.value ? "opacity-0 w-0 p-0" : ""
+                    }`}
+                    autofocus
+                  />
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => !isPending && switchRegistry(r.id)}
+                  disabled={isPending}
+                  class={`w-full flex items-center rounded-custom transition-all duration-300 ${
+                    collapsed.value && !mobileOpen.value
+                      ? "justify-center p-2.5"
+                      : "gap-3 px-3 py-2.5"
+                  } ${
+                    isPending
+                      ? "bg-primary/10 border border-primary/30 text-primary"
+                      : collapsed.value && !mobileOpen.value
                         ? ""
                         : r.id === activeRegistryId.value
-                        ? "bg-white/5 border border-white/10 text-white"
-                        : "border border-transparent hover:bg-white/5 hover:border-white/10 text-zinc-300 hover:text-white"
-                    }`}
-                    style={collapsed.value && !mobileOpen.value && !isPending
+                          ? "bg-white/5 border border-white/10 text-white"
+                          : "border border-transparent hover:bg-white/5 hover:border-white/10 text-zinc-300 hover:text-white"
+                  }`}
+                  style={
+                    collapsed.value && !mobileOpen.value && !isPending
                       ? `background-color: ${
-                        REGISTRY_COLORS[i % REGISTRY_COLORS.length]
-                      }20; border: 1px solid ${
-                        REGISTRY_COLORS[i % REGISTRY_COLORS.length]
-                      }40`
-                      : undefined}
-                    title={r.name}
-                  >
-                    <div
-                      class="rounded-full flex-shrink-0 transition-all duration-300 w-2 h-2"
-                      style={collapsed.value && !mobileOpen.value
-                        ? undefined
-                        : `background-color: ${
                           REGISTRY_COLORS[i % REGISTRY_COLORS.length]
-                        }`}
-                    />
-                    <span
-                      class={`text-sm font-medium truncate min-w-0 whitespace-nowrap transition-all duration-200 flex items-center ${
-                        collapsed.value && !mobileOpen.value
-                          ? "opacity-0 w-0 overflow-hidden"
-                          : "opacity-100 flex-1 text-left"
-                      }`}
-                    >
-                      {r.name}
-                      {isPending && (
+                        }20; border: 1px solid ${REGISTRY_COLORS[i % REGISTRY_COLORS.length]}40`
+                      : undefined
+                  }
+                  title={r.name}
+                >
+                  <div
+                    class="rounded-full flex-shrink-0 transition-all duration-300 w-2 h-2"
+                    style={
+                      collapsed.value && !mobileOpen.value
+                        ? undefined
+                        : `background-color: ${REGISTRY_COLORS[i % REGISTRY_COLORS.length]}`
+                    }
+                  />
+                  <span
+                    class={`text-sm font-medium truncate min-w-0 whitespace-nowrap transition-all duration-200 flex items-center ${
+                      collapsed.value && !mobileOpen.value
+                        ? "opacity-0 w-0 overflow-hidden"
+                        : "opacity-100 flex-1 text-left"
+                    }`}
+                  >
+                    {r.name}
+                    {isPending && (
+                      <svg
+                        class="w-3.5 h-3.5 ml-2 animate-spin text-primary shrink-0"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        />
+                        <path
+                          class="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        />
+                      </svg>
+                    )}
+                  </span>
+                  <span
+                    style="opacity:0"
+                    class={`sidebar-action-btns items-center gap-1.5 flex-shrink-0 transition-opacity duration-200 ${
+                      collapsed.value && !mobileOpen.value ? "w-0 overflow-hidden hidden" : "flex"
+                    }`}
+                  >
+                    {isOwnedByMe && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startRename(r.id, r.name);
+                        }}
+                        class="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors"
+                        title="Renombrar"
+                      >
                         <svg
-                          class="w-3.5 h-3.5 ml-2 animate-spin text-primary shrink-0"
+                          class="w-4.5 h-4.5"
                           fill="none"
+                          stroke="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <circle
-                            class="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            stroke-width="4"
-                          />
                           <path
-                            class="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
                           />
                         </svg>
-                      )}
-                    </span>
-                    <span
-                      style="opacity:0"
-                      class={`sidebar-action-btns items-center gap-1.5 flex-shrink-0 transition-opacity duration-200 ${
-                        collapsed.value && !mobileOpen.value
-                          ? "w-0 overflow-hidden hidden"
-                          : "flex"
-                      }`}
-                    >
-                      {isOwnedByMe && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            startRename(r.id, r.name);
-                          }}
-                          class="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors"
-                          title="Renombrar"
+                      </button>
+                    )}
+                    {isOwnedByMe && !isPending && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          showSplitConfig.value = r.id;
+                        }}
+                        class="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors text-sm font-bold"
+                        title="División Default"
+                      >
+                        %
+                      </button>
+                    )}
+                    {isOwnedByMe && isDeletable && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRegistry(r.id);
+                        }}
+                        class="p-2 hover:bg-red-500/20 rounded text-zinc-400 hover:text-red-400 transition-colors"
+                        title="Eliminar"
+                      >
+                        <svg
+                          class="w-4.5 h-4.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          <svg
-                            class="w-4.5 h-4.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                      {isOwnedByMe && !isPending && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            showSplitConfig.value = r.id;
-                          }}
-                          class="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors text-sm font-bold"
-                          title="División Default"
-                        >
-                          %
-                        </button>
-                      )}
-                      {isOwnedByMe && isDeletable && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteRegistry(r.id);
-                          }}
-                          class="p-2 hover:bg-red-500/20 rounded text-zinc-400 hover:text-red-400 transition-colors"
-                          title="Eliminar"
-                        >
-                          <svg
-                            class="w-4.5 h-4.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              stroke-width="2"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                    </span>
-                  </button>
-                )}
+                          <path
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </span>
+                </button>
+              )}
             </div>
           );
         })}
@@ -875,12 +830,7 @@ export default function Sidebar(props: SidebarProps) {
                 : "justify-center gap-2 py-2.5 px-3"
             }`}
           >
-            <svg
-              class="w-5 h-5 shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
                 stroke-linecap="round"
@@ -909,15 +859,10 @@ export default function Sidebar(props: SidebarProps) {
         >
           <div
             class={`transition-opacity duration-200 ${
-              collapsed.value && !mobileOpen.value
-                ? "opacity-0 h-0 overflow-hidden"
-                : "opacity-100"
+              collapsed.value && !mobileOpen.value ? "opacity-0 h-0 overflow-hidden" : "opacity-100"
             }`}
           >
-            <EntityManager
-              registryId={activeRegistryId.value}
-              entities={$entities}
-            />
+            <EntityManager registryId={activeRegistryId.value} entities={$entities} />
           </div>
           {collapsed.value && !mobileOpen.value && (
             <button
@@ -932,12 +877,7 @@ export default function Sidebar(props: SidebarProps) {
               class="w-full flex items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-white"
               title="Terceros"
             >
-              <svg
-                class="w-5 h-5 shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   stroke-linecap="round"
@@ -957,19 +897,14 @@ export default function Sidebar(props: SidebarProps) {
       >
         <button
           type="button"
-          onClick={() => showNewRegistry.value = true}
+          onClick={() => (showNewRegistry.value = true)}
           class={`w-full flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-white transition-all duration-300 ${
             collapsed.value && !mobileOpen.value
               ? "justify-center p-2.5"
               : "justify-center gap-2 py-3 px-4"
           }`}
         >
-          <svg
-            class="w-5 h-5 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               d="M12 4v16m8-8H4"
               stroke-linecap="round"
@@ -979,9 +914,7 @@ export default function Sidebar(props: SidebarProps) {
           </svg>
           <span
             class={`whitespace-nowrap transition-opacity duration-200 ${
-              collapsed.value && !mobileOpen.value
-                ? "opacity-0 w-0 overflow-hidden"
-                : "opacity-100"
+              collapsed.value && !mobileOpen.value ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
             }`}
           >
             Nuevo Registro
@@ -1002,12 +935,7 @@ export default function Sidebar(props: SidebarProps) {
               : "justify-center gap-2 py-2.5 px-4"
           }`}
         >
-          <svg
-            class="w-4 h-4 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
               stroke-linecap="round"
@@ -1017,9 +945,7 @@ export default function Sidebar(props: SidebarProps) {
           </svg>
           <span
             class={`whitespace-nowrap transition-opacity duration-200 ${
-              collapsed.value && !mobileOpen.value
-                ? "opacity-0 w-0 overflow-hidden"
-                : "opacity-100"
+              collapsed.value && !mobileOpen.value ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
             }`}
           >
             Cerrar sesión
@@ -1034,17 +960,12 @@ export default function Sidebar(props: SidebarProps) {
       <Toaster />
       <button
         type="button"
-        onClick={() => mobileOpen.value = true}
+        onClick={() => (mobileOpen.value = true)}
         class={`md:hidden fixed bottom-20 left-4 z-40 w-12 h-12 bg-surface border border-border-custom rounded-full text-white shadow-lg flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all ${
           isStandalone.value ? "hidden" : ""
         }`}
       >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             d="M4 6h16M4 12h16M4 18h16"
             stroke-linecap="round"
@@ -1057,9 +978,11 @@ export default function Sidebar(props: SidebarProps) {
       {(mobileOpen.value || dragOffset.value !== null) && (
         <div
           class="md:hidden fixed inset-0 z-40 bg-black/60 transition-opacity duration-300"
-          style={dragOffset.value !== null
-            ? { opacity: (dragOffset.value / SIDEBAR_WIDTH) * 0.6 }
-            : undefined}
+          style={
+            dragOffset.value !== null
+              ? { opacity: (dragOffset.value / SIDEBAR_WIDTH) * 0.6 }
+              : undefined
+          }
           onClick={() => {
             mobileOpen.value = false;
             dragOffset.value = null;
@@ -1077,17 +1000,15 @@ export default function Sidebar(props: SidebarProps) {
 
       <aside
         class={`md:hidden fixed top-0 left-0 z-50 w-72 bg-[#0a0a0a] border-r border-white/10 flex flex-col h-full ${
-          dragOffset.value !== null
-            ? "transition-none"
-            : "transition-transform duration-300"
+          dragOffset.value !== null ? "transition-none" : "transition-transform duration-300"
         }`}
         style={{
           transform: `translateX(${
             dragOffset.value !== null
               ? `${dragOffset.value - SIDEBAR_WIDTH}px`
               : mobileOpen.value
-              ? "0"
-              : "-100%"
+                ? "0"
+                : "-100%"
           })`,
         }}
       >
@@ -1095,15 +1016,10 @@ export default function Sidebar(props: SidebarProps) {
           <span class="text-lg font-bold text-white">Menu</span>
           <button
             type="button"
-            onClick={() => mobileOpen.value = false}
+            onClick={() => (mobileOpen.value = false)}
             class="p-2 hover:bg-white/5 rounded-custom text-zinc-400"
           >
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 d="M6 18L18 6M6 6l12 12"
                 stroke-linecap="round"
@@ -1134,77 +1050,62 @@ export default function Sidebar(props: SidebarProps) {
           }
         >
           <div class="p-6 space-y-4">
-            {!inviteCode.value
-              ? (
-                <button
-                  type="button"
-                  onClick={handleCreateInvite}
-                  disabled={inviteLoading.value}
-                  class="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {inviteLoading.value
-                    ? "Generando..."
-                    : "Generar Código de Invitación"}
-                </button>
-              )
-              : (
-                <div class="space-y-3">
-                  <div class="text-center">
-                    <p class="text-sm text-zinc-400 mb-2">
-                      Código de invitación:
-                    </p>
-                    <div class="flex items-center justify-center gap-2">
-                      <span class="text-3xl font-mono font-bold text-white tracking-widest">
-                        {inviteCode.value}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={copyCode}
-                        class="p-2 hover:bg-white/10 rounded-custom text-primary transition-colors"
-                        title="Copiar"
-                      >
-                        <svg
-                          class="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    {copied.value && (
-                      <p class="text-xs text-emerald-400 mt-1">Copiado!</p>
-                    )}
+            {!inviteCode.value ? (
+              <button
+                type="button"
+                onClick={handleCreateInvite}
+                disabled={inviteLoading.value}
+                class="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all active:scale-95 disabled:opacity-50"
+              >
+                {inviteLoading.value ? "Generando..." : "Generar Código de Invitación"}
+              </button>
+            ) : (
+              <div class="space-y-3">
+                <div class="text-center">
+                  <p class="text-sm text-zinc-400 mb-2">Código de invitación:</p>
+                  <div class="flex items-center justify-center gap-2">
+                    <span class="text-3xl font-mono font-bold text-white tracking-widest">
+                      {inviteCode.value}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={copyCode}
+                      class="p-2 hover:bg-white/10 rounded-custom text-primary transition-colors"
+                      title="Copiar"
+                    >
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                  <p class="text-xs text-zinc-500 text-center">
-                    Comparte este código o el enlace:{" "}
-                    {globalThis.location.origin}/join/{inviteCode.value}
-                  </p>
+                  {copied.value && <p class="text-xs text-emerald-400 mt-1">Copiado!</p>}
                 </div>
-              )}
-            {inviteError.value && (
-              <p class="text-sm text-red-300">{inviteError.value}</p>
+                <p class="text-xs text-zinc-500 text-center">
+                  Comparte este código o el enlace: {globalThis.location.origin}/join/
+                  {inviteCode.value}
+                </p>
+              </div>
             )}
+            {inviteError.value && <p class="text-sm text-red-300">{inviteError.value}</p>}
           </div>
         </Modal>
       )}
 
       {showNewRegistry.value && (
         <Modal
-          onClose={() => showNewRegistry.value = false}
+          onClose={() => (showNewRegistry.value = false)}
           title="Nuevo Registro"
           subtitle="Crea un grupo para gestionar gastos compartidos"
           footer={
             <>
               <button
                 type="button"
-                onClick={() => showNewRegistry.value = false}
+                onClick={() => (showNewRegistry.value = false)}
                 class="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
                 Cancelar
@@ -1212,8 +1113,7 @@ export default function Sidebar(props: SidebarProps) {
               <button
                 type="button"
                 onClick={handleCreateRegistry}
-                disabled={!newRegistryName.value.trim() ||
-                  newRegistryLoading.value}
+                disabled={!newRegistryName.value.trim() || newRegistryLoading.value}
                 class="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
               >
                 Crear
@@ -1231,8 +1131,7 @@ export default function Sidebar(props: SidebarProps) {
             <input
               type="text"
               value={newRegistryName.value}
-              onInput={(e) =>
-                newRegistryName.value = (e.target as HTMLInputElement).value}
+              onInput={(e) => (newRegistryName.value = (e.target as HTMLInputElement).value)}
               placeholder="Ej: Compañeros de piso"
               class="block w-full px-4 py-2.5 bg-background border border-border-custom rounded-custom text-white focus:ring-primary focus:border-primary"
               autofocus
@@ -1245,13 +1144,13 @@ export default function Sidebar(props: SidebarProps) {
         <DefaultSplitConfig
           registryId={showSplitConfig.value}
           users={props.registryUsers}
-          defaultSplit={registries.value.find((r) =>
-            r.id === showSplitConfig.value
-          )?.defaultSplit ?? null}
+          defaultSplit={
+            registries.value.find((r) => r.id === showSplitConfig.value)?.defaultSplit ?? null
+          }
           isOwner={props.ownerRegistryIds.has(showSplitConfig.value)}
           autoOpen
           locale={props.locale}
-          onClose={() => showSplitConfig.value = null}
+          onClose={() => (showSplitConfig.value = null)}
         />
       )}
     </>

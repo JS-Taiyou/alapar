@@ -17,17 +17,12 @@ import type { Transaction } from "./types";
  * @param cols     number of placeholders per tuple
  * @returns the placeholder fragment (no leading "VALUES")
  */
-export function buildBatchPlaceholders(
-  rowCount: number,
-  cols: number,
-): string {
-  return Array.from({ length: rowCount }, (_, rowIdx) =>
-    `(${
-      Array.from(
-        { length: cols },
-        (_, c) => `$${rowIdx * cols + c + 1}`,
-      ).join(", ")
-    })`).join(", ");
+export function buildBatchPlaceholders(rowCount: number, cols: number): string {
+  return Array.from(
+    { length: rowCount },
+    (_, rowIdx) =>
+      `(${Array.from({ length: cols }, (_, c) => `$${rowIdx * cols + c + 1}`).join(", ")})`,
+  ).join(", ");
 }
 
 /**
@@ -43,9 +38,10 @@ export function buildBatchPlaceholders(
  *
  * @returns `{ sets, values }` — both empty when `data` has no settable fields.
  */
-export function buildTransactionUpdateSets(
-  data: Partial<Transaction>,
-): { sets: string[]; values: unknown[] } {
+export function buildTransactionUpdateSets(data: Partial<Transaction>): {
+  sets: string[];
+  values: unknown[];
+} {
   const sets: string[] = [];
   const values: unknown[] = [];
   let idx = 1;

@@ -13,25 +13,18 @@ import type { User } from "../lib/types";
  * `linked={false}` renders a plain span for contexts where an anchor can't
  * be nested (e.g. inside the filter-chip <button>s in TransactionList).
  */
-export default function ProBadge(
-  props: {
-    pro: User["pro"];
-    locale?: Locale;
-    linked?: boolean;
-    size?: "sm" | "md";
-  },
-) {
+export default function ProBadge(props: {
+  pro: User["pro"];
+  locale?: Locale;
+  linked?: boolean;
+  size?: "sm" | "md";
+}) {
   if (!props.pro) return null;
   const founding = props.pro === "grandfathered";
-  const title = t(
-    props.locale ?? "es",
-    founding ? "pro.crown_founding" : "pro.crown_sub",
-  );
+  const title = t(props.locale ?? "es", founding ? "pro.crown_founding" : "pro.crown_sub");
   const crown = (
     <svg
-      class={`${
-        props.size === "md" ? "w-4 h-4" : "w-3.5 h-3.5"
-      } text-amber-400 shrink-0`}
+      class={`${props.size === "md" ? "w-4 h-4" : "w-3.5 h-3.5"} text-amber-400 shrink-0`}
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden="true"

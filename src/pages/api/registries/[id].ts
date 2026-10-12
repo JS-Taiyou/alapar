@@ -1,9 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  deleteRegistry,
-  getTransactionCount,
-  renameRegistry,
-} from "@/lib/store";
+import { deleteRegistry, getTransactionCount, renameRegistry } from "@/lib/store";
 
 export const PATCH: APIRoute = async (ctx) => {
   const id = ctx.params.id!;
@@ -14,9 +10,12 @@ export const PATCH: APIRoute = async (ctx) => {
 
   // Rename is owner-only (membership isn't enough).
   if (!ctx.locals.ownerRegistryIds.has(id)) {
-    return Response.json({ error: "Only owners can rename" }, {
-      status: 403,
-    });
+    return Response.json(
+      { error: "Only owners can rename" },
+      {
+        status: 403,
+      },
+    );
   }
 
   const body = await ctx.request.json();
@@ -42,16 +41,22 @@ export const DELETE: APIRoute = async (ctx) => {
 
   // Delete is owner-only; deleteRegistry re-checks ownership in SQL too.
   if (!ctx.locals.ownerRegistryIds.has(id)) {
-    return Response.json({ error: "Only owners can delete" }, {
-      status: 403,
-    });
+    return Response.json(
+      { error: "Only owners can delete" },
+      {
+        status: 403,
+      },
+    );
   }
 
   const txCount = await getTransactionCount(id);
   if (txCount > 0) {
-    return Response.json({ error: "Registry has transactions" }, {
-      status: 409,
-    });
+    return Response.json(
+      { error: "Registry has transactions" },
+      {
+        status: 409,
+      },
+    );
   }
 
   const deleted = await deleteRegistry(id, systemUserId);

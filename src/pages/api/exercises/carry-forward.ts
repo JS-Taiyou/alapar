@@ -1,8 +1,5 @@
 import type { APIRoute } from "astro";
-import {
-  batchCloneTransactions,
-  getTransactionsByIds,
-} from "@/lib/store";
+import { batchCloneTransactions, getTransactionsByIds } from "@/lib/store";
 
 // Caps against batch-clone DoS (unbounded quantity × items previously let a
 // single request insert thousands of rows).
@@ -30,8 +27,10 @@ export const POST: APIRoute = async (ctx) => {
   for (const item of items) {
     const quantity = item?.quantity ?? 1;
     if (
-      typeof item?.id !== "string" || !Number.isInteger(quantity) ||
-      quantity < 1 || quantity > MAX_QUANTITY
+      typeof item?.id !== "string" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > MAX_QUANTITY
     ) {
       return Response.json({ error: "Invalid item" }, { status: 400 });
     }
@@ -45,9 +44,7 @@ export const POST: APIRoute = async (ctx) => {
     return new Response("Not found", { status: 404 });
   }
   const memberRegistryIds = new Set(ctx.locals.registries.map((r) => r.id));
-  const allInMemberRegistries = sources.every((tx) =>
-    memberRegistryIds.has(tx.registry_id)
-  );
+  const allInMemberRegistries = sources.every((tx) => memberRegistryIds.has(tx.registry_id));
   if (!allInMemberRegistries) {
     return new Response("Forbidden", { status: 403 });
   }

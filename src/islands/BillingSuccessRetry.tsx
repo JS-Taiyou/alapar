@@ -17,9 +17,7 @@ const RETRY_KEY = "billingSuccessRetries";
 const MAX_RETRIES = 10;
 const RETRY_DELAY_MS = 3000;
 
-export default function BillingSuccessRetry(
-  props: { activated: boolean },
-) {
+export default function BillingSuccessRetry(props: { activated: boolean }) {
   useEffect(() => {
     if (props.activated) {
       sessionStorage.removeItem(RETRY_KEY);
@@ -28,10 +26,7 @@ export default function BillingSuccessRetry(
     const tries = Number(sessionStorage.getItem(RETRY_KEY) ?? "0");
     if (tries >= MAX_RETRIES) return;
     sessionStorage.setItem(RETRY_KEY, String(tries + 1));
-    const timer = setTimeout(
-      () => globalThis.location.reload(),
-      RETRY_DELAY_MS,
-    );
+    const timer = setTimeout(() => globalThis.location.reload(), RETRY_DELAY_MS);
     return () => clearTimeout(timer);
   }, [props.activated]);
 

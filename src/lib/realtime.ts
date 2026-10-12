@@ -1,8 +1,4 @@
-import {
-  createClient,
-  type RealtimeChannel,
-  type SupabaseClient,
-} from "@supabase/supabase-js";
+import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
 import { redirectToLogin } from "./auth-client";
 
 let supabase: SupabaseClient | null = null;
@@ -51,10 +47,7 @@ let recovering = false;
  * treating it as recoverable causes a fight with the SDK's own reconnection
  * logic. The SDK auto-reconnects after `CLOSED` on its own.
  */
-export const RECOVERABLE_STATUSES = new Set([
-  "CHANNEL_ERROR",
-  "TIMED_OUT",
-]);
+export const RECOVERABLE_STATUSES = new Set(["CHANNEL_ERROR", "TIMED_OUT"]);
 
 /** Maximum recovery attempts before giving up (wake-up path remains as backup). */
 export const MAX_RECOVERY_ATTEMPTS = 3;
@@ -80,9 +73,7 @@ export function shouldRecover(status: string): boolean {
  * `ignore`: everything else. CLOSED is excluded because the SDK fires it
  *   during normal lifecycle and auto-reconnects on its own.
  */
-export function channelStatusAction(
-  status: string,
-): "resync" | "recover" | "ignore" {
+export function channelStatusAction(status: string): "resync" | "recover" | "ignore" {
   if (status === "SUBSCRIBED") return "resync";
   if (shouldRecover(status)) return "recover";
   return "ignore";
@@ -90,10 +81,8 @@ export function channelStatusAction(
 
 function getSupabase(): SupabaseClient {
   if (!supabase) {
-    const url = (globalThis as Record<string, unknown>)
-      .__SUPABASE_URL__ as string;
-    const key = (globalThis as Record<string, unknown>)
-      .__SUPABASE_ANON_KEY__ as string;
+    const url = (globalThis as Record<string, unknown>).__SUPABASE_URL__ as string;
+    const key = (globalThis as Record<string, unknown>).__SUPABASE_ANON_KEY__ as string;
     if (!url || !key) throw new Error("Supabase config missing");
     supabase = createClient(url, key, {
       // No persisted session: the realtime socket is authenticated manually
@@ -136,7 +125,7 @@ async function fetchAccessToken(): Promise<string | null> {
       console.log("[realtime] token fetch failed:", resp.status);
       return null;
     }
-    const { accessToken } = await resp.json() as { accessToken: string };
+    const { accessToken } = (await resp.json()) as { accessToken: string };
     return accessToken || null;
   } catch {
     return null;
@@ -160,7 +149,7 @@ export async function subscribeToRegistry(
   // When no token is passed (initial subscribe), fetch the current one from
   // the server — tokens are never serialized into page HTML. Recovery passes
   // the fresh token it already fetched.
-  const token = accessToken ?? await fetchAccessToken();
+  const token = accessToken ?? (await fetchAccessToken());
   if (token) {
     await client.realtime.setAuth(token);
   }
@@ -225,12 +214,8 @@ async function recoverChannel(): Promise<void> {
   unsubscribeAll();
 
   for (let attempt = 1; attempt <= MAX_RECOVERY_ATTEMPTS; attempt++) {
-    const delay = RECOVERY_BACKOFF_MS[
-      Math.min(attempt - 1, RECOVERY_BACKOFF_MS.length - 1)
-    ];
-    console.log(
-      `[realtime] recovery attempt ${attempt}/${MAX_RECOVERY_ATTEMPTS} in ${delay}ms`,
-    );
+    const delay = RECOVERY_BACKOFF_MS[Math.min(attempt - 1, RECOVERY_BACKOFF_MS.length - 1)];
+    console.log(`[realtime] recovery attempt ${attempt}/${MAX_RECOVERY_ATTEMPTS} in ${delay}ms`);
     await new Promise((r) => setTimeout(r, delay));
 
     try {
@@ -276,11 +261,7 @@ export async function resubscribe(): Promise<void> {
   await subscribeToRegistry(rid, handler);
 }
 
-export function setupRealtimeConfig(
-  supabaseUrl: string,
-  supabaseAnonKey: string,
-): void {
+export function setupRealtimeConfig(supabaseUrl: string, supabaseAnonKey: string): void {
   (globalThis as Record<string, unknown>).__SUPABASE_URL__ = supabaseUrl;
-  (globalThis as Record<string, unknown>).__SUPABASE_ANON_KEY__ =
-    supabaseAnonKey;
+  (globalThis as Record<string, unknown>).__SUPABASE_ANON_KEY__ = supabaseAnonKey;
 }
