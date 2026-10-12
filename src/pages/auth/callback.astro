@@ -1,0 +1,21 @@
+---
+import Base from "@/layouts/Base.astro";
+import AuthCallback from "@/islands/AuthCallback";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase";
+
+const locale = Astro.locals.locale;
+
+const next = Astro.url.searchParams.get("next");
+// Open-redirect guard: only relative same-origin paths are honored.
+const redirectPath = next && /^\/(?!\/)/.test(next) ? next : "/dashboard";
+---
+
+<Base title="A la par">
+  <AuthCallback
+    locale={locale}
+    redirectPath={redirectPath}
+    supabaseUrl={getSupabaseUrl()}
+    supabaseAnonKey={getSupabaseAnonKey()}
+    client:load
+  />
+</Base>

@@ -1,0 +1,85 @@
+---
+import Base from "@/layouts/Base.astro";
+import DemoApp from "@/islands/DemoApp";
+import {
+  calculateBalance,
+  calculatePairwiseBreakdown,
+} from "@/lib/calculations";
+import { resolveLocale } from "@/lib/i18n";
+import { getCookie } from "@/lib/auth-cookies";
+import type { Participant, TransactionPayment } from "@/lib/types";
+import type { EnrichedTransaction } from "@/islands/shared-signals";
+import demoData from "@/data/demo.json";
+
+const DEMO_REGISTRY_ID = demoData.registry.id;
+const DEMO_USER_ID = demoData.users[0].id;
+
+// Same resolution as the middleware (cookie → Accept-Language → es) so
+// a cookie-less English browser gets the demo in English, like the app.
+const locale = resolveLocale(
+  getCookie(Astro.request.headers.get("cookie") ?? "", "alapar-locale"),
+  Astro.request.headers.get("accept-language"),
+);
+
+const users: Participant[] = demoData.users.map((u) => ({
+  id: u.id,
+  name: u.name,
+  color: u.color,
+}));
+
+const participantMap = new Map(users.map((u) => [u.id, u]));
+
+const transactions: EnrichedTransaction[] = demoData.transactions.map((t) => ({
+  id: t.id,
+  registry_id: t.registry_id,
+  description: t.description,
+  amount: t.amount,
+  originalAmount: t.originalAmount,
+  type: t.type as "unico" | "parcialidad" | "recurrente" | "pago" | "ajuste",
+  exerciseId: t.exerciseId,
+  installmentCurrent: t.installmentCurrent,
+  installmentTotal: t.installmentTotal,
+  recurringDisabled: t.recurringDisabled,
+  recurringGroupId: t.recurringGroupId,
+  notes: t.notes,
+  splitJson: t.splitJson,
+  relatedTransactionId: t.relatedTransactionId,
+  creatorId: t.creatorId,
+  userPaid: t.userPaid,
+  createdAt: new Date(t.createdAt),
+  paidByUser: participantMap.get(t.userPaid) ?? null,
+}));
+
+const transactionPayments: TransactionPayment[] = demoData.transactionPayments
+  .map((tp) => ({
+    id: tp.id,
+    pagoId: tp.pagoId,
+    expenseId: tp.expenseId,
+    amount: tp.amount,
+    createdAt: new Date(tp.createdAt),
+  }));
+
+const balance = calculateBalance(transactions, DEMO_USER_ID);
+const balanceBreakdown = calculatePairwiseBreakdown(
+  transactions,
+  DEMO_USER_ID,
+  users,
+);
+
+const entities: { id: string; name: string; color: string }[] = [];
+---
+
+<Base title="Demo - A la par">
+  <DemoApp
+    registryId={DEMO_REGISTRY_ID}
+    transactions={transactions}
+    transactionPayments={transactionPayments}
+    balance={balance}
+    currentUserId={DEMO_USER_ID}
+    balanceBreakdown={balanceBreakdown}
+    users={users}
+    entities={entities}
+    locale={locale}
+    client:load
+  />
+</Base>

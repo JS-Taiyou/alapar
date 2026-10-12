@@ -1,0 +1,101 @@
+---
+import Dashboard from "@/layouts/Dashboard.astro";
+import DashboardHome from "@/islands/DashboardHome";
+import {
+  calculateBalance,
+  calculatePairwiseBreakdown,
+  getActiveTransactions,
+  getSpawnCandidates,
+  getTransactionPaymentsForRegistry,
+} from "@/lib/store";
+import {
+  getCachedSpawnCandidates,
+  getCachedTransactions,
+} from "@/lib/server-cache";
+import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase";
+import type {
+  BalanceBreakdownEntry,
+  SpawnCandidate,
+  TransactionPayment,
+} from "@/lib/types";
+import type { EnrichedTransaction } from "@/islands/shared-signals";
+
+const registryId = Astro.locals.activeRegistry?.id;
+const userId = Astro.locals.user?.id;
+
+let transactions: EnrichedTransaction[] = [];
+let transactionPayments: TransactionPayment[] = [];
+let balance = 0;
+let currentUserId = "";
+let spawnCandidates: SpawnCandidate[] = [];
+let balanceBreakdown: BalanceBreakdownEntry[] = [];
+let lastModified: string | null = null;
+
+if (registryId && userId) {
+  const { transactions: txs } = await getCachedTransactions(
+    registryId,
+    () => getActiveTransactions(registryId),
+  );
+
+  transactionPayments = await getTransactionPaymentsForRegistry(registryId);
+
+  balance = await calculateBalance(userId, registryId, txs);
+
+  const candidates = await getCachedSpawnCandidates(
+    registryId,
+    () => getSpawnCandidates(registryId),
+  );
+
+  const participantMap = new Map(
+    Astro.locals.participants.map((p) => [p.id, p]),
+  );
+  transactions = txs.map((tx) => ({
+    ...tx,
+    paidByUser: participantMap.get(tx.userPaid) ?? null,
+  }));
+
+  spawnCandidates = candidates.map((c) => ({
+    id: c.id,
+    description: c.description,
+    type: c.type as "parcialidad" | "recurrente",
+    originalAmount: c.originalAmount,
+    installmentCurrent: c.installmentCurrent,
+    installmentTotal: c.installmentTotal,
+  }));
+
+  balanceBreakdown = calculatePairwiseBreakdown(
+    txs,
+    userId,
+    Astro.locals.participants,
+  );
+
+  currentUserId = userId;
+  lastModified = Astro.locals.activeRegistry?.lastModified?.toISOString() ??
+    null;
+}
+---
+
+<Dashboard title="A la par - Dashboard">
+  <DashboardHome
+    transactions={transactions}
+    transactionPayments={transactionPayments}
+    balance={balance}
+    currentUserId={currentUserId}
+    spawnCandidates={spawnCandidates}
+    balanceBreakdown={balanceBreakdown}
+    participants={Astro.locals.participants}
+    entities={Astro.locals.entities.map((e) => ({
+      id: e.id,
+      name: e.name,
+      color: e.color,
+    }))}
+    registryId={registryId ?? ""}
+    defaultSplit={Astro.locals.activeRegistry?.defaultSplit ?? null}
+    lastModified={lastModified}
+    supabaseUrl={getSupabaseUrl()}
+    supabaseAnonKey={getSupabaseAnonKey()}
+    hasTransactions={transactions.length > 0}
+    locale={Astro.locals.locale}
+    client:load
+  />
+</Dashboard>

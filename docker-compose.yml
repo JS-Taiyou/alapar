@@ -1,0 +1,16 @@
+# Local Postgres fallback for development. Only used when DATABASE_URL is
+# unset — src/lib/db.ts then defaults to postgresql://alapar:alapar@localhost:5432/alapar.
+# Apply the schema with:  cat db/*.sql | docker compose exec -T db psql -U alapar -d alapar
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: alapar
+      POSTGRES_USER: alapar
+      POSTGRES_PASSWORD: alapar
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:

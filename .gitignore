@@ -5,8 +5,9 @@
 .env.production.local
 .env.local
 
-# Fresh build directory
-_fresh/
+# Astro build output
+dist/
+.astro/
 # npm + other dependencies
 node_modules/
 vendor/
@@ -29,3 +30,6 @@ review/
 # IDE + local test artifacts
 .idea/
 gui-test-screenshots/
+
+# Local Netlify folder
+.netlify

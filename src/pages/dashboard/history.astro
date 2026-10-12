@@ -1,0 +1,206 @@
+---
+import Dashboard from "@/layouts/Dashboard.astro";
+import ExerciseCard from "@/components/ExerciseCard";
+import PaywallCard from "@/components/PaywallCard";
+import SearchBar from "@/islands/SearchBar";
+import {
+  getExercises,
+  getMonthNameEs,
+  getTransactionsByExercise,
+} from "@/lib/store";
+import { getRegistryPlan } from "@/lib/entitlements";
+import type { Exercise } from "@/lib/types";
+
+const registryId = Astro.locals.activeRegistry?.id;
+const locale = Astro.locals.locale;
+
+let exercises: Exercise[] = [];
+let grouped: Record<number, Exercise[]> = {};
+let years: number[] = [];
+let personalTotals = new Map<string, number>();
+/** Null when the registry has full history (pro/grandfathered). */
+let lockedCount: number | null = null;
+
+if (registryId) {
+  exercises = await getExercises(registryId);
+  const currentUserId = Astro.locals.user ? Astro.locals.user.id : "";
+
+  // Free plan: only the NEWEST closed exercise is visible; older ones
+  // render as locked placeholder rows (the paywall IS the discovery —
+  // hiding history silently would just look like data loss).
+  //
+  // This shapes the VIEW, not the data: `exercises` still holds everything
+  // (needed for lockedCount + the empty-state check); only `visible` feeds
+  // the per-exercise work below. getExercises orders by end_date DESC, so
+  // slice(0, N) is "the N newest cuts".
+  const planInfo = await getRegistryPlan(registryId);
+  if (
+    planInfo && !planInfo.isPro &&
+    exercises.length > planInfo.limits.maxClosedExercisesVisible
+  ) {
+    lockedCount = exercises.length - planInfo.limits.maxClosedExercisesVisible;
+  }
+  const visible = lockedCount === null
+    ? exercises
+    : exercises.slice(0, planInfo!.limits.maxClosedExercisesVisible);
+
+  // Personal totals run ONLY for visible exercises: each one costs a
+  // per-exercise transaction query, so including locked rows on a free
+  // registry with years of history would be an unbounded N+1 pile for
+  // numbers that are never rendered.
+  await Promise.all(visible.map(async (ex) => {
+    const txs = await getTransactionsByExercise(ex.id);
+    const total = txs.reduce((sum, tx) => {
+      if (tx.type === "pago" || tx.type === "ajuste") {
+        if (tx.userPaid === currentUserId) {
+          return sum + tx.originalAmount;
+        }
+        const isInSplit = tx.splitJson.splits.some((s) =>
+          s.userId === currentUserId
+        );
+        if (isInSplit) return sum - tx.originalAmount;
+        return sum;
+      }
+      const isPaidByMe = tx.userPaid === currentUserId;
+      const userSplit = tx.splitJson.splits.find((s) =>
+        s.userId === currentUserId
+      );
+      const divisor = tx.type === "parcialidad" && tx.installmentTotal
+        ? tx.installmentTotal
+        : 1;
+      const perInstallmentTotal = tx.originalAmount / divisor;
+      const perInstallmentSplit = (userSplit?.amount ?? 0) / divisor;
+      const personalBalance = isPaidByMe
+        ? perInstallmentTotal - perInstallmentSplit
+        : -perInstallmentSplit;
+      return sum + personalBalance;
+    }, 0);
+    personalTotals.set(ex.id, total);
+  }));
+
+  // Group only the visible (newest) exercises; locked ones render as a
+  // single locked-rows block, not as hidden history.
+  for (const ex of visible) {
+    const year = ex.endDate.getFullYear();
+    if (!grouped[year]) grouped[year] = [];
+    grouped[year].push(ex);
+  }
+  years = Object.keys(grouped).map(Number).sort((a, b) => b - a);
+}
+---
+
+<Dashboard title="A la par - Histórico de Cortes">
+  <main class="flex-1 overflow-y-auto custom-scrollbar">
+    <div class="max-w-2xl mx-auto px-4 py-8">
+      <header class="mb-8 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <a
+            class="p-2 hover:bg-white/5 rounded-custom text-zinc-400 hover:text-white transition-colors"
+            href="/dashboard"
+          >
+            <svg
+              class="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+              ></path>
+            </svg>
+          </a>
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight">
+              Histórico de Cortes
+            </h1>
+            <p class="text-zinc-400 text-sm">
+              Consulta cierres de meses anteriores
+            </p>
+          </div>
+        </div>
+        <div class="bg-primary/20 p-3 rounded-custom">
+          <svg
+            class="h-6 w-6 text-primary-light"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+            ></path>
+          </svg>
+        </div>
+      </header>
+
+      <SearchBar
+        placeholder="Buscar corte por mes o año..."
+        filterSelector="[data-exercise-card]"
+        client:load
+      />
+
+      <section class="space-y-4 mt-6">
+        {lockedCount !== null && lockedCount > 0 && (
+          <PaywallCard
+            locale={locale}
+            registryId={registryId}
+            lockedCount={lockedCount}
+          />
+        )}
+        {years.map((year) => (
+          <div class="space-y-2">
+            <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-widest px-2 py-1">
+              {year}
+            </h2>
+            {grouped[year].map((ex) => (
+              <ExerciseCard
+                exercise={ex}
+                monthName={getMonthNameEs(ex.endDate).toUpperCase()
+                  .substring(0, 3)}
+                personalTotal={personalTotals.get(ex.id)}
+              />
+            ))}
+          </div>
+        ))}
+      </section>
+
+      {exercises.length === 0 && (
+        <div class="flex flex-col items-center justify-center py-20 text-center">
+          <div class="bg-white/5 p-4 rounded-full mb-4">
+            <svg
+              class="h-12 w-12 text-zinc-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+              ></path>
+            </svg>
+          </div>
+          <h3 class="text-lg font-medium text-zinc-300">
+            No hay cortes registrados
+          </h3>
+          <p class="text-zinc-400 mt-2 max-w-xs mx-auto">
+            Cuando realices un cierre de gastos aparecerán aquí.
+          </p>
+        </div>
+      )}
+
+      <footer class="mt-12 text-center border-t border-white/10 pt-6">
+        <p class="text-zinc-500 text-xs italic">
+          * Los cortes incluyen liquidaciones definitivas y facturas
+          archivadas.
+        </p>
+      </footer>
+    </div>
+  </main>
+</Dashboard>
