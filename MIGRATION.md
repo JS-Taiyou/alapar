@@ -113,34 +113,93 @@ al código que prueban. Decisiones tomadas al cambiar de runtime/framework:
   `src/lib/db.test.ts` (fallback Postgres local `alapar` + decisión de SSL,
   con `pg` mockeado), `src/lib/csrf.test.ts` (matriz del CSRF reimplementado).
 
-## Pendiente
+## Deploy: Cloudflare Workers (decisión asentada)
+
+Se decidió desplegar en **Cloudflare Workers** (no Netlify, no VPS). Rationale:
+free tier capaz de absorber la etapa temprana ( Workers ~100k req/día,
+Hyperdrive ~500k queries/mes, KV/DO incluidos en free), salida natural al
+problema del pooler (Hyperdrive mantiene un set acotado de conexiones y
+cachea queries) y camino natural al push propio (Durable Objects) si algún
+día se sustituye Supabase Realtime. Ver discusión: comparativa con Netlify
+(Blobs) y Hetzner en la conversación de planeación.
+
+Trabajo técnico de la migración (pendiente):
+
+- Cambiar adapter `@astrojs/netlify` → `@astrojs/cloudflare`; `wrangler.toml`
+  con `nodejs_compat`.
+- Verificar `pg` + TLS bajo `nodejs_compat` (el pool con
+  `ssl: { rejectUnauthorized: false }` es el caso simple, pero probarlo
+  empíricamente en staging antes de comprometer el dominio).
+- Configurar **Hyperdrive** apuntando a Supabase Postgres (esto reemplaza el
+  patrón instancias×pool del serverless; mantener el `max` del pool bajo).
+- Mover secrets (`DATABASE_URL`/Hyperdrive id, `SUPABASE_*`, `VAPID_*`,
+  `POLAR_*`, `CSRF`) a `wrangler secret` / vars de entorno del Worker.
+- CI: deploy con `wrangler deploy` desde GitHub Actions (o Workers Builds).
+- Smoke post-deploy en `*.workers.dev` ANTES del cutover de dominio.
+
+## Pendiente — cutover de dominio (Workers)
+
+Con el sitio en su subdominio propio (`https://<sub>.<dominio>`, TBD):
+
+1. **Dominio en Cloudflare vía subdominio**: los Custom Domains de Workers
+   exigen que la **zona DNS viva en Cloudflare**. Si el dominio existente
+   tiene el DNS en otro proveedor: agregar la zona en CF (plan free) y
+   cambiar nameservers en el registrar (no hace falta transferir el
+   registro). Luego crear el Custom Domain del Worker en el subdominio
+   elegido. Usar `*.workers.dev` como entorno de pruebas previo.
+2. **Google OAuth — no aplica en Google Cloud Console**: las redirect URIs
+   del cliente de Google apuntan a `https://<ref>.supabase.co/auth/v1/callback`
+   (fijas, no dependen del dominio del app). **Lo que sí aplica es en
+   Supabase**: Auth → URL Configuration → agregar a las Redirect URLs
+   `https://<sub>.<dominio>/auth/callback` y
+   `https://<sub>.<dominio>/reset-password` (el cliente pasa
+   `origin + "/auth/callback?next=…"` y `origin + "/reset-password"`),
+   y actualizar el Site URL.
+3. **Webhooks — la corrección: es Polar, no Supabase**: no existe en
+   Supabase un "dominio autorizado para consumir webhooks" (lo único
+   domain-bound allí es lo del punto 2). Lo que hay que recablear:
+   - URL del webhook en el dashboard de **Polar** →
+     `https://<sub>.<dominio>/api/webhooks/polar`.
+   - Los **payment links** de Polar llevan la success URL configurada del
+     lado de Polar (el checkout es un redirect a link, ver
+     `api/billing/checkout.ts`) → apuntarla a
+     `https://<sub>.<dominio>/billing/success`.
+4. **PWA manifest y VAPID — casi nada que hacer**:
+   - `public/manifest.json` usa solo rutas relativas (`start_url: "/"`,
+     `scope: "/"`, íconos relativos) → **sin cambios**.
+   - VAPID: el subject es `mailto:` y las llaves no están atadas al origen →
+     **se reutilizan tal cual**, sin rotar nada.
+   - Lo que SÍ es per-origin y no migra: push subscriptions (los usuarios
+     re-suscriben silenciosamente al cargar el dashboard — el código ya lo
+     hace; opcionalmente purgar endpoints muertos de `push_subscriptions`
+     cuando empiecen a dar 410), cookies de sesión (todos re-inician
+     sesión), IndexedDB snapshots y `localStorage` (`lastSplit_*`,
+     `demo-tour-seen` — se regeneran solos).
+5. **`COOKIE_SECURE`**: se infiere de producción; verificar tras el primer
+   deploy del dominio nuevo.
+
+## Pendiente — general
 
 1. **Auth E2E**: las páginas autenticadas (`/dashboard/*`) no se han ejercido
    con sesión real contra Supabase.
-2. **Web Push**: `lib/push.ts` usa WebCrypto global — funciona en Node 20+,
-   pero hay que probarlo en el runtime de Netlify Functions.
-3. **Despliegue Netlify**: conectar repo, definir env vars
-   (`DATABASE_URL`, `SUPABASE_*`, `VAPID_*`, `POLAR_*`), y actualizar:
-   - URL del webhook en el dashboard de Polar → `https://<sitio>/api/webhooks/polar`
-   - Redirect URLs de Supabase Auth (Site URL / callback) al dominio nuevo
-   - `COOKIE_SECURE` se infiere de producción; verificar tras el primer deploy
-4. **Docs**: los `README*.md` ya describen el stack Astro 7 + Vite+; los
-   `docs/*.md` aún son de la era Deno/Fresh — reescribir.
-5. **Rate limit**: el mapa en memoria es por instancia de función en Netlify
-   (igual que por aislado en Deno Deploy); si se necesita límite global,
-   mover a Netlify Blobs/Upstash.
-6. **Revisar `gui-test-screenshots/`**: los flujos de billing (Polar checkout,
-   portal) deben re-verificarse contra el despliegue de Netlify.
-7. **~~Preact 11~~**: resuelto de raíz — Preact se eliminó por completo en el
-   port a React 19 (ver "Preact → React").
-8. **Warnings de `vp lint`**: ~22 warnings type-aware (mayoría
+2. **Web Push**: `lib/push.ts` usa WebCrypto global — en Workers es nativo
+   (mejor que en Node), pero probarlo igual en staging.
+3. **Docs**: `README*.md` y `MIGRATION.md` al día (Astro 7 + React 19 +
+   Workers); `docs/ARCHITECTURE.md` aún arrastra detalles de la era
+   Fresh/Deno en secciones no críticas; `docs/ROUTES.md` sin revisar.
+4. **Rate limit**: el mapa en memoria es por aislado en Workers (como lo era
+   por instancia en serverless); si se necesita límite global, mover a
+   KV/DO (barato una vez ya en la plataforma).
+5. **Revisar `gui-test-screenshots/`**: los flujos de billing (Polar
+   checkout, portal) deben re-verificarse contra el despliegue nuevo.
+6. **Warnings de `vp lint`**: ~22 warnings type-aware (mayoría
    `no-floating-promises` heredados del port + 1 `triple-slash-reference` en
    `src/env.d.ts`, que es la convención de Astro). Revisar los
    `no-floating-promises` uno a uno.
-9. **Scripts de instalación bloqueados**: npm bloquea los postinstall de
+7. **Scripts de instalación bloqueados**: npm bloquea los postinstall de
    `esbuild` y `sharp` (allowScripts). La build funciona igual (esbuild trae
-   binario precompilado); si se adopta optimización de imágenes de Astro,
-   aprobar `sharp`.
+   binario precompilado); relevante solo si se adopta optimización de
+   imágenes de Astro.
 
 ## Comandos
 
@@ -148,7 +207,7 @@ al código que prueban. Decisiones tomadas al cambiar de runtime/framework:
 cd ../alapar-astro
 npm install
 npm run dev        # dev server
-npm run build      # build SSR (Netlify)
+npm run build      # build SSR (Netlify; pendiente el swap a Cloudflare)
 npm run check      # typecheck (astro check)
 npm run lint       # Oxlint vía Vite+
 npm run fmt        # Oxfmt vía Vite+ (fmt:check para verificar)
