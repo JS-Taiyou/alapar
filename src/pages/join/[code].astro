@@ -1,6 +1,6 @@
 ---
 import Base from "@/layouts/Base.astro";
-import AuthCardLayout from "@/islands/AuthCardLayout";
+import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
 import JoinButton from "@/components/auth/JoinButton";
 import { getInvitationByCode } from "@/lib/store";
 
@@ -25,7 +25,7 @@ const pageTitle = inv
 <Base title={pageTitle}>
   {!inv
     ? (
-      <AuthCardLayout pageTitle={pageTitle} centered>
+      <AuthCardLayout centered>
         <div class="inline-flex items-center justify-center p-3 bg-red-500/20 rounded-custom mb-4">
           <svg
             class="h-8 w-8 text-red-400"
@@ -57,7 +57,7 @@ const pageTitle = inv
       </AuthCardLayout>
     )
     : (
-      <AuthCardLayout pageTitle={pageTitle} centered>
+      <AuthCardLayout centered>
         <div class="inline-flex items-center justify-center p-3 bg-emerald-500/20 rounded-custom mb-4">
           <svg
             class="h-8 w-8 text-emerald-400"

@@ -1,0 +1,24 @@
+---
+/**
+ * Shared chrome for the auth pages: centered card over the patterned
+ * background with the gradient glow. Purely presentational — the interactive
+ * form is the page's slot content (an island where needed).
+ */
+interface Props {
+  /** Stretches the card and centers its text (used by the join landing). */
+  centered?: boolean;
+}
+
+const { centered = false } = Astro.props;
+
+const cardClasses = centered
+  ? "bg-surface border border-border-custom rounded-custom p-8 w-full max-w-md z-10 text-center"
+  : "bg-surface border border-border-custom rounded-custom p-8 w-full max-w-md z-10";
+---
+
+<main class="min-h-screen flex items-center justify-center p-6 bg-pattern">
+  <div class="absolute inset-0 gradient-glow pointer-events-none"></div>
+  <div class={cardClasses}>
+    <slot />
+  </div>
+</main>
