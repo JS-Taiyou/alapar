@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, type ReactNode } from "react";
 
 interface ModalProps {

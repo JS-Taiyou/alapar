@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { type Locale, t as translate } from "../../lib/i18n";
 
 /**

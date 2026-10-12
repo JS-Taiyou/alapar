@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import type { Entity } from "../../lib/types";
 import { initials } from "../../lib/format";

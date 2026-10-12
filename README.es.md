@@ -47,15 +47,15 @@ cargos recurrentes y pagos directos entre miembros.
 
 ## Stack técnico
 
-| Capa     | Tecnología                                                       |
-| -------- | ---------------------------------------------------------------- |
-| Frontend | Astro 7 + Preact (+ Signals), renderizado en servidor con islas  |
-| Runtime  | Node.js 22.12+ (npm, Astro CLI; Vite 8 por debajo vía Vite+)     |
-| Tooling  | Vite+ (`vp`) — lint (Oxlint), formato (Oxfmt), pruebas (Vitest)  |
-| Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS |
-| Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                             |
-| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso          |
-| Empaque  | PWA (web manifest + service worker + Web Push)                   |
+| Capa     | Tecnología                                                           |
+| -------- | -------------------------------------------------------------------- |
+| Frontend | Astro 7 + React 19, renderizado en servidor + componentes hidratados |
+| Runtime  | Node.js 22.12+ (npm, Astro CLI; Vite 8 por debajo vía Vite+)         |
+| Tooling  | Vite+ (`vp`) — lint (Oxlint), formato (Oxfmt), pruebas (Vitest)      |
+| Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS     |
+| Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                                 |
+| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso              |
+| Empaque  | PWA (web manifest + service worker + Web Push)                       |
 
 ## Detalles de ingeniería
 

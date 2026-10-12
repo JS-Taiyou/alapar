@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, useReducer, useRef } from "react";
 import type {
   BalanceBreakdownEntry,
@@ -215,10 +214,7 @@ export default function DashboardShell(props: DashboardShellProps) {
                   />
                 </svg>
               </a>
-              <CortarButton
-                hasTransactions={props.hasTransactions}
-                registryId={state.registryId}
-              />
+              <CortarButton hasTransactions={props.hasTransactions} registryId={state.registryId} />
             </div>
           </header>
         )}

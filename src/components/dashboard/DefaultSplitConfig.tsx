@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import type { DefaultSplit, User } from "../../lib/types";
 import { initials, sanitizeDecimal } from "../../lib/format";
@@ -199,7 +198,9 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                 <thead className="bg-white/5">
                   <tr>
                     <th className="px-4 py-3 text-xs font-semibold text-zinc-400">MIEMBRO</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">%</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">
+                      %
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-custom">

@@ -1,11 +1,7 @@
-/** @jsxImportSource react */
 import { useReducer } from "react";
 import TransactionList from "../dashboard/TransactionList";
 import BalanceBreakdown from "../dashboard/BalanceBreakdown";
-import {
-  dashboardReducer,
-  type DashboardState,
-} from "../dashboard/dashboard-store";
+import { dashboardReducer, type DashboardState } from "../dashboard/dashboard-store";
 import DemoTour from "./DemoTour";
 import LocaleToggle from "../ui/LocaleToggle";
 import type { Locale } from "../../lib/i18n";

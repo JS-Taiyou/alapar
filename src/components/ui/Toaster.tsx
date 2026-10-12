@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useSyncExternalStore } from "react";
 import { t as translate } from "../../lib/i18n";
 import { dismissToast, getToasts, subscribeToasts } from "./toast-store";

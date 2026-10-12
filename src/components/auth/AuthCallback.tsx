@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { clearSupabaseBrowserStorage } from "../../lib/auth-storage";
@@ -121,7 +120,14 @@ export default function AuthCallback(props: AuthCallbackProps) {
   ) : (
     <div className="flex flex-col items-center gap-4 py-4">
       <svg className="w-10 h-10 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <circle
+          className="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          strokeWidth="4"
+        />
         <path
           className="opacity-75"
           fill="currentColor"

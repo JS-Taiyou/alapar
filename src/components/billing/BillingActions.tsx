@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import Modal from "../ui/Modal";
 import { formatDate, type Locale, t as translate } from "../../lib/i18n";

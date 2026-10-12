@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import type { SpawnCandidate } from "../../lib/types";
 import { formatMoney } from "../../lib/format";
@@ -247,7 +246,12 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                       title="Desactivar recurrente"
                       className="shrink-0 p-1.5 text-zinc-400 hover:text-red-400 transition-colors rounded-custom hover:bg-red-400/10"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           d="M18.364 18.364A9 9 0 015.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
                           strokeLinecap="round"

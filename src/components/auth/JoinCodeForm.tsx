@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 
 export default function JoinCodeForm() {

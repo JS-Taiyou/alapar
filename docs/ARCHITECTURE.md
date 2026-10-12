@@ -2,31 +2,33 @@
 
 ## Overview
 
-Alapar (Fresh) is a web-based expense-splitting application built with **Deno**,
-**Fresh (v2)**, and **PostgreSQL** (Supabase-hosted). It's a port of the
+Alapar is a web-based expense-splitting application built with **Astro 7**
+(server output, Netlify adapter), **React 19** for the interactive components,
+and **PostgreSQL** (Supabase-hosted). It's a port of the
 original Kotlin Multiplatform desktop/mobile app to a server-rendered web
-application.
+application. (Parts of this document still describe the earlier Deno/Fresh
+layout — file paths under `routes/` and `utils.ts` map to `src/pages/` and
+`src/middleware.ts` in the Astro tree.)
 
 ## Tech Stack
 
-| Technology       | Purpose                                              |
-| ---------------- | ---------------------------------------------------- |
-| Deno             | Runtime                                              |
-| Fresh 2          | Web framework (SSR + Islands)                        |
-| Preact + Signals | UI and reactive state                                |
-| PostgreSQL (pg)  | Database via connection pool                         |
-| Supabase Auth    | Authentication (email/password + Google OAuth, PKCE) |
-| Tailwind CSS     | Styling                                              |
+| Technology      | Purpose                                              |
+| --------------- | ---------------------------------------------------- |
+| Node + Astro 7  | Runtime + web framework (SSR, Netlify adapter)       |
+| React 19        | Interactive hydrated components                      |
+| PostgreSQL (pg) | Database via connection pool                         |
+| Supabase Auth   | Authentication (email/password + Google OAuth, PKCE) |
+| Tailwind CSS    | Styling                                              |
 
 ## Key Differences from Kotlin Version
 
-| Aspect    | Kotlin Version                    | Fresh Version                                          |
-| --------- | --------------------------------- | ------------------------------------------------------ |
-| Database  | Per-registry SQLite files         | Single PostgreSQL with `registry_id` on all tables     |
-| Auth      | Certificate-based (256-char hex)  | Supabase Auth (email/password + cookies)               |
-| State     | In-memory Compose state           | Server-rendered + client-side Preact Signals (Islands) |
-| UI        | Compose Multiplatform (Material3) | Preact/Tailwind (dark theme)                           |
-| Platforms | Android, iOS, Desktop, Wasm       | Web only                                               |
+| Aspect    | Kotlin Version                    | Web Version                                        |
+| --------- | --------------------------------- | -------------------------------------------------- |
+| Database  | Per-registry SQLite files         | Single PostgreSQL with `registry_id` on all tables |
+| Auth      | Certificate-based (256-char hex)  | Supabase Auth (email/password + cookies)           |
+| State     | In-memory Compose state           | Server-rendered + one hydrated React tree per page |
+| UI        | Compose Multiplatform (Material3) | React/Tailwind (dark theme)                        |
+| Platforms | Android, iOS, Desktop, Wasm       | Web only                                           |
 
 ## Application Flow
 
@@ -101,22 +103,19 @@ alapar-fresh/
 │       ├── stamp/[id].ts      # Lightweight registry timestamp check
 │       ├── transactions/      # CRUD + disable-recurring
 │       └── push/              # Web Push subscription endpoints
-├── islands/                   # Interactive client-side Preact components
-│   ├── shared-signals.ts      # Cross-island signals (registrySwitch, entitiesChanged)
-│   ├── TransactionList.tsx    # Main list (uses shared rowToEnrichedTransaction)
-│   ├── Sidebar.tsx            # Registry switcher, invite, entities, logout
-│   ├── BalanceBreakdown.tsx   # Balance header + pairwise popover
-│   ├── DemoTour.tsx           # driver.js guided tour (demo page only)
-│   ├── UpgradeButton.tsx      # Pro CTA + interval picker
-│   ├── LocaleToggle.tsx       # ES/EN switch
-│   └── ...                    # Auth islands, EntityManager, RecurringSpawn, …
-├── components/                # Presentational components (some shared into islands)
-│   ├── Modal.tsx              # Shared modal scaffold (Escape-close contract)
-│   ├── TransactionModal.tsx   # Create/edit transaction form (used by islands)
-│   ├── AuthCardLayout.tsx     # Shared auth-screen shell
-│   ├── PaywallCard.tsx        # Locked-history placeholder (free plan)
-│   ├── ExerciseCard.tsx       # History list card
-│   └── TransactionCard.tsx    # Exercise detail card
+├── components/                # React components, hydrated per page
+│   ├── auth/                  # AuthForm, AuthCallback, forgot/reset, join
+│   ├── billing/               # BillingActions (pricing controls), retry
+│   ├── dashboard/             # DashboardShell (single hydration root),
+│   │   │                      #   dashboard-store.ts (useReducer store),
+│   │   │                      #   Sidebar, TransactionList, TransactionModal,
+│   │   │                      #   EntityManager, BalanceBreakdown, RecurringSpawn,
+│   │   │                      #   DefaultSplitConfig, CortarButton, SearchBar,
+│   │   │                      #   SidebarIsland.astro (standalone history mount)
+│   ├── demo/                  # DemoApp (same reducer, static data), DemoTour
+│   ├── history/               # ExerciseCard/PaywallCard/TransactionCard (.astro)
+│   ├── ui/                    # Modal, ProBadge, LocaleToggle, UpgradeButton,
+│   │                          #   Toaster + toast-store (useSyncExternalStore)
 ├── lib/
 │   ├── db.ts                  # PostgreSQL pool + query + withTransaction
 │   ├── supabase.ts            # Supabase client + auth helpers
@@ -292,13 +291,13 @@ currentUserId, defaultSplit, lastModified.
 
 **Registry switch flow**:
 
-1. Read the IndexedDB snapshot for the target registry → publish it on the
-   shared `registrySwitch` signal (`islands/shared-signals.ts`) → instant render
-   in TransactionList
+1. Read the IndexedDB snapshot for the target registry → apply it as an
+   `APPLY_SNAPSHOT` action on the dashboard store
+   (`components/dashboard/dashboard-store.ts`) → instant render in the shell
 2. Background: POST `/api/stamp/{id}` (also marks the registry active
    server-side) → compare `lastModified`
 3. If stamp matches → done (cache valid). If differs → fetch fresh data +
-   re-publish
+   re-apply
 
 ### Wake-Up Detection
 
@@ -313,8 +312,8 @@ On PWA resume from background/minimum/cold-start:
 Supabase Postgres Changes subscription on `transactions` table filtered by
 `registry_id`. Handles INSERT/UPDATE/DELETE events:
 
-- Optimistic signal updates in `TransactionList`
-- Balance recalculation via `/api/dashboard` fetch
+- Reducer actions in `TransactionList` (optimistic + realtime writes)
+- Balance recalculation inside the reducer (`withBalances`) on every mutation
 - Browser notifications for other users' inserts
 - `resubscribe()` called on wake-up to reconnect dropped WebSocket
 
@@ -353,13 +352,17 @@ operate on `Participant[]` and don't care whether a participant is a real user
 or an entity. The `entityIds: Set<string>` is passed separately to
 TransactionList for "tercero" badges.
 
-### Client State (Preact Signals)
+### Client State (React)
 
-Islands use `@preact/signals` for local reactive state. The dashboard page
-creates the shared data signals once and passes them into the islands as props;
-sibling islands synchronize through the two module-level signals in
-`islands/shared-signals.ts` (`registrySwitch`, `entitiesChanged`) — there is no
-other global store.
+Interactive components are React 19 function components (`useState` locally).
+The `/dashboard` page hydrates a single tree (`DashboardShell`) whose
+`useReducer` store (`components/dashboard/dashboard-store.ts`) owns the shared
+dashboard data; realtime events, registry switches and the transaction modal's
+optimistic writes are typed actions, and balance recomputation happens inside
+the reducer. The demo page runs the same reducer with static data. The upgrade
+toasts are the one cross-cutting store: a framework-agnostic
+subscribe/snapshot module (`components/ui/toast-store.ts`) bound with
+`useSyncExternalStore`.
 
 ## Split JSON Format
 

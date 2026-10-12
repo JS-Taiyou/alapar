@@ -46,10 +46,11 @@ export async function getSidebarServerProps(Astro: AstroGlobal): Promise<Sidebar
     }
   }
 
-  const sidebarCollapsed = Astro.request.headers
-    .get("cookie")
-    ?.split(";")
-    .some((c) => c.trim() === "sidebar-collapsed=true") ?? false;
+  const sidebarCollapsed =
+    Astro.request.headers
+      .get("cookie")
+      ?.split(";")
+      .some((c) => c.trim() === "sidebar-collapsed=true") ?? false;
 
   return {
     registries: Astro.locals.registries,
@@ -65,7 +66,6 @@ export async function getSidebarServerProps(Astro: AstroGlobal): Promise<Sidebar
     deletableRegistryIds,
     initialCollapsed: sidebarCollapsed,
     locale: Astro.locals.locale,
-    showUpgrade: Astro.locals.activeRegistryPlan !== null &&
-      !Astro.locals.activeRegistryPlan.isPro,
+    showUpgrade: Astro.locals.activeRegistryPlan !== null && !Astro.locals.activeRegistryPlan.isPro,
   };
 }

@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import { t as translate } from "../../lib/i18n";
 import type { Locale } from "../../lib/i18n";

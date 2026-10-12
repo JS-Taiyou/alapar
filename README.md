@@ -50,7 +50,7 @@ direct payments between members.
 
 | Layer     | Tech                                                             |
 | --------- | ---------------------------------------------------------------- |
-| Frontend  | Astro 7 + Preact (+ Signals), server-rendered with islands       |
+| Frontend  | Astro 7 + React 19, server-rendered + hydrated components        |
 | Runtime   | Node.js 22.12+ (npm, Astro CLI; Vite 8 under the hood via Vite+) |
 | Tooling   | Vite+ (`vp`) — lint (Oxlint), format (Oxfmt), tests (Vitest)     |
 | Backend   | Supabase — Postgres, Auth (email/password + Google OAuth), RLS   |

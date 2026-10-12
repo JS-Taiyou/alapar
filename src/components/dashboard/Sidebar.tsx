@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DefaultSplit, Entity, Registry, User } from "../../lib/types";
 import { cache } from "../../lib/cache";
@@ -551,9 +550,7 @@ export default function Sidebar(props: SidebarProps) {
                     confirmRename(r.id);
                   }}
                   className={`w-full flex items-center rounded-custom ${
-                    collapsed && !mobileOpen
-                      ? "justify-center p-2.5"
-                      : "gap-3 px-3 py-2.5"
+                    collapsed && !mobileOpen ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
                   } bg-white/5 border border-white/10 text-white`}
                 >
                   <div
@@ -577,9 +574,7 @@ export default function Sidebar(props: SidebarProps) {
                   onClick={() => !isPending && switchRegistry(r.id)}
                   disabled={isPending}
                   className={`w-full flex items-center rounded-custom transition-all duration-300 ${
-                    collapsed && !mobileOpen
-                      ? "justify-center p-2.5"
-                      : "gap-3 px-3 py-2.5"
+                    collapsed && !mobileOpen ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
                   } ${
                     isPending
                       ? "bg-primary/10 border border-primary/30 text-primary"
@@ -726,9 +721,7 @@ export default function Sidebar(props: SidebarProps) {
               setShowInvite(true);
             }}
             className={`w-full flex items-center bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-custom text-sm font-semibold text-emerald-400 transition-all duration-300 ${
-              collapsed && !mobileOpen
-                ? "justify-center p-2.5"
-                : "justify-center gap-2 py-2.5 px-3"
+              collapsed && !mobileOpen ? "justify-center p-2.5" : "justify-center gap-2 py-2.5 px-3"
             }`}
           >
             <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -741,9 +734,7 @@ export default function Sidebar(props: SidebarProps) {
             </svg>
             <span
               className={`whitespace-nowrap transition-opacity duration-200 ${
-                collapsed && !mobileOpen
-                  ? "opacity-0 w-0 overflow-hidden"
-                  : "opacity-100"
+                collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
               }`}
             >
               Invitar
@@ -782,7 +773,12 @@ export default function Sidebar(props: SidebarProps) {
               className="w-full flex items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-white"
               title="Terceros"
             >
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                   strokeLinecap="round"
@@ -804,18 +800,11 @@ export default function Sidebar(props: SidebarProps) {
           type="button"
           onClick={() => setShowNewRegistry(true)}
           className={`w-full flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-white transition-all duration-300 ${
-            collapsed && !mobileOpen
-              ? "justify-center p-2.5"
-              : "justify-center gap-2 py-3 px-4"
+            collapsed && !mobileOpen ? "justify-center p-2.5" : "justify-center gap-2 py-3 px-4"
           }`}
         >
           <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              d="M12 4v16m8-8H4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
+            <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
           </svg>
           <span
             className={`whitespace-nowrap transition-opacity duration-200 ${
@@ -825,9 +814,7 @@ export default function Sidebar(props: SidebarProps) {
             Nuevo Registro
           </span>
         </button>
-        {props.showUpgrade && activeRegistryId && (
-          <UpgradeButton locale={props.locale ?? "es"} />
-        )}
+        {props.showUpgrade && activeRegistryId && <UpgradeButton locale={props.locale ?? "es"} />}
         {(!collapsed || mobileOpen) && (
           <LocaleToggle locale={props.locale ?? "es"} full className="my-1" />
         )}
@@ -835,9 +822,7 @@ export default function Sidebar(props: SidebarProps) {
           type="button"
           onClick={handleLogout}
           className={`w-full flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-zinc-400 hover:text-red-400 transition-all duration-300 ${
-            collapsed && !mobileOpen
-              ? "justify-center p-2.5"
-              : "justify-center gap-2 py-2.5 px-4"
+            collapsed && !mobileOpen ? "justify-center p-2.5" : "justify-center gap-2 py-2.5 px-4"
           }`}
         >
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -882,11 +867,7 @@ export default function Sidebar(props: SidebarProps) {
       {(mobileOpen || dragOffset !== null) && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/60 transition-opacity duration-300"
-          style={
-            dragOffset !== null
-              ? { opacity: (dragOffset / SIDEBAR_WIDTH) * 0.6 }
-              : undefined
-          }
+          style={dragOffset !== null ? { opacity: (dragOffset / SIDEBAR_WIDTH) * 0.6 } : undefined}
           onClick={() => {
             setMobileOpen(false);
             setDragOffset(null);
@@ -908,11 +889,7 @@ export default function Sidebar(props: SidebarProps) {
         }`}
         style={{
           transform: `translateX(${
-            dragOffset !== null
-              ? `${dragOffset - SIDEBAR_WIDTH}px`
-              : mobileOpen
-                ? "0"
-                : "-100%"
+            dragOffset !== null ? `${dragOffset - SIDEBAR_WIDTH}px` : mobileOpen ? "0" : "-100%"
           })`,
         }}
       >
@@ -977,7 +954,12 @@ export default function Sidebar(props: SidebarProps) {
                       className="p-2 hover:bg-white/10 rounded-custom text-primary transition-colors"
                       title="Copiar"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
                           strokeLinecap="round"
@@ -1048,9 +1030,7 @@ export default function Sidebar(props: SidebarProps) {
         <DefaultSplitConfig
           registryId={showSplitConfig}
           users={props.registryUsers}
-          defaultSplit={
-            registries.find((r) => r.id === showSplitConfig)?.defaultSplit ?? null
-          }
+          defaultSplit={registries.find((r) => r.id === showSplitConfig)?.defaultSplit ?? null}
           isOwner={props.ownerRegistryIds.has(showSplitConfig)}
           autoOpen
           locale={props.locale}

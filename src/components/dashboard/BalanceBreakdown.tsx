@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useState } from "react";
 import type { BalanceBreakdownEntry, Participant } from "../../lib/types";
 import { type Locale, t as translate } from "../../lib/i18n";
@@ -54,9 +53,7 @@ export default function BalanceBreakdown(props: BalanceBreakdownProps) {
           {canShowPopover && (
             <svg
               className={`w-4 h-4 transition-all duration-200 ${
-                showPopover
-                  ? "text-primary rotate-180"
-                  : "text-zinc-500 group-hover:text-zinc-400"
+                showPopover ? "text-primary rotate-180" : "text-zinc-500 group-hover:text-zinc-400"
               }`}
               fill="none"
               stroke="currentColor"
@@ -120,7 +117,10 @@ export default function BalanceBreakdown(props: BalanceBreakdownProps) {
                           <div className="flex items-center gap-2.5">
                             <div
                               className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                              style={{ backgroundColor: `${entry.userColor}25`, color: entry.userColor }}
+                              style={{
+                                backgroundColor: `${entry.userColor}25`,
+                                color: entry.userColor,
+                              }}
                             >
                               {userInitials}
                             </div>
@@ -152,7 +152,10 @@ export default function BalanceBreakdown(props: BalanceBreakdownProps) {
                           <div className="flex items-center gap-2.5">
                             <div
                               className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
-                              style={{ backgroundColor: `${entry.userColor}25`, color: entry.userColor }}
+                              style={{
+                                backgroundColor: `${entry.userColor}25`,
+                                color: entry.userColor,
+                              }}
                             >
                               {userInitials}
                             </div>

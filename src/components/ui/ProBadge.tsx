@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { type Locale, t } from "../../lib/i18n";
 import type { User } from "../../lib/types";
 

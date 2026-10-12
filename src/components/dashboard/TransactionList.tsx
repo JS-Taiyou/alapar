@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import type { EnrichedTransaction, Participant, TransactionPayment } from "../../lib/types";
 import { rowToEnrichedTransaction } from "../../lib/rows";
@@ -173,7 +172,9 @@ function TransactionCardClickable(props: {
                 />
               </svg>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-zinc-300 truncate">{relatedTx.description}</p>
+                <p className="text-xs font-medium text-zinc-300 truncate">
+                  {relatedTx.description}
+                </p>
                 <p className="text-[10px] text-zinc-400">
                   {formatDate(relatedTx.createdAt, props.locale ?? "es", {
                     month: "short",

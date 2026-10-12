@@ -88,7 +88,10 @@ function withBalances(state: DashboardState, transactions: EnrichedTransaction[]
   return {
     ...state,
     transactions,
-    balance: calculateBalance(transactions as Parameters<typeof calculateBalance>[0], state.currentUserId),
+    balance: calculateBalance(
+      transactions as Parameters<typeof calculateBalance>[0],
+      state.currentUserId,
+    ),
     balanceEntries: calculatePairwiseBreakdown(
       transactions as Parameters<typeof calculatePairwiseBreakdown>[0],
       state.currentUserId,
@@ -160,7 +163,10 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
 
     case "REALTIME_DELETE": {
       if (!state.transactions.some((t) => t.id === action.id)) return state;
-      return withBalances(state, state.transactions.filter((t) => t.id !== action.id));
+      return withBalances(
+        state,
+        state.transactions.filter((t) => t.id !== action.id),
+      );
     }
 
     case "REALTIME_UPDATE": {

@@ -1,4 +1,3 @@
-/** @jsxImportSource react */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   BalanceBreakdownEntry,
@@ -84,7 +83,9 @@ export default function TransactionModal(props: TransactionModalProps) {
   const [installmentCurrent, setInstallmentCurrent] = useState(1);
   const [installmentTotal, setInstallmentTotal] = useState(12);
   const [installmentTotalDisplay, setInstallmentTotalDisplay] = useState("12");
-  const [installmentInputMode, setInstallmentInputMode] = useState<"total" | "installment">("total");
+  const [installmentInputMode, setInstallmentInputMode] = useState<"total" | "installment">(
+    "total",
+  );
   const [installmentAmount, setInstallmentAmount] = useState(0);
   const [installmentAmountDisplay, setInstallmentAmountDisplay] = useState("");
   const [splitMode, setSplitMode] = useState<SplitMode>("auto");
@@ -547,7 +548,9 @@ export default function TransactionModal(props: TransactionModalProps) {
         const otherTps = transactionPayments.filter((tp) => tp.pagoId !== optimisticId);
         props.onTransactionPaymentsChange([...otherTps, ...optimisticTpEntries]);
       } else if (wasEditing) {
-        props.onTransactionPaymentsChange(transactionPayments.filter((tp) => tp.pagoId !== wasEditing));
+        props.onTransactionPaymentsChange(
+          transactionPayments.filter((tp) => tp.pagoId !== wasEditing),
+        );
       }
 
       props.onClose();
@@ -817,7 +820,10 @@ export default function TransactionModal(props: TransactionModalProps) {
     return eligibleTransactions.find((e) => e.id === selectedRelatedTxId) ?? null;
   }, [eligibleTransactions, selectedRelatedTxId]);
 
-  const splits = useMemo(() => getSplits(), [amount, users, splitMode, splitSeed, percentages, fixedAmounts]); // eslint-disable-line react-hooks/exhaustive-deps
+  const splits = useMemo(
+    () => getSplits(),
+    [amount, users, splitMode, splitSeed, percentages, fixedAmounts],
+  ); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPago = props.modalMode === "payment";
 
@@ -852,9 +858,7 @@ export default function TransactionModal(props: TransactionModalProps) {
 
   const totalSplitAmount = splits.reduce((s, sp) => s + sp.amount, 0);
   const totalPct =
-    splitMode === "percentage"
-      ? totalPercentage()
-      : splits.reduce((s, sp) => s + sp.percentage, 0);
+    splitMode === "percentage" ? totalPercentage() : splits.reduce((s, sp) => s + sp.percentage, 0);
 
   if (!props.isOpen) return null;
 
@@ -1213,7 +1217,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                               <span className="text-sm font-medium text-white">
                                 {user.name}
                                 {user.id === currentUserId && (
-                                  <span className="text-zinc-500 ml-1">{t("common.you_label")}</span>
+                                  <span className="text-zinc-500 ml-1">
+                                    {t("common.you_label")}
+                                  </span>
                                 )}
                                 {props.entityIds.has(user.id) && (
                                   <span className="text-xs ml-1 px-1.5 py-0.5 rounded bg-white/10 text-zinc-400">
@@ -1308,9 +1314,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                             onChange={() => {
                               setUserPaid(user.id);
                               if (paymentRecipient === user.id) {
-                                setPaymentRecipient(
-                                  users.find((u) => u.id !== user.id)?.id ?? "",
-                                );
+                                setPaymentRecipient(users.find((u) => u.id !== user.id)?.id ?? "");
                               }
                             }}
                             className="accent-primary"
@@ -1394,7 +1398,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                   }}
                   className="accent-primary w-4 h-4"
                 />
-                <span className="text-sm font-medium text-zinc-300">{t("modal.link_expenses")}</span>
+                <span className="text-sm font-medium text-zinc-300">
+                  {t("modal.link_expenses")}
+                </span>
                 {!hasEligibleTransactions && (
                   <span className="relative group">
                     <span className="inline-flex items-center justify-center w-4 h-4 text-xs font-bold rounded-full bg-white/10 text-zinc-400 cursor-help">
@@ -1411,7 +1417,12 @@ export default function TransactionModal(props: TransactionModalProps) {
                 <div className="space-y-2">
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
-                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                           strokeLinecap="round"
@@ -1660,7 +1671,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                     <th className="px-4 py-3 text-xs font-semibold text-zinc-400">
                       {t("modal.user_header")}
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">%</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">
+                      %
+                    </th>
                     <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-40 text-right">
                       {t("modal.amount_header")}
                     </th>
@@ -1734,9 +1747,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                                 {split?.amount.toFixed(2) ?? "0.00"}
                               </span>
                             )}
-                            {splitMode === "fixed" && (
-                              <span className="ml-1 text-zinc-500">$</span>
-                            )}
+                            {splitMode === "fixed" && <span className="ml-1 text-zinc-500">$</span>}
                           </div>
                         </td>
                       </tr>
@@ -1809,7 +1820,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                                 }}
                               />
                             ) : (
-                              <span className="text-zinc-400">{split?.percentage.toFixed(0) ?? 0}</span>
+                              <span className="text-zinc-400">
+                                {split?.percentage.toFixed(0) ?? 0}
+                              </span>
                             )}
                             <span className="ml-0.5 text-zinc-500 text-xs">%</span>
                           </div>
