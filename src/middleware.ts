@@ -6,24 +6,18 @@ import { query } from "@/lib/db";
 import { needsFullState, routeGuard } from "@/lib/routing";
 import { resolveLocale } from "@/lib/i18n";
 import { getRegistryPlan, USER_PRO_SQL } from "@/lib/entitlements";
+import { csrfForbidden } from "@/lib/csrf";
 import { isDev } from "@/lib/env";
 
 function devLog(...args: unknown[]) {
   if (isDev) console.log("[MW]", ...args);
 }
 
-// No CSRF exemptions except the Polar webhook: Polar's server posts
-// cross-origin with no browser Origin header, and authenticity is enforced
-// by the Standard Webhooks HMAC signature (see lib/billing.ts), so CSRF
-// protection adds nothing there.
+// The decision logic lives in lib/csrf.ts (unit-testable); the exempt path
+// list and its Polar rationale are documented there.
 const csrf = defineMiddleware(async (context, next) => {
-  if (context.request.method === "GET") return next();
   const origin = context.request.headers.get("origin");
-  if (
-    origin !== null &&
-    context.url.pathname !== "/api/webhooks/polar" &&
-    origin !== context.url.origin
-  ) {
+  if (csrfForbidden(context.request.method, origin, context.url)) {
     return new Response("Forbidden", { status: 403 });
   }
   return next();

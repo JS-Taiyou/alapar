@@ -118,10 +118,16 @@ npm test           # Vitest vía Vite+ (pasa mientras se porta la suite)
 
 ## Pruebas
 
-La suite original de Deno (motor de saldos, repartos, validación de rutas,
-stubs tipados de BD/Supabase) se está portando de `deno test` a **Vitest**
-(corre con `npm test`, provisto por Vite+) — sigue disponible en `main` como
-referencia. Ver [`MIGRATION.md`](MIGRATION.md).
+```bash
+npm test           # suite Vitest (489 tests, BD simulada — sin DATABASE_URL)
+```
+
+La suite cubre el motor de saldos y repartos (las partes siempre suman el
+total, desviación ≤ un centavo, repartos deterministas), los handlers de ruta
+(contra una capa de queries simulada) y el nuevo comportamiento del runtime
+tras la migración (accessor de env, fallback a Postgres local, CSRF
+reimplementado). Ver [`MIGRATION.md`](MIGRATION.md#tests) para las notas del
+port Deno→Vitest.
 
 ## Documentación
 

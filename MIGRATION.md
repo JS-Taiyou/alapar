@@ -51,42 +51,65 @@ Cambios estructurales notables:
 - Toolchain Vite+ 1.1.0: `vp lint` (0 errores, 21 warnings type-aware
   preexistentes: `no-floating-promises` ×20 y un `triple-slash-reference` en
   `src/env.d.ts`, convención de Astro), `vp fmt --check` limpio tras un pase
-  de formato inicial sobre todo el repo, `vp test` sin tests aún
-  (`--passWithNoTests`).
+  de formato inicial sobre todo el repo.
+- **Suite de tests portada a Vitest** (`vp test`, Vitest 5): 489 tests en 36
+  archivos, todos verdes. Ver sección "Tests" abajo.
+- CI de Node 26.10 restaurado en `.github/workflows/ci.yml`
+  (check → lint → fmt → test → build).
+
+## Tests
+
+Los `*_test.ts` de Deno se portaron a Vitest colocados como `*.test.ts` junto
+al código que prueban. Decisiones tomadas al cambiar de runtime/framework:
+
+- **Harness**: `test/compat.ts` reimplementa los assertions de `@std/assert`
+  sobre `expect` de Vitest, así los cuerpos de los tests quedaron verbatim
+  (su valor está en los escenarios). Tests nuevos usan `expect` directo.
+- **Stub de BD**: el import-map de Deno (`./lib/db.ts` → stub) se reemplazó
+  por `vi.mock("@/lib/db", ...)` en `test/setup.ts` (vi.mock clava por id de
+  módulo resuelto: cubre también los imports relativos `./db`).
+- **Stub de supabase-js**: eliminado — existía porque el CI de Deno no podía
+  instalar npm; con Node el paquete real está instalado y los tests nunca
+  tocan red.
+- **`ctx.state` → `ctx.locals`**: `test/helpers.ts` construye un `APIContext`
+  falso (`locals`, `request`, `params`, `url`, `redirect`).
+- **`pricing_test.ts`**: el handler GET de la página ya no existe como
+  función (frontmatter de Astro), así que la lógica de sesión se extrajo a
+  `src/lib/pricing.ts` y el test corre contra ella. Mismo patrón para el
+  CSRF del middleware → `src/lib/csrf.ts`.
+- **Tests nuevos por el cambio de runtime/framework**:
+  `src/lib/env.test.ts` (accessor dual import.meta.env/process.env),
+  `src/lib/db.test.ts` (fallback Postgres local `alapar` + decisión de SSL,
+  con `pg` mockeado), `src/lib/csrf.test.ts` (matriz del CSRF reimplementado).
 
 ## Pendiente
 
-1. **Tests**: los `*_test.ts` de Deno no se portaron. Hay que migrarlos a
-   Vitest (ya cableado: `npm test` → `vp test`) y re-crear el harness de
-   `test/helpers.ts`.
-2. **Auth E2E**: las páginas autenticadas (`/dashboard/*`) no se han ejercido
+1. **Auth E2E**: las páginas autenticadas (`/dashboard/*`) no se han ejercido
    con sesión real contra Supabase.
-3. **Web Push**: `lib/push.ts` usa WebCrypto global — funciona en Node 20+,
+2. **Web Push**: `lib/push.ts` usa WebCrypto global — funciona en Node 20+,
    pero hay que probarlo en el runtime de Netlify Functions.
-4. **Despliegue Netlify**: conectar repo, definir env vars
+3. **Despliegue Netlify**: conectar repo, definir env vars
    (`DATABASE_URL`, `SUPABASE_*`, `VAPID_*`, `POLAR_*`), y actualizar:
    - URL del webhook en el dashboard de Polar → `https://<sitio>/api/webhooks/polar`
    - Redirect URLs de Supabase Auth (Site URL / callback) al dominio nuevo
    - `COOKIE_SECURE` se infiere de producción; verificar tras el primer deploy
-5. **Docs**: los `README*.md` ya describen el stack Astro 7 + Vite+; los
+4. **Docs**: los `README*.md` ya describen el stack Astro 7 + Vite+; los
    `docs/*.md` aún son de la era Deno/Fresh — reescribir.
-6. **CI**: se borró `.github/workflows/ci.yml` (Deno); crear workflow de Node
-   (`npm ci && npm run check && npm run lint && npm run build`).
-7. **Rate limit**: el mapa en memoria es por instancia de función en Netlify
+5. **Rate limit**: el mapa en memoria es por instancia de función en Netlify
    (igual que por aislado en Deno Deploy); si se necesita límite global,
    mover a Netlify Blobs/Upstash.
-8. **Revisar `gui-test-screenshots/`**: los flujos de billing (Polar checkout,
+6. **Revisar `gui-test-screenshots/`**: los flujos de billing (Polar checkout,
    portal) deben re-verificarse contra el despliegue de Netlify.
-9. **Preact 11**: aplazado — `@astrojs/preact` 6.x declara peer
+7. **Preact 11**: aplazado — `@astrojs/preact` 6.x declara peer
    `preact ^10.6.5`, así que se queda en Preact 10.29.8 hasta que la
    integración soporte la 11.
-10. **Warnings de `vp lint`**: 21 warnings type-aware (20 `no-floating-promises`
-    en islands + 1 `triple-slash-reference` en `src/env.d.ts`, que es la
-    convención de Astro). Revisar los `no-floating-promises` uno a uno.
-11. **Scripts de instalación bloqueados**: npm bloquea los postinstall de
-    `esbuild` y `sharp` (allowScripts). La build funciona igual (esbuild trae
-    binario precompilado); si se adopta optimización de imágenes de Astro,
-    aprobar `sharp`.
+8. **Warnings de `vp lint`**: 21 warnings type-aware (20 `no-floating-promises`
+   en islands + 1 `triple-slash-reference` en `src/env.d.ts`, que es la
+   convención de Astro). Revisar los `no-floating-promises` uno a uno.
+9. **Scripts de instalación bloqueados**: npm bloquea los postinstall de
+   `esbuild` y `sharp` (allowScripts). La build funciona igual (esbuild trae
+   binario precompilado); si se adopta optimización de imágenes de Astro,
+   aprobar `sharp`.
 
 ## Comandos
 

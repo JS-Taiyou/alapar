@@ -118,10 +118,15 @@ npm test           # Vitest via Vite+ (passes while the suite is being ported)
 
 ## Testing
 
-The original Deno test suite (balance engine, split math, route validation,
-typed DB/Supabase stubs) is being ported from `deno test` to **Vitest** (run
-with `npm test`, provided by Vite+) — it still lives on `main` for reference.
-See [`MIGRATION.md`](MIGRATION.md).
+```bash
+npm test           # Vitest suite (489 tests, DB stubbed — no DATABASE_URL needed)
+```
+
+The suite covers the balance/splitting engine (shares always sum to the
+total, deviation ≤ one cent, deterministic splits), route handlers (against a
+stubbed query layer), and the migration's new runtime behavior (env accessor,
+local-Postgres fallback, reimplemented CSRF). See
+[`MIGRATION.md`](MIGRATION.md#tests) for the Deno→Vitest porting notes.
 
 ## Documentation
 
