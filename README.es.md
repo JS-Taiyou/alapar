@@ -4,12 +4,22 @@
 
 > Comparte gastos con tu pareja, amigos o roomies — y queden siempre _a la par_.
 
-![CI](https://github.com/JS-Taiyou/alapar-fresh/actions/workflows/ci.yml/badge.svg)
 ![Licencia](https://img.shields.io/badge/licencia-AGPLv3-blue)
 ![Demo](https://img.shields.io/badge/demo-en%20vivo-brightgreen)
 
 **[▶ Prueba la demo guiada en vivo — sin registro](https://alapar.itzayanos.deno.net/demo)**
-**App en vivo:** https://alapar.itzayanos.deno.net
+**App en vivo:** https://alapar.itzayanos.deno.net _(aún servida por la build
+original de Fresh mientras aterriza esta migración)_
+
+## Historia del proyecto
+
+A la Par nació como un proyecto de **Deno**, construido sobre **Fresh**, el
+framework web de Deno (Preact + islas renderizadas en servidor), y desplegado
+en **Deno Deploy**. Cuando se anunció la adquisición de Deno por Cloudflare, el
+proyecto fue portado a **Astro 5 sobre Node**, con Netlify como nuevo destino
+de hosting. El código original de Fresh sigue en la rama `main`; la migración
+vive en `migration/astro` — consulta [`MIGRATION.md`](MIGRATION.md) para el
+mapa del port, el estado de verificación y lo que falta.
 
 ## ¿Qué es?
 
@@ -39,10 +49,11 @@ cargos recurrentes y pagos directos entre miembros.
 
 | Capa     | Tecnología                                                        |
 | -------- | ----------------------------------------------------------------- |
-| Frontend | Deno + Fresh 2 (Preact + Signals), islas renderizadas en servidor |
+| Frontend | Astro 5 + Preact (+ Signals), renderizado en servidor con islas   |
+| Runtime  | Node.js 20+ (npm, Astro CLI; Vite por debajo)                     |
 | Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS  |
 | Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                              |
-| Hosting  | Deno Deploy                                                       |
+| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso           |
 | Empaque  | PWA (web manifest + service worker + Web Push)                    |
 
 ## Detalles de ingeniería
@@ -66,60 +77,51 @@ cargos recurrentes y pagos directos entre miembros.
 - **Seguridad en la base de datos** — Row-Level Security de Postgres aísla los
   datos de cada grupo; el canal de tiempo real solo entrega transacciones de los
   registros a los que pertenece el usuario autenticado.
-- **Suite de pruebas con stubs tipados** — el motor de saldos, repartos,
-  validación de rutas y reglas de negocio corren contra stubs tipados de la base
-  de datos y de Supabase (sin BD en vivo), y los stubs se verifican en tiempo de
-  compilación contra la API real para que no se desincronicen.
 
 ## Correr en local
 
 ### Requisitos
 
-- [Deno](https://docs.deno.com/runtime/getting_started/installation) (última
-  versión)
-- Un proyecto de [Supabase](https://supabase.com) (el plan gratuito funciona)
+- [Node.js](https://nodejs.org) 20+ y npm
+- Un proyecto de [Supabase](https://supabase.com) (el plan gratuito funciona) —
+  o solo un Postgres local para desarrollo
 
 ### Instalación
 
 ```bash
 git clone https://github.com/JS-Taiyou/alapar-fresh.git
 cd alapar-fresh
+git checkout migration/astro
+npm install
 cp .env.example .env   # agrega tus credenciales de Supabase y VAPID
 ```
 
-Ejecuta las migraciones en `db/` contra tu proyecto de Supabase, en el orden
-indicado en [`docs/DATABASE.md`](docs/DATABASE.md#migrations) (`schema.sql`
-primero, luego los archivos `add_*.sql` incluido `add_billing.sql`, después
-`enable_rls.sql`, `tighten_rls.sql` y finalmente `enable_realtime.sql`;
-`drop_allowed_emails.sql` al final — es un no-op en instalaciones nuevas).
+**Base de datos.** Define `DATABASE_URL` con la URL del pooler de Supabase para
+el backend completo. Sin `DATABASE_URL`, `src/lib/db.ts` cae a un Postgres
+local en `postgresql://alapar:alapar@localhost:5432/alapar` — levántalo con
+`docker compose up db` (o usa cualquier instalación local) y aplica
+`db/schema.sql`. Para el proyecto de Supabase, corre las migraciones de `db/`
+en el orden indicado en [`docs/DATABASE.md`](docs/DATABASE.md#migrations).
 
-Inicia el servidor de desarrollo:
-
-```bash
-deno task dev
-```
-
-Compila y corre para producción:
+### Comandos
 
 ```bash
-deno task build
-deno task start
+npm run dev        # servidor de desarrollo
+npm run build      # build de producción (función SSR de Netlify)
+npm run preview    # previsualiza la build
+npx astro check    # type-check (.astro + .ts)
 ```
 
 ## Pruebas
 
-```bash
-deno task test    # corre la suite (DB simulada, sin DATABASE_URL)
-deno task check   # fmt + lint + type-check + pruebas
-```
-
-La suite cubre el motor de saldos y repartos: las partes siempre suman el total,
-la desviación máxima entre miembros es de un centavo, y entradas idénticas
-producen repartos idénticos. Los handlers de ruta se prueban con un contexto de
-petición falso y una capa de queries simulada.
+La suite original de Deno (motor de saldos, repartos, validación de rutas,
+stubs tipados de BD/Supabase) se está portando de `deno test` a **Vitest** —
+sigue disponible en `main` como referencia. Ver [`MIGRATION.md`](MIGRATION.md).
 
 ## Documentación
 
+- [`MIGRATION.md`](MIGRATION.md) — mapa del port Fresh → Astro y trabajo
+  pendiente
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — arquitectura del sistema,
   estructura de directorios, flujo de auth, caché, tiempo real
 - [`docs/BUSINESS_LOGIC.md`](docs/BUSINESS_LOGIC.md) — cálculo de saldos, modos
@@ -132,8 +134,12 @@ petición falso y una capa de queries simulada.
   de Polar
 - [`CHANGELOG.md`](CHANGELOG.md) — registro de cambios significativos
 
+_Nota: `docs/*.md` aún describe la arquitectura de Fresh y se irá actualizando
+como parte de la migración._
+
 ## Próximos pasos
 
+- [ ] Completar la migración a Astro y mover el hosting a Netlify
 - [ ] Publicación en Android vía TWA (Google Play)
 - [ ] Dominio propio
 
