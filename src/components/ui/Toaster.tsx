@@ -20,7 +20,7 @@ export default function Toaster() {
           <div
             key={toast.id}
             role="status"
-            className="pointer-events-auto flex items-center gap-3 max-w-sm bg-surface border border-border-custom rounded-custom shadow-2xl px-4 py-3"
+            className="animate-slide-in-right pointer-events-auto flex items-center gap-3 max-w-sm bg-surface border border-white/10 rounded-custom shadow-raised px-4 py-3"
           >
             <svg
               className="w-5 h-5 shrink-0 text-primary-light"

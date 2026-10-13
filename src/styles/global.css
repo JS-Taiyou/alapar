@@ -8,9 +8,18 @@
   --color-primary-dark: #062d7c;
   --color-background: #0a0a0c;
   --color-surface: #16161a;
+  --color-surface-raised: #1f1f26;
   --color-card: #1a1a1a;
   --color-border-custom: #2d2d33;
+  --color-ring: #3b6fe8;
   --radius-custom: 8px;
+
+  /* Elevation scale — layered shadows (shadcn-style) instead of one flat
+     black blob: card for resting surfaces, raised for hover/FABs, overlay
+     for modals and popovers. */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-overlay: 0 4px 8px rgba(0, 0, 0, 0.45), 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
 /* DaisyUI dark theme overrides */
@@ -40,17 +49,19 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary hover:bg-primary-light text-white font-semibold;
+    @apply bg-primary hover:bg-primary-light text-white font-semibold
+      shadow-card transition-all duration-150 active:scale-[0.98];
   }
   .btn-ghost-variant {
-    @apply bg-white/5 hover:bg-white/10 border border-white/10 text-white;
+    @apply bg-white/5 hover:bg-white/10 border border-white/10 text-white
+      transition-all duration-150 active:scale-[0.98];
   }
   .card-surface {
-    @apply bg-surface border border-white/10 rounded-custom;
+    @apply bg-surface border border-white/10 rounded-custom shadow-card;
   }
   .input-surface {
-    @apply bg-background border border-white/20 text-white focus:border-primary
-      focus:ring-primary;
+    @apply bg-background border border-white/20 text-white transition-colors duration-150
+      focus:border-primary focus:ring-2 focus:ring-primary/30;
   }
 }
 
@@ -59,6 +70,79 @@ body {
   background-color: var(--color-background);
   color: #f8fafc;
   font-family: var(--font-sans);
+}
+
+/* Typographic craft: antialiased rendering, tabular figures everywhere
+   (money columns stop jittering), tighter display headings. */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(9, 62, 170, 0.4);
+  color: #fff;
+}
+
+/* Keyboard focus craft — visible ring on every interactive element,
+   offset so it never clips rounded corners. Form fields opt out (they
+   have their own border/ring treatment). */
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+/* Left accent bar for the active registry row (applied via .row-active) */
+.row-active {
+  box-shadow: inset 3px 0 0 0 var(--color-primary);
+}
+
+/* Modal entrance: settle-in with a slight rise */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-modal-in {
+  animation: modal-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* driver.js dark-theme overrides for demo tour popovers */
@@ -134,7 +218,7 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
@@ -142,8 +226,12 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #2d2d33;
   border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3d3d45;
 }
 
 input::-webkit-outer-spin-button,

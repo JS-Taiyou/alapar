@@ -59,9 +59,9 @@ export default function Modal(props: ModalProps) {
         aria-modal="true"
         aria-label={typeof props.title === "string" ? props.title : undefined}
         tabIndex={-1}
-        className={`bg-surface border border-border-custom w-full ${
+        className={`animate-modal-in bg-surface border border-white/10 w-full ${
           props.widthClass ?? "max-w-md"
-        } rounded-custom shadow-2xl flex flex-col overflow-hidden`}
+        } rounded-custom shadow-overlay flex flex-col overflow-hidden`}
       >
         <header className="px-4 py-3 sm:px-6 sm:py-4 border-b border-border-custom flex justify-between items-center gap-3">
           <div className="min-w-0">

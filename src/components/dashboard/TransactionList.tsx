@@ -98,7 +98,7 @@ function TransactionCardClickable(props: {
         <button
           type="button"
           onClick={props.onClick}
-          className={`w-full text-left bg-card p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2 ${
+          className={`w-full text-left bg-card p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 ${
             linkedExpenses.length === 0 ? "rounded-custom" : "rounded-t-custom"
           }`}
         >
@@ -255,7 +255,7 @@ function TransactionCardClickable(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-transform active:scale-[0.98] hover:bg-white/2"
+      className="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-card hover:-translate-y-px"
     >
       <div className="flex flex-col min-w-0">
         <span className="text-lg font-semibold text-white truncate">{tx.description}</span>
@@ -857,7 +857,7 @@ export default function TransactionList(props: TransactionListProps) {
             type="button"
             onClick={openNewPago}
             data-tour="add-payment"
-            className="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -877,7 +877,7 @@ export default function TransactionList(props: TransactionListProps) {
             type="button"
             onClick={openNew}
             data-tour="add-expense"
-            className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all"
+            className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path

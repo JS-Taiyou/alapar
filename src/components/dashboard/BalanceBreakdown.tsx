@@ -69,7 +69,7 @@ export default function BalanceBreakdown(props: BalanceBreakdownProps) {
           )}
         </div>
         <p
-          className={`text-2xl sm:text-3xl lg:text-4xl font-bold mt-1 truncate ${
+          className={`text-2xl sm:text-3xl lg:text-4xl font-bold mt-1 truncate tracking-tight ${
             displayBalance >= 0 ? "text-green-500" : "text-red-500"
           }`}
         >
