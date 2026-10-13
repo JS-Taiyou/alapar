@@ -52,8 +52,6 @@ interface DashboardShellProps {
   participants: Participant[];
   registryId: string;
   lastModified: string | null;
-  supabaseUrl: string;
-  supabaseAnonKey: string;
   hasTransactions: boolean;
 }
 
@@ -218,13 +216,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             </div>
           </header>
         )}
-        <TransactionList
-          state={state}
-          dispatch={dispatch}
-          supabaseUrl={props.supabaseUrl}
-          supabaseAnonKey={props.supabaseAnonKey}
-          locale={props.locale}
-        />
+        <TransactionList state={state} dispatch={dispatch} locale={props.locale} />
       </div>
       <Toaster />
     </div>

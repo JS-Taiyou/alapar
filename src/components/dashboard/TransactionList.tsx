@@ -1,17 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
 import type { EnrichedTransaction, Participant, TransactionPayment } from "../../lib/types";
-import { rowToEnrichedTransaction } from "../../lib/rows";
 import ProBadge from "../ui/ProBadge";
 
-import {
-  resubscribe,
-  setOnResync,
-  setupRealtimeConfig,
-  subscribeToRegistry,
-  unsubscribeAll,
-} from "../../lib/realtime";
 import { isAuthFailure, redirectToLogin } from "../../lib/auth-client";
-import { requestNotificationPermission, subscribeToPush } from "../../lib/notifications";
 import { cache } from "../../lib/cache";
 import TransactionModal from "./TransactionModal";
 import {
@@ -22,13 +13,9 @@ import {
 import { formatMoney, initials } from "../../lib/format";
 import { formatDate, formatTime, type Locale, t as translate } from "../../lib/i18n";
 
-let lastPushSubscribedRegistry: string | null = null;
-
 interface TransactionListProps {
   state: DashboardState;
   dispatch: Dispatch<DashboardAction>;
-  supabaseUrl?: string;
-  supabaseAnonKey?: string;
   isDemo?: boolean;
   locale?: Locale;
 }
@@ -340,69 +327,19 @@ export default function TransactionList(props: TransactionListProps) {
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  // Polling sync (retired Supabase Realtime): an hourly version check
+  // while the tab lives, plus an immediate check on mount so a browser
+  // refresh acts as a force-poll. The wake effect below covers PWA
+  // maximize (fires immediately when the app was backgrounded long
+  // enough — including past the hourly mark).
   useEffect(() => {
-    const rid = stateRef.current.registryId;
-    if (!rid || !props.supabaseUrl || !props.supabaseAnonKey) return;
-
-    setupRealtimeConfig(props.supabaseUrl, props.supabaseAnonKey);
-
-    let lastNotificationAt = 0;
-    const NOTIFICATION_COOLDOWN = 15_000;
-
-    // Events dropped while the channel was dead are backfilled by a
-    // stamp-gated fetch every time the channel (re)establishes.
-    setOnResync(() => void syncRegistry());
-
-    subscribeToRegistry(rid, (payload) => {
-      const live = stateRef.current;
-      const participantMap = new Map(live.users.map((u) => [u.id, u]));
-
-      const mapRow = (row: Record<string, unknown>): EnrichedTransaction =>
-        rowToEnrichedTransaction(row, participantMap);
-
-      if (payload.eventType === "INSERT" && payload.new?.id) {
-        const existing = live.transactions.find((t) => t.id === payload.new.id);
-        if (!existing) {
-          const tx = mapRow(payload.new);
-          dispatch({ type: "REALTIME_INSERT", tx });
-          const creator = payload.new.creator_id as string;
-          if (creator !== live.currentUserId) {
-            const now = Date.now();
-            if (
-              now - lastNotificationAt >= NOTIFICATION_COOLDOWN &&
-              Notification.permission === "granted"
-            ) {
-              lastNotificationAt = now;
-              const desc = (payload.new.description as string) ?? t("tx.notification_body");
-              const amt = typeof payload.new.amount === "number" ? payload.new.amount : 0;
-              new Notification(t("tx.notification_title"), {
-                body: `${desc} — $${formatMoney(amt)}`,
-                icon: "/logo.svg",
-              });
-            }
-          }
-        }
-      } else if (payload.eventType === "DELETE" && payload.old?.id) {
-        dispatch({ type: "REALTIME_DELETE", id: payload.old.id as string });
-      } else if (payload.eventType === "UPDATE" && payload.new?.id) {
-        dispatch({ type: "REALTIME_UPDATE", tx: mapRow(payload.new) });
-      }
-    });
-
-    requestNotificationPermission().then((granted) => {
-      if (granted && rid !== lastPushSubscribedRegistry) {
-        lastPushSubscribedRegistry = rid;
-        subscribeToPush(rid);
-      }
-    });
-
-    return () => {
-      setOnResync(null);
-      unsubscribeAll();
-    };
-    // The channel is per-registry; the handler reads live state via stateRef.
+    const POLL_INTERVAL_MS = 60 * 60 * 1000;
+    if (props.isDemo) return;
+    void syncRegistry(); // mount: refresh = force poll
+    const timer = setInterval(() => void syncRegistry(), POLL_INTERVAL_MS);
+    return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.registryId, props.supabaseUrl, props.supabaseAnonKey]);
+  }, [state.registryId]);
 
   useEffect(() => {
     if (!state.registryId || (state.transactions.length === 0 && state.lastModified === null)) {
@@ -432,10 +369,8 @@ export default function TransactionList(props: TransactionListProps) {
    * Stamp-gated catch-up: compare the server's `last_modified` against the
    * cached snapshot and refetch the full registry only when it moved.
    *
-   * Used by three callers that can each discover missed changes: the realtime
-   * channel reaching SUBSCRIBED (events dropped while it was dead), the
-   * wake-up path (visibility/heartbeat), and — via the same wake-up — the
-   * `online` reconnect. An in-flight guard keeps concurrent triggers from
+   * Used by the hourly poll, the wake-up path (visibility/heartbeat — PWA
+   * maximize fires this immediately) and the `online` reconnect. An in-flight guard keeps concurrent triggers from
    * racing two fetches and double-applying snapshots.
    *
    * The reconnect moment races the network actually coming up (a laptop's
@@ -472,25 +407,21 @@ export default function TransactionList(props: TransactionListProps) {
   /** One catch-up attempt. "retry" = transient failure worth another try. */
   async function trySyncOnce(rid: string): Promise<"done" | "retry"> {
     try {
-      const stampRes = await fetch(`/api/stamp/${rid}`, {
-        method: "POST",
-        cache: "no-store",
-      });
+      const verRes = await fetch(`/api/version/${rid}`, { cache: "no-store" });
       if (rid !== stateRef.current.registryId) return "done";
       // Dead session (expired refresh token): go to login instead of
       // silently leaving the screen frozen on stale data.
-      if (isAuthFailure(stampRes)) {
+      if (isAuthFailure(verRes)) {
         redirectToLogin();
         return "done";
       }
-      if (!stampRes.ok) return "retry";
-      const { lastModified } = (await stampRes.json()) as {
-        lastModified: string | null;
-      };
-      const cached = await cache.getRegistrySnapshot(rid);
+      if (!verRes.ok) return "retry";
+      const { version } = (await verRes.json()) as { version: string | null };
       if (rid !== stateRef.current.registryId) return "done";
-      // Null stamp = version unknown → always refetch, never "in sync".
-      if (lastModified && cached?.lastModified === lastModified) return "done";
+      // Null version = unknown → refetch; a matching version = in sync.
+      // Own mutations already delivered us the new stamp, so self-made
+      // changes never trigger a refetch.
+      if (version !== null && version === stateRef.current.lastModified) return "done";
 
       const dashRes = await fetch(`/api/dashboard?registryId=${rid}`, {
         cache: "no-store",
@@ -503,7 +434,10 @@ export default function TransactionList(props: TransactionListProps) {
       if (!dashRes.ok) return "retry";
       const data = (await dashRes.json()) as RegistrySnapshot;
 
-      dispatch({ type: "APPLY_SNAPSHOT", snapshot: { ...data, registryId: rid, lastModified } });
+      dispatch({
+        type: "APPLY_SNAPSHOT",
+        snapshot: { ...data, registryId: rid, lastModified: version },
+      });
       return "done";
     } catch {
       // Network-level failure (offline, DNS not ready after resume).
@@ -527,7 +461,6 @@ export default function TransactionList(props: TransactionListProps) {
       const elapsed = Date.now() - lastActive;
       if (elapsed < FRESHNESS_MS) return;
 
-      resubscribe().catch(() => {});
       await syncRegistry();
     }
 

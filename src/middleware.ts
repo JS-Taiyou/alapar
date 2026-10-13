@@ -3,6 +3,7 @@ import { createUserFromSupabase, resolveUserState } from "@/lib/store";
 import { getUserFromRequest, setAuthCookies } from "@/lib/supabase";
 import { getCookie } from "@/lib/auth-cookies";
 import { query, setRuntimeConnectionString } from "@/lib/db";
+import { setVersionNamespace } from "@/lib/registry-version";
 import { needsFullState, routeGuard } from "@/lib/routing";
 import { resolveLocale } from "@/lib/i18n";
 import { getRegistryPlan, USER_PRO_SQL } from "@/lib/entitlements";
@@ -32,6 +33,9 @@ const registerRuntimeBindings = defineMiddleware(async (_context, next) => {
       const hyperdrive = env.HYPERDRIVE as { connectionString?: string } | undefined;
       if (hyperdrive?.connectionString) {
         setRuntimeConnectionString(hyperdrive.connectionString);
+      }
+      if (env.VER) {
+        setVersionNamespace(env.VER);
       }
     } catch {
       // Not the Workers runtime — nothing to register.

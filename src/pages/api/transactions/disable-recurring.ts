@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import { getTransactionById, updateTransaction } from "@/lib/store";
 
@@ -17,5 +18,6 @@ export const POST: APIRoute = async (ctx) => {
   const updated = await updateTransaction(id, { recurringDisabled: true }, userId);
   if (!updated) return new Response("Forbidden", { status: 403 });
 
+  void bumpRegistryVersion(updated.registry_id);
   return Response.json({ ok: true });
 };

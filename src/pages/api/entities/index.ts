@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import { createEntity, getEntities } from "@/lib/store";
 import { invalidateRegistry } from "@/lib/server-cache";
@@ -59,6 +60,7 @@ export const POST: APIRoute = async (ctx) => {
   }
 
   invalidateRegistry(activeRegistryId);
+  void bumpRegistryVersion(activeRegistryId);
 
   return Response.json(
     {

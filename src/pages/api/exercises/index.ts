@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import {
   calculateFullPairwiseBalances,
@@ -132,6 +133,7 @@ export const POST: APIRoute = async (ctx) => {
     return created;
   });
   invalidateRegistry(registryId);
+  void bumpRegistryVersion(registryId);
 
   const accept = ctx.request.headers.get("Accept") ?? "";
   if (accept.includes("application/json")) {

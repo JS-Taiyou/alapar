@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import { batchCloneTransactions, getTransactionsByIds } from "@/lib/store";
 
@@ -68,5 +69,6 @@ export const POST: APIRoute = async (ctx) => {
     userId,
   );
 
+  void bumpRegistryVersion(cloned[0]?.registry_id ?? "");
   return Response.json({ created: cloned.length });
 };

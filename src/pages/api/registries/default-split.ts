@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import { clearDefaultSplitForOwner, getEntities, getUsers, setDefaultSplit } from "@/lib/store";
 
@@ -61,6 +62,7 @@ export const POST: APIRoute = async (ctx) => {
     await setDefaultSplit(registryId, splits, userId);
   }
 
+  void bumpRegistryVersion(registryId);
   return Response.json({ ok: true });
 };
 
@@ -78,5 +80,6 @@ export const DELETE: APIRoute = async (ctx) => {
   }
 
   await clearDefaultSplitForOwner(registryId, userId);
+  void bumpRegistryVersion(registryId);
   return Response.json({ ok: true });
 };

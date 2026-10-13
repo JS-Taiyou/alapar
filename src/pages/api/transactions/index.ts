@@ -8,10 +8,9 @@ import {
   getUsers,
 } from "@/lib/store";
 import { getCachedTransactions, getStamp, invalidateRegistry } from "@/lib/server-cache";
-import { sendPushToRegistry } from "@/lib/push";
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import { countActiveTemplates, getRegistryPlan, upgradeRequired } from "@/lib/entitlements";
 import { parseTransactionForm } from "@/lib/transaction-validation";
-import { formatMoney } from "@/lib/format";
 import { generateETag } from "@/lib/etag";
 
 export const GET: APIRoute = async (ctx) => {
@@ -159,20 +158,10 @@ export const POST: APIRoute = async (ctx) => {
 
   invalidateRegistry(registryId);
 
-  sendPushToRegistry(
-    registryId,
-    {
-      title: "Nueva transacción",
-      body: `${data.description} — $${formatMoney(data.originalAmount)}`,
-      registryId,
-      url: "/dashboard",
-    },
-    userId,
-  ).catch((err) => console.error("[push] sendPushToRegistry failed:", err));
-
   // The fresh stamp lets the creating client label its snapshot with the
   // version its own write produced (otherwise it stores the pre-mutation
   // stamp and forces a redundant refetch on the next sync).
   const lastModified = await getStamp(registryId);
+  void bumpRegistryVersion(tx.registry_id);
   return Response.json({ ...tx, lastModified });
 };

@@ -13,7 +13,6 @@ import {
   getCachedSpawnCandidates,
   getCachedTransactions,
 } from "@/lib/server-cache";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase";
 import type {
   BalanceBreakdownEntry,
   SpawnCandidate,
@@ -90,8 +89,6 @@ const sidebarProps = await getSidebarServerProps(Astro);
     participants={Astro.locals.participants}
     registryId={registryId ?? ""}
     lastModified={lastModified}
-    supabaseUrl={getSupabaseUrl()}
-    supabaseAnonKey={getSupabaseAnonKey()}
     hasTransactions={transactions.length > 0}
     client:load
   />

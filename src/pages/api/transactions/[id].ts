@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import {
   deleteTransaction,
@@ -114,6 +115,7 @@ export const PUT: APIRoute = async (ctx) => {
   // Fresh stamp so the editing client labels its snapshot with the version
   // its own write produced.
   const lastModified = await getStamp(tx.registry_id);
+  void bumpRegistryVersion(updated.registry_id);
   return Response.json({ ...updated, lastModified });
 };
 
@@ -147,6 +149,7 @@ export const DELETE: APIRoute = async (ctx) => {
     // 200 + the fresh stamp (204 can't carry a body) so the deleting
     // client can label its snapshot with the version its write produced.
     const lastModified = await getStamp(tx.registry_id);
+    void bumpRegistryVersion(tx.registry_id);
     return Response.json({ lastModified });
   }
 

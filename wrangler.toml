@@ -31,6 +31,12 @@ SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 # and registers it with lib/db.ts (which builds its pg.Pool lazily).
 # Create it first: `wrangler hyperdrive create alapar-db --connection-string=...`
 # then uncomment with the returned id.
+# Version mirror for the polling sync (retired Realtime). Writes come from
+# mutation endpoints post-commit; reads from GET /api/version/<rid>.
+[[kv_namespaces]]
+binding = "VER"
+id = "da86309505c44c73963738d643762fba"
+
 [[hyperdrive]]
 binding = "HYPERDRIVE"
 id = "829b266d30d4461f9f85af4091c6a1c6"

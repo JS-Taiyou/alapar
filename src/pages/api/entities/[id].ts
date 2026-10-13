@@ -1,3 +1,4 @@
+import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
 import { deleteEntity, updateEntity } from "@/lib/store";
 import { invalidateRegistry } from "@/lib/server-cache";
@@ -27,6 +28,7 @@ export const PUT: APIRoute = async (ctx) => {
   }
 
   invalidateRegistry(registryId);
+  void bumpRegistryVersion(registryId);
 
   return Response.json({
     id: entity.id,
@@ -58,6 +60,7 @@ export const DELETE: APIRoute = async (ctx) => {
   }
 
   invalidateRegistry(registryId);
+  void bumpRegistryVersion(registryId);
 
   return new Response(null, { status: 204 });
 };
