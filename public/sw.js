@@ -1,7 +1,7 @@
 // Only build assets and public static files are ever cached. API responses
 // and HTML navigations can carry authenticated data, so they are strictly
 // network-only (see the fetch handler below).
-const BUILD_CACHE = "alapar-build-v5";
+const BUILD_CACHE = "alapar-build-v6";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
