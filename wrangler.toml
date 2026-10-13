@@ -14,18 +14,27 @@ name = "alapar"
 compatibility_date = "2025-10-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Invocation logs (exceptions included) — must be declared here or every
+# `wrangler deploy` silently resets the dashboard setting to off.
+[observability]
+enabled = true
+
 # Non-secret vars: public by design (the anon key is protected by RLS and is
 # shipped to the browser anyway). With nodejs_compat these also populate
 # process.env, which is how src/lib/env.ts reads them.
 [vars]
-SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"
-SUPABASE_ANON_KEY = "YOUR-SUPABASE-ANON-KEY"
+SUPABASE_URL = "https://ezfcmgbavmjecuaempta.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6ZmNtZ2Jhdm1qZWN1YWVtcHRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNjM0MTUsImV4cCI6MjA5MDgzOTQxNX0.PcF1A6pzsXoEtenTgvvhWEWWtkidvpAFPEa68GyRVLE"
 
 # Hyperdrive: bounded connection pool + query cache in front of the Supabase
 # Postgres. The middleware reads HYPERDRIVE.connectionString once per isolate
 # and registers it with lib/db.ts (which builds its pg.Pool lazily).
 # Create it first: `wrangler hyperdrive create alapar-db --connection-string=...`
 # then uncomment with the returned id.
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "REPLACE_WITH_HYPERDRIVE_ID"
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "829b266d30d4461f9f85af4091c6a1c6"
+# What miniflare connects to when SIMULATING Hyperdrive on `astro dev` —
+# never talks to the real Hyperdrive service locally. Points at the
+# docker-compose Postgres (docker compose up db).
+localConnectionString = "postgresql://alapar:alapar@localhost:5432/alapar"

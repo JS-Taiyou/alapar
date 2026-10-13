@@ -10,15 +10,21 @@ import { env, isDev } from "./env";
 const LOCAL_FALLBACK = "postgresql://alapar:alapar@localhost:5432/alapar";
 
 /**
- * The pool is built lazily on first use, from (in precedence order):
+ * Two connection strategies, matching the official guidance:
  *
- *   1. the runtime-registered connection string — on Cloudflare Workers the
- *      middleware reads the HYPERDRIVE binding once per isolate and calls
- *      {@link setRuntimeConnectionString} with `hyperdrive.connectionString`
- *      (bindings are objects, so a plain env read can't see them)
- *   2. `DATABASE_URL` (dev, tests, any plain-Node runtime; on Workers this
- *      is the direct-to-pooler path when Hyperdrive isn't configured)
- *   3. the local fallback above
+ * - Hyperdrive (Workers): a NEW `Client` per call — never a Pool. Cloudflare's
+ *   canonical pattern ("New client per request; Hyperdrive maintains the
+ *   underlying connection pool, so creating a new client is fast") keeps NO
+ *   socket state across requests on our side; the real Postgres pooling lives
+ *   inside Hyperdrive. Pool-held shim sockets crossing request boundaries
+ *   were the root cause of a full day of intermittent 500s (sockets die
+ *   silently; the next request touching them hangs or terminates).
+ *   Connection string comes from the middleware registering the HYPERDRIVE
+ *   binding once per isolate. Origin should be Supabase's DIRECT connection
+ *   string (Hyperdrive does its own pooling).
+ *
+ * - Plain Node (dev, tests, a persistent server): a long-lived Pool is the
+ *   correct pattern here — real OS sockets don't die in silence.
  *
  * Nothing may read the connection string at module scope: on Workers the
  * Hyperdrive binding only exists per-request.
@@ -43,21 +49,7 @@ function isLocalHost(connectionString: string): boolean {
   return /@(localhost|127\.0\.0\.1)(:|\/|$)/.test(connectionString);
 }
 
-export function getPool(): pg.Pool {
-  pool ??= (() => {
-    const connectionString = resolveConnectionString();
-    return new pg.Pool({
-      connectionString,
-      ssl: isLocalHost(connectionString) ? false : { rejectUnauthorized: false },
-      max: 3,
-      connectionTimeoutMillis: 5000,
-      idleTimeoutMillis: 10000,
-    });
-  })();
-  return pool;
-}
-
-/** A `query`-compatible executor — the pool itself or a transaction's client. */
+/** A `query`-compatible executor — a pool, a client, or a transaction. */
 export type QueryFn = (
   text: string,
   params?: unknown[],
@@ -88,8 +80,34 @@ async function runLogged(
   }
 }
 
+function getPool(): pg.Pool {
+  pool ??= new pg.Pool({
+    connectionString: resolveConnectionString(),
+    ssl: isLocalHost(resolveConnectionString()) ? false : { rejectUnauthorized: false },
+    max: 3,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 10000,
+  });
+  return pool;
+}
+
 /**
- * Run `fn` inside a single SQL transaction on a dedicated pool client.
+ * Run `fn` with a one-shot Client against the registered Hyperdrive
+ * endpoint — connect, use, end. Canonical Workers pattern: no socket
+ * survives the call.
+ */
+async function withHyperdriveClient<T>(fn: (client: pg.Client) => Promise<T>): Promise<T> {
+  const client = new pg.Client({ connectionString: runtimeConnectionString! });
+  await client.connect();
+  try {
+    return await fn(client);
+  } finally {
+    client.end();
+  }
+}
+
+/**
+ * Run `fn` inside a single SQL transaction on a dedicated connection.
  *
  * Multi-statement invariants (transaction + payments + balance deltas,
  * invitation claim + member insert) must not be observable half-applied: a
@@ -98,6 +116,25 @@ async function runLogged(
  * `query` inside would escape the transaction.
  */
 export async function withTransaction<T>(fn: (q: QueryFn) => Promise<T>): Promise<T> {
+  if (runtimeConnectionString) {
+    return withHyperdriveClient(async (client) => {
+      const q: QueryFn = (text, params) => runLogged(client.query.bind(client), text, params);
+      try {
+        await client.query("BEGIN");
+        const result = await fn(q);
+        await client.query("COMMIT");
+        return result;
+      } catch (err) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // The connection is already broken; ending it below drops it.
+        }
+        throw err;
+      }
+    });
+  }
+
   const client: PoolClient = await getPool().connect();
   const q: QueryFn = (text, params) => runLogged(client.query.bind(client), text, params);
   try {
@@ -119,16 +156,19 @@ export async function withTransaction<T>(fn: (q: QueryFn) => Promise<T>): Promis
 
 /**
  * Run a parameterized query. The explicit return type is load-bearing: pg's
- * `pool.query` overloads infer the row generic inconsistently across
- * versions (sometimes `any[]`, sometimes `{}[]`), and an unannotated return
- * let that inconsistency cascade through every caller. Pinning
- * `QueryResult<Record<string, unknown>>` gives every call site a stable
- * row shape; row mappers cast individual fields as needed.
+ * `query` overloads infer the row generic inconsistently across versions
+ * (sometimes `any[]`, sometimes `{}[]`), and an unannotated return let that
+ * inconsistency cascade through every caller. Pinning
+ * `QueryResult<Record<string, unknown>>` gives every call site a stable row
+ * shape; row mappers cast individual fields as needed.
  */
 export function query(
   text: string,
   params?: unknown[],
 ): Promise<QueryResult<Record<string, unknown>>> {
+  if (runtimeConnectionString) {
+    return withHyperdriveClient((client) => runLogged(client.query.bind(client), text, params));
+  }
   const activePool = getPool();
   return runLogged(activePool.query.bind(activePool), text, params);
 }

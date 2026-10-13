@@ -57,26 +57,47 @@ export function resolveLocale(cookieValue?: string | null, acceptLanguage?: stri
 }
 
 /** Format a date according to the active locale. */
+/**
+ * Deterministic display timezone. Workers SSRs in UTC while the user's
+ * browser formats in its local zone — a 6-hour drift between the
+ * server-rendered HTML and client hydration (React error #418, the whole
+ * tree re-rendered client-side). Pinning one zone makes formatting
+ * deterministic on both sides; the app is es-MX-first, so the shared
+ * ledger shows everyone the same timestamps.
+ */
+export const DISPLAY_TIME_ZONE = "America/Mexico_City";
+
 export function formatDate(
   date: Date | string,
   locale: Locale,
   options?: Intl.DateTimeFormatOptions,
 ): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString(
-    DATE_LOCALE[locale],
-    options ?? { year: "numeric", month: "short", day: "numeric" },
-  );
+  return d.toLocaleDateString(DATE_LOCALE[locale], {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    ...options,
+    timeZone: DISPLAY_TIME_ZONE,
+  });
 }
 
 /** Format a time according to the active locale. */
 export function formatTime(date: Date | string, locale: Locale): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleTimeString(DATE_LOCALE[locale], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString(DATE_LOCALE[locale], {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: DISPLAY_TIME_ZONE,
+  });
 }
 
 /** Format a month + year for exercise/corte headings. */
 export function formatMonthYear(date: Date | string, locale: Locale): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString(DATE_LOCALE[locale], { month: "long", year: "numeric" });
+  return d.toLocaleDateString(DATE_LOCALE[locale], {
+    month: "long",
+    year: "numeric",
+    timeZone: DISPLAY_TIME_ZONE,
+  });
 }

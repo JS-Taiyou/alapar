@@ -1,6 +1,13 @@
 /// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
 
+// Runtime module provided by workerd / the Cloudflare adapter's dev runtime.
+// Ambient declaration so TypeScript resolves the middleware's dynamic import
+// (only actually executed inside Workers/workerd).
+declare module "cloudflare:workers" {
+  export const env: Record<string, unknown>;
+}
+
 declare namespace App {
   interface Locals {
     user: import("@/lib/types").User | null;

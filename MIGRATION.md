@@ -150,34 +150,33 @@ Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deplo
 - ⬜ Verificar `pg` + TLS bajo `nodejs_compat` empíricamente y smoke
   post-deploy en `*.workers.dev` ANTES del cutover de dominio.
 
-## Pendiente — cutover de dominio (Workers)
+## Cutover de dominio (Workers) — dominio: `alapar.jorjoso.dev`
 
-Con el sitio en su subdominio propio (`https://<sub>.<dominio>`, TBD):
-
-1. **Dominio en Cloudflare vía subdominio**: los Custom Domains de Workers
-   exigen que la **zona DNS viva en Cloudflare**. Si el dominio existente
-   tiene el DNS en otro proveedor: agregar la zona en CF (plan free) y
-   cambiar nameservers en el registrar (no hace falta transferir el
-   registro). Luego crear el Custom Domain del Worker en el subdominio
-   elegido. Usar `*.workers.dev` como entorno de pruebas previo.
-2. **Google OAuth — no aplica en Google Cloud Console**: las redirect URIs
+1. ✅ **Custom Domain creado**: la zona `jorjoso.dev` ya vivía en Cloudflare
+   (nameservers propios de CF, sin migración necesaria). El Custom Domain
+   `alapar.jorjoso.dev` → worker `alapar` quedó creado vía API, con
+   certificado provisionado. El registro específico (exact-match) precede al
+   wildcard `*.jorjoso.dev`, que se CONSERVA apuntando a su servidor
+   (187.147.89.106) — ningún otro subdominio cambió. El apex tampoco.
+   Verificado: `/demo` → 200, `/` → 302 (guard), TLS OK.
+2. ⬜ **Google OAuth — no aplica en Google Cloud Console**: las redirect URIs
    del cliente de Google apuntan a `https://<ref>.supabase.co/auth/v1/callback`
    (fijas, no dependen del dominio del app). **Lo que sí aplica es en
    Supabase**: Auth → URL Configuration → agregar a las Redirect URLs
-   `https://<sub>.<dominio>/auth/callback` y
-   `https://<sub>.<dominio>/reset-password` (el cliente pasa
+   `https://alapar.jorjoso.dev/auth/callback` y
+   `https://alapar.jorjoso.dev/reset-password` (el cliente pasa
    `origin + "/auth/callback?next=…"` y `origin + "/reset-password"`),
    y actualizar el Site URL.
-3. **Webhooks — la corrección: es Polar, no Supabase**: no existe en
+3. ⬜ **Webhooks — la corrección: es Polar, no Supabase**: no existe en
    Supabase un "dominio autorizado para consumir webhooks" (lo único
    domain-bound allí es lo del punto 2). Lo que hay que recablear:
    - URL del webhook en el dashboard de **Polar** →
-     `https://<sub>.<dominio>/api/webhooks/polar`.
+     `https://alapar.jorjoso.dev/api/webhooks/polar`.
    - Los **payment links** de Polar llevan la success URL configurada del
      lado de Polar (el checkout es un redirect a link, ver
      `api/billing/checkout.ts`) → apuntarla a
-     `https://<sub>.<dominio>/billing/success`.
-4. **PWA manifest y VAPID — casi nada que hacer**:
+     `https://alapar.jorjoso.dev/billing/success`.
+4. ✅ **PWA manifest y VAPID — nada que hacer** (verificado):
    - `public/manifest.json` usa solo rutas relativas (`start_url: "/"`,
      `scope: "/"`, íconos relativos) → **sin cambios**.
    - VAPID: el subject es `mailto:` y las llaves no están atadas al origen →
@@ -188,7 +187,7 @@ Con el sitio en su subdominio propio (`https://<sub>.<dominio>`, TBD):
      cuando empiecen a dar 410), cookies de sesión (todos re-inician
      sesión), IndexedDB snapshots y `localStorage` (`lastSplit_*`,
      `demo-tour-seen` — se regeneran solos).
-5. **`COOKIE_SECURE`**: se infiere de producción; verificar tras el primer
+5. ⬜ **`COOKIE_SECURE`**: se infiere de producción; verificar tras el primer
    deploy del dominio nuevo.
 
 ## Pendiente — general

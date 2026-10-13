@@ -569,11 +569,23 @@ export default function Sidebar(props: SidebarProps) {
                   />
                 </form>
               ) : (
-                <button
-                  type="button"
+                // A row must be a div-with-button-role, NOT a <button>: the
+                // rename/split/delete actions nested inside are buttons too,
+                // and <button> inside <button> is invalid HTML — the browser
+                // parser auto-closes the outer one and restructures the DOM,
+                // breaking hydration (React #418 on every dashboard load).
+                <div
+                  role="button"
+                  tabIndex={isPending ? -1 : 0}
+                  aria-disabled={isPending || undefined}
                   onClick={() => !isPending && switchRegistry(r.id)}
-                  disabled={isPending}
-                  className={`w-full flex items-center rounded-custom transition-all duration-300 ${
+                  onKeyDown={(e) => {
+                    if (!isPending && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      switchRegistry(r.id);
+                    }
+                  }}
+                  className={`w-full flex items-center rounded-custom transition-all duration-300 cursor-pointer ${
                     collapsed && !mobileOpen ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
                   } ${
                     isPending
@@ -581,7 +593,7 @@ export default function Sidebar(props: SidebarProps) {
                       : collapsed && !mobileOpen
                         ? ""
                         : r.id === activeRegistryId
-                          ? "bg-white/5 border border-white/10 text-white"
+                          ? "row-active bg-white/[0.06] border border-white/10 text-white"
                           : "border border-transparent hover:bg-white/5 hover:border-white/10 text-zinc-300 hover:text-white"
                   }`}
                   style={
@@ -702,7 +714,7 @@ export default function Sidebar(props: SidebarProps) {
                       </button>
                     )}
                   </span>
-                </button>
+                </div>
               )}
             </div>
           );

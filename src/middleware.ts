@@ -14,16 +14,28 @@ function devLog(...args: unknown[]) {
 }
 
 // Cloudflare Workers: resource bindings (Hyperdrive, KV, DO…) are objects on
-// the request-scoped `env`, not strings in process.env — lib/db.ts can't see
-// them at module scope. Register the Hyperdrive connection string here, once
-// per isolate, before any query runs. On any other runtime locals.runtime is
-// undefined and this is a no-op (db falls back to DATABASE_URL / local).
-const registerRuntimeBindings = defineMiddleware(async (context, next) => {
-  const runtimeEnv = (context.locals as { runtime?: { env?: Record<string, unknown> } } | undefined)
-    ?.runtime?.env;
-  const hyperdrive = runtimeEnv?.HYPERDRIVE as { connectionString?: string } | undefined;
-  if (hyperdrive?.connectionString) {
-    setRuntimeConnectionString(hyperdrive.connectionString);
+// the runtime `env`, not strings in process.env — lib/db.ts can't see them
+// at module scope. Register the Hyperdrive connection string here, once per
+// isolate, before any query runs. The modern adapter removed locals.runtime;
+// `cloudflare:workers` is the supported access — it only exists in the
+// Workers/workerd runtime, hence the guarded dynamic import (plain Node
+// tests/dev fall through and db uses DATABASE_URL / local Postgres).
+let runtimeBindingsChecked = false;
+
+const registerRuntimeBindings = defineMiddleware(async (_context, next) => {
+  if (!runtimeBindingsChecked) {
+    runtimeBindingsChecked = true;
+    try {
+      const { env } = (await import("cloudflare:workers")) as {
+        env: Record<string, unknown>;
+      };
+      const hyperdrive = env.HYPERDRIVE as { connectionString?: string } | undefined;
+      if (hyperdrive?.connectionString) {
+        setRuntimeConnectionString(hyperdrive.connectionString);
+      }
+    } catch {
+      // Not the Workers runtime — nothing to register.
+    }
   }
   return next();
 });
