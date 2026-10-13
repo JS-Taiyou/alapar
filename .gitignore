@@ -34,3 +34,7 @@ gui-test-screenshots/
 # Local Netlify folder
 .netlify
 .wrangler/
+
+# Wrangler local secrets (copy of .dev.vars.example — NEVER commit)
+.dev.vars
+.dev.vars.*
