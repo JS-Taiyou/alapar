@@ -3,9 +3,9 @@ import type { PoolClient, QueryResult } from "pg";
 import { env, isDev } from "./env";
 
 /**
- * Local dev fallback: when DATABASE_URL is unset we assume the docker-compose
- * Postgres (see docker-compose.yml) — db/user/password all `alapar`. SSL is
- * only enabled for remote hosts; the local container doesn't support it.
+ * Local dev fallback: when DATABASE_URL is unset we assume the local
+ * Postgres — db/user/password all `alapar` (see the README dev section;
+ * docker-compose.yml also works). SSL is only enabled for remote hosts.
  */
 const LOCAL_FALLBACK = "postgresql://alapar:alapar@localhost:5432/alapar";
 

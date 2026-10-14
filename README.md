@@ -85,9 +85,10 @@ direct payments between members.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) 22.12+ and npm 9.6.5+ with Docker for the
-  local Postgres — a [Supabase](https://supabase.com) project (free tier) is
-  only needed for the full auth/billing backend
+- [Node.js](https://nodejs.org) 22.12+ and npm 9.6.5+ with a local
+  [PostgreSQL](https://www.postgresql.org) install — a
+  [Supabase](https://supabase.com) project (free tier) is only needed for the
+  full auth/billing backend
 
 ### Zero-config dev loop (no Supabase needed)
 
@@ -99,8 +100,7 @@ git clone https://github.com/JS-Taiyou/alapar-fresh.git
 cd alapar-fresh
 git checkout migration/astro
 npm install
-docker compose up -d db     # local Postgres (alapar/alapar/alapar)
-npm run db:schema           # apply db/schema.sql
+npm run db:schema           # apply db/schema.sql to the local Postgres
 npm run db:seed             # optional: demo users + registries
 npm run dev                 # http://localhost:4321
 ```
@@ -112,9 +112,14 @@ and all Supabase touchpoints are hidden in dev. Seeded users:
 `john@example.com`, `jane@example.com`, `bob@example.com`. To iterate on
 the real Supabase auth flow locally instead, set `DEV_AUTH=off` in `.env`.
 
+The scripts (and the app) default to a local Postgres at
+`postgresql://alapar:alapar@localhost:5432/alapar` — create it once with
+`create role alapar login password 'alapar'; create database alapar owner alapar;`
+or point `DATABASE_URL` at any local instance. Re-running `db:schema` /
+`db:seed` over a populated database is a safe no-op.
+
 **Full backend (Supabase).** Set `DATABASE_URL` to your Supabase pooler URL
-plus the `SUPABASE_*` vars from `.env.example`; when `DATABASE_URL` is unset,
-`src/lib/db.ts` falls back to the same local Postgres. For the Supabase
+plus the `SUPABASE_*` vars from `.env.example`. For the Supabase
 project itself, run the migrations in `db/` in the order listed in
 [`docs/DATABASE.md`](docs/DATABASE.md#migrations). Billing endpoints stay
 dormant (503) without `POLAR_*` vars — the pricing page renders regardless.

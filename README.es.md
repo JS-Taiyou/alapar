@@ -86,9 +86,10 @@ cargos recurrentes y pagos directos entre miembros.
 
 ### Requisitos
 
-- [Node.js](https://nodejs.org) 22.12+ y npm 9.6.5+ con Docker para el
-  Postgres local — un proyecto de [Supabase](https://supabase.com) (plan
-  gratuito) solo se necesita para el backend completo de auth/billing
+- [Node.js](https://nodejs.org) 22.12+ y npm 9.6.5+ con una instalación
+  local de [PostgreSQL](https://www.postgresql.org) — un proyecto de
+  [Supabase](https://supabase.com) (plan gratuito) solo se necesita para el
+  backend completo de auth/billing
 
 ### Loop de desarrollo sin configuración (sin Supabase)
 
@@ -100,8 +101,7 @@ git clone https://github.com/JS-Taiyou/alapar-fresh.git
 cd alapar-fresh
 git checkout migration/astro
 npm install
-docker compose up -d db     # Postgres local (alapar/alapar/alapar)
-npm run db:schema           # aplica db/schema.sql
+npm run db:schema           # aplica db/schema.sql al Postgres local
 npm run db:seed             # opcional: usuarios y registros demo
 npm run dev                 # http://localhost:4321
 ```
@@ -113,9 +113,14 @@ y todo punto de contacto con Supabase quedan ocultos en dev. Usuarios del
 seed: `john@example.com`, `jane@example.com`, `bob@example.com`. Para iterar
 el flujo real de Supabase en local, pon `DEV_AUTH=off` en `.env`.
 
+Los scripts (y la app) usan por defecto un Postgres local en
+`postgresql://alapar:alapar@localhost:5432/alapar` — créalo una vez con
+`create role alapar login password 'alapar'; create database alapar owner alapar;`
+o apunta `DATABASE_URL` a cualquier instancia local. Re-correr `db:schema` /
+`db:seed` sobre una base poblada es un no-op seguro.
+
 **Backend completo (Supabase).** Define `DATABASE_URL` con la URL del pooler
-más las vars `SUPABASE_*` de `.env.example`; sin `DATABASE_URL`,
-`src/lib/db.ts` cae al mismo Postgres local. Para el proyecto de Supabase,
+más las vars `SUPABASE_*` de `.env.example`. Para el proyecto de Supabase,
 corre las migraciones de `db/` en el orden de
 [`docs/DATABASE.md`](docs/DATABASE.md#migrations). Los endpoints de billing
 quedan inertos (503) sin vars `POLAR_*` — la página de precios renderiza
