@@ -85,6 +85,7 @@ export default function Sidebar(props: SidebarProps) {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [showSplitConfig, setShowSplitConfig] = useState<string | null>(null);
+  const [entitiesOpen, setEntitiesOpen] = useState(false);
   const [showNewRegistry, setShowNewRegistry] = useState(false);
   const [newRegistryName, setNewRegistryName] = useState("");
   const [newRegistryLoading, setNewRegistryLoading] = useState(false);
@@ -606,14 +607,27 @@ export default function Sidebar(props: SidebarProps) {
                   }
                   title={r.name}
                 >
-                  <div
-                    className="rounded-full flex-shrink-0 transition-all duration-300 w-2 h-2"
-                    style={
-                      collapsed && !mobileOpen
-                        ? undefined
-                        : { backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }
-                    }
-                  />
+                  {/* Expanded: 8px color dot. Collapsed: the registry's
+                      avatar — a filled circle in its color carrying the
+                      name's initials (first letter of up to two words). */}
+                  {collapsed && !mobileOpen ? (
+                    <div
+                      className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
+                      style={{ backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }}
+                    >
+                      {r.name
+                        .split(/\s+/)
+                        .slice(0, 2)
+                        .map((w) => w[0])
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                  ) : (
+                    <div
+                      className="rounded-full flex-shrink-0 transition-all duration-300 w-2 h-2"
+                      style={{ backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }}
+                    />
+                  )}
                   <span
                     className={`text-sm font-medium truncate min-w-0 whitespace-nowrap transition-all duration-200 flex items-center ${
                       collapsed && !mobileOpen
@@ -770,18 +784,14 @@ export default function Sidebar(props: SidebarProps) {
               registryId={activeRegistryId}
               entities={entityList}
               onEntitiesChanged={handleEntitiesChanged}
+              externalOpen={entitiesOpen}
+              onExternalClose={() => setEntitiesOpen(false)}
             />
           </div>
           {collapsed && !mobileOpen && (
             <button
               type="button"
-              onClick={() => {
-                if (globalThis.innerWidth < 768) {
-                  setMobileOpen(true);
-                } else {
-                  setCollapsed(false);
-                }
-              }}
+              onClick={() => setEntitiesOpen(true)}
               className="w-full flex items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-white"
               title="Terceros"
             >
@@ -826,7 +836,9 @@ export default function Sidebar(props: SidebarProps) {
             Nuevo Registro
           </span>
         </button>
-        {props.showUpgrade && activeRegistryId && <UpgradeButton locale={props.locale ?? "es"} />}
+        {props.showUpgrade && activeRegistryId && (
+          <UpgradeButton locale={props.locale ?? "es"} collapsed={collapsed && !mobileOpen} />
+        )}
         {(!collapsed || mobileOpen) && (
           <LocaleToggle locale={props.locale ?? "es"} full className="my-1" />
         )}

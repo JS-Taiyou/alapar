@@ -12,10 +12,22 @@ interface EntityManagerProps {
    * shell then refetches on its own).
    */
   onEntitiesChanged: (entities: Entity[] | null) => void;
+  /**
+   * Controlled open for parents that trigger the modal without this
+   * component's inline button (the collapsed sidebar's icon). While
+   * externalOpen is true the inline trigger is not rendered.
+   */
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
 }
 
 export default function EntityManager(props: EntityManagerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = props.externalOpen ?? internalOpen;
+  const close = () => {
+    setInternalOpen(false);
+    props.onExternalClose?.();
+  };
   const entities = props.entities;
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState("#6b7280");
@@ -130,26 +142,28 @@ export default function EntityManager(props: EntityManagerProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="w-full flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-white justify-center py-2.5 px-3"
-      >
-        <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-        </svg>
-        <span>Terceros</span>
-      </button>
+      {!props.externalOpen && (
+        <button
+          type="button"
+          onClick={() => setInternalOpen(true)}
+          className="w-full flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-white justify-center py-2.5 px-3"
+        >
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
+          <span>Terceros</span>
+        </button>
+      )}
 
       {isOpen && (
         <Modal
           onClose={() => {
-            setIsOpen(false);
+            close();
             setEditingId(null);
           }}
           title="Terceros"
@@ -159,7 +173,7 @@ export default function EntityManager(props: EntityManagerProps) {
               <button
                 type="button"
                 onClick={() => {
-                  setIsOpen(false);
+                  close();
                   setEditingId(null);
                 }}
                 className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"

@@ -115,7 +115,7 @@ export const es: Record<string, string> = {
   "tx.paid_by_other": "{name} pagó",
   "tx.paid_to": "Le pagaste a {name}",
   "tx.received_from": "Te pagó {name}",
-  "tx.of_total": "de {total}",
+  "tx.of_total": "de ${total}",
   "tx.notification_title": "Nueva transacción",
   "tx.notification_body": "Nueva transacción",
   "tx.badge_payment": "Pago",
