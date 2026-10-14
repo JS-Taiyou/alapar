@@ -154,4 +154,7 @@ export function clearAuthCookies(headers: Headers): void {
     "Set-Cookie",
     `sb-refresh-token=; HttpOnly${cookieSecure}; SameSite=Lax; Path=/; Max-Age=0`,
   );
+  // Local-dev session cookie (lib/dev-auth.ts) — clearing it unconditionally
+  // is a no-op in production, where it was never set.
+  headers.append("Set-Cookie", `alapar-dev-auth=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`);
 }

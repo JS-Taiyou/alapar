@@ -40,10 +40,12 @@ cargos recurrentes y pagos directos entre miembros.
 - **Historial con búsqueda** — busca ejercicios cerrados por nombre y
   consúltalos cuando quieras
 - **Interfaz bilingüe** — español/inglés con un selector por usuario
-- **PWA instalable** — actualizaciones optimistas, caché con service workers,
-  notificaciones push e instalación en Android y escritorio
-- **Actualizaciones en tiempo real** — los cambios de otros miembros aparecen al
-  instante vía Supabase Realtime
+- **PWA instalable** — actualizaciones optimistas, caché con service workers
+  e instalación en Android y escritorio
+- **Sincronización por versiones** — los cambios de otros miembros llegan vía
+  un chequeo horario de versión contra un espejo KV en el edge (barato: sin
+  tocar la base de datos cuando nada cambió), con refresco inmediato al
+  enfocar la app
 
 ## Stack técnico
 
@@ -71,44 +73,59 @@ cargos recurrentes y pagos directos entre miembros.
   con totales flotantes. Las escrituras multi-paso (transacción + pagos +
   deltas, uniones por invitación, clonación por lotes) corren dentro de
   transacciones de BD, así que una falla parcial no deja saldos inconsistidos.
-- **Recuperación del canal en tiempo real** — si el WebSocket de Supabase
-  Realtime se cae (expiración de token, corte de red, suspensión del móvil), el
-  cliente obtiene automáticamente un token nuevo y se resuscribe con retroceso
-  exponencial.
+- **Sync sin conexiones pegajosas** — el cliente compara un sello de versión
+  (fuente: Postgres) espejado en Workers KV; si no cuadra, paga un refetch
+  completo; si cuadra, cuesta una lectura de KV de milisegundos. Tus propias
+  mutaciones devuelven su sello en la respuesta, así que nunca te disparan un
+  refetch a ti mismo.
 - **Seguridad en la base de datos** — Row-Level Security de Postgres aísla los
-  datos de cada grupo; el canal de tiempo real solo entrega transacciones de los
-  registros a los que pertenece el usuario autenticado.
+  datos de cada grupo; la capa de API solo consulta registros a los que
+  pertenece el usuario autenticado.
 
 ## Correr en local
 
 ### Requisitos
 
-- [Node.js](https://nodejs.org) 22.12+ y npm 9.6.5+
-- Un proyecto de [Supabase](https://supabase.com) (el plan gratuito funciona) —
-  o solo un Postgres local para desarrollo
+- [Node.js](https://nodejs.org) 22.12+ y npm 9.6.5+ con Docker para el
+  Postgres local — un proyecto de [Supabase](https://supabase.com) (plan
+  gratuito) solo se necesita para el backend completo de auth/billing
 
-### Instalación
+### Loop de desarrollo sin configuración (sin Supabase)
+
+El dev server corre 100% contra Postgres local — sin Supabase, sin OAuth,
+sin Polar, sin credenciales:
 
 ```bash
 git clone https://github.com/JS-Taiyou/alapar-fresh.git
 cd alapar-fresh
 git checkout migration/astro
 npm install
-cp .env.example .env   # agrega tus credenciales de Supabase y VAPID
+docker compose up -d db     # Postgres local (alapar/alapar/alapar)
+npm run db:schema           # aplica db/schema.sql
+npm run db:seed             # opcional: usuarios y registros demo
+npm run dev                 # http://localhost:4321
 ```
 
-**Base de datos.** Define `DATABASE_URL` con la URL del pooler de Supabase para
-el backend completo. Sin `DATABASE_URL`, `src/lib/db.ts` cae a un Postgres
-local en `postgresql://alapar:alapar@localhost:5432/alapar` — levántalo con
-`docker compose up db` (o usa cualquier instalación local) y aplica
-`db/schema.sql`. Para el proyecto de Supabase, corre las migraciones de `db/`
-en el orden indicado en [`docs/DATABASE.md`](docs/DATABASE.md#migrations).
+En `/login`, **cualquier contraseña es válida** — el email que escribas
+encuentra (o crea al primer uso) la cuenta en la base local, y la sesión vive
+en una cookie exclusiva de dev. El botón de Google, los links de recuperación
+y todo punto de contacto con Supabase quedan ocultos en dev. Usuarios del
+seed: `john@example.com`, `jane@example.com`, `bob@example.com`. Para iterar
+el flujo real de Supabase en local, pon `DEV_AUTH=off` en `.env`.
+
+**Backend completo (Supabase).** Define `DATABASE_URL` con la URL del pooler
+más las vars `SUPABASE_*` de `.env.example`; sin `DATABASE_URL`,
+`src/lib/db.ts` cae al mismo Postgres local. Para el proyecto de Supabase,
+corre las migraciones de `db/` en el orden de
+[`docs/DATABASE.md`](docs/DATABASE.md#migrations). Los endpoints de billing
+quedan inertos (503) sin vars `POLAR_*` — la página de precios renderiza
+igual.
 
 ### Comandos
 
 ```bash
 npm run dev        # servidor de desarrollo
-npm run build      # build de producción (función SSR de Netlify)
+npm run build      # build de producción (Cloudflare Workers)
 npm run preview    # previsualiza la build
 npm run check      # type-check (.astro + .ts vía astro check)
 npm run lint       # Oxlint vía Vite+ (con tipos)

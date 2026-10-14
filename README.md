@@ -42,9 +42,10 @@ direct payments between members.
   anytime
 - **Bilingual UI** — Spanish/English with a per-user toggle
 - **Installable PWA** — optimistic updates, client-side caching via service
-  workers, push notifications, and add-to-home-screen on Android and desktop
-- **Real-time updates** — changes from other members appear instantly via
-  Supabase Realtime
+  workers, and add-to-home-screen on Android and desktop
+- **Version-polled sync** — changes from other members arrive through an
+  hourly version check against an edge KV mirror (cheap: no database hit
+  when nothing changed), plus an immediate refresh on app focus
 
 ## Tech stack
 
@@ -72,48 +73,64 @@ direct payments between members.
   running totals. Multi-statement writes (transaction + payments + deltas,
   invitation joins, batch cloning) run inside DB transactions, so a partial
   failure can't leave balances drifted.
-- **Realtime channel recovery** — if the Supabase Realtime WebSocket drops
-  (token expiry, network blip, mobile sleep), the client automatically fetches a
-  fresh token and resubscribes with backoff.
+- **Sync without sticky connections** — the polling client compares a
+  Postgres-sourced version stamp mirrored to Workers KV; a mismatch pays for
+  one full refetch, a match costs a millisecond KV read. Own mutations
+  return their stamp in the response, so they never trigger a self-refetch.
 - **Security enforced in the database** — Postgres Row-Level Security isolates
-  every group's data; the realtime channel can only deliver transactions from
-  registries the authenticated user belongs to.
+  every group's data; the API layer only ever queries registries the
+  authenticated user belongs to.
 
 ## Running locally
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org) 22.12+ and npm 9.6.5+
-- A [Supabase](https://supabase.com) project (free tier works) — or just a
-  local Postgres for development
+- [Node.js](https://nodejs.org) 22.12+ and npm 9.6.5+ with Docker for the
+  local Postgres — a [Supabase](https://supabase.com) project (free tier) is
+  only needed for the full auth/billing backend
 
-### Setup
+### Zero-config dev loop (no Supabase needed)
+
+The dev server runs entirely against a local Postgres — no Supabase, no
+OAuth, no Polar, no credentials:
 
 ```bash
 git clone https://github.com/JS-Taiyou/alapar-fresh.git
 cd alapar-fresh
 git checkout migration/astro
 npm install
-cp .env.example .env   # fill in your Supabase + VAPID credentials
+docker compose up -d db     # local Postgres (alapar/alapar/alapar)
+npm run db:schema           # apply db/schema.sql
+npm run db:seed             # optional: demo users + registries
+npm run dev                 # http://localhost:4321
 ```
 
-**Database.** Set `DATABASE_URL` to your Supabase pooler URL for the full
-backend. When `DATABASE_URL` is unset, `src/lib/db.ts` falls back to a local
-Postgres at `postgresql://alapar:alapar@localhost:5432/alapar` — spin one up
-with `docker compose up db` (or use any local install) and apply `db/schema.sql`.
-For the Supabase project itself, run the migrations in `db/` in the order
-listed in [`docs/DATABASE.md`](docs/DATABASE.md#migrations).
+On `/login`, **any password is accepted** — the email you type finds (or
+creates on first sight) the account in the local database, and the session
+lives in a dev-only cookie. The Google button, the password-recovery links
+and all Supabase touchpoints are hidden in dev. Seeded users:
+`john@example.com`, `jane@example.com`, `bob@example.com`. To iterate on
+the real Supabase auth flow locally instead, set `DEV_AUTH=off` in `.env`.
+
+**Full backend (Supabase).** Set `DATABASE_URL` to your Supabase pooler URL
+plus the `SUPABASE_*` vars from `.env.example`; when `DATABASE_URL` is unset,
+`src/lib/db.ts` falls back to the same local Postgres. For the Supabase
+project itself, run the migrations in `db/` in the order listed in
+[`docs/DATABASE.md`](docs/DATABASE.md#migrations). Billing endpoints stay
+dormant (503) without `POLAR_*` vars — the pricing page renders regardless.
 
 ### Commands
 
 ```bash
 npm run dev        # dev server
-npm run build      # production build (Netlify SSR function)
+npm run build      # production build (Cloudflare Workers)
 npm run preview    # preview the build
 npm run check      # type-check (.astro + .ts via astro check)
 npm run lint       # Oxlint via Vite+ (type-aware)
 npm run fmt        # Oxfmt via Vite+ (use fmt:check to verify only)
 npm test           # Vitest via Vite+ (passes while the suite is being ported)
+npm run db:schema  # apply db/schema.sql to the local docker Postgres
+npm run db:seed    # apply db/seed.sql (demo users + registries)
 ```
 
 ## Testing
@@ -132,7 +149,7 @@ local-Postgres fallback, reimplemented CSRF). See
 
 - [`MIGRATION.md`](MIGRATION.md) — Fresh → Astro port map and remaining work
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — system architecture,
-  directory structure, auth flow, caching, realtime
+  directory structure, auth flow, caching, sync
 - [`docs/BUSINESS_LOGIC.md`](docs/BUSINESS_LOGIC.md) — balance calculation,
   split modes, cortar/settle, carry-forward, invitations
 - [`docs/DATABASE.md`](docs/DATABASE.md) — schema, tables, migrations

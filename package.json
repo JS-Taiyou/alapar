@@ -11,7 +11,9 @@
     "lint": "vp lint",
     "fmt": "vp fmt",
     "fmt:check": "vp fmt --check",
-    "test": "vp test --passWithNoTests"
+    "test": "vp test --passWithNoTests",
+    "db:schema": "docker compose exec -T db psql -U alapar -d alapar < db/schema.sql",
+    "db:seed": "docker compose exec -T db psql -U alapar -d alapar < db/seed.sql"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.4",

@@ -4,6 +4,7 @@ import { getUserFromRequest, setAuthCookies } from "@/lib/supabase";
 import { getCookie } from "@/lib/auth-cookies";
 import { query, setRuntimeConnectionString } from "@/lib/db";
 import { setVersionNamespace } from "@/lib/registry-version";
+import { DEV_AUTH_COOKIE, devAuthActive, devAuthResult } from "@/lib/dev-auth";
 import { needsFullState, routeGuard } from "@/lib/routing";
 import { resolveLocale } from "@/lib/i18n";
 import { getRegistryPlan, USER_PRO_SQL } from "@/lib/entitlements";
@@ -138,7 +139,12 @@ const authState = defineMiddleware(async (context, next) => {
   }
 
   devLog("  Getting user from request...");
-  const authResult = await getUserFromRequest(req);
+  // Local-dev bypass: the dev cookie authenticates without Supabase (see
+  // lib/dev-auth.ts) — everything downstream resolves by supabase_auth_id.
+  const devAuthId = devAuthActive()
+    ? getCookie(req.headers.get("cookie") ?? "", DEV_AUTH_COOKIE)
+    : null;
+  const authResult = devAuthId ? devAuthResult(devAuthId) : await getUserFromRequest(req);
   if (!authResult) {
     devLog("  No auth result, continuing without user");
     const response = await next();
