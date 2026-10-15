@@ -1,5 +1,7 @@
 # A la Par
 
+[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
+
 **English** | [Español](README.es.md)
 
 > Split shared expenses with your partner, friends, or roommates — and always
@@ -17,7 +19,7 @@ Fresh build while this migration lands)_
 A la Par was born as a **Deno** project, built on Deno's own web framework
 **Fresh** (Preact + server-rendered islands) and deployed on **Deno Deploy**.
 When Deno's acquisition by Cloudflare was announced, the project was ported to
-**Astro 7 running on Node**, with Netlify as the new hosting target. The
+**Astro 7 running on Node**, deployed on Cloudflare Workers. The
 original Fresh codebase remains on the `main` branch; the migration lives on
 `migration/astro` — see [`MIGRATION.md`](MIGRATION.md) for the port map,
 verification status, and what remains.
@@ -56,7 +58,7 @@ direct payments between members.
 | Tooling   | Vite+ (`vp`) — lint (Oxlint), format (Oxfmt), tests (Vitest)     |
 | Backend   | Supabase — Postgres, Auth (email/password + Google OAuth), RLS   |
 | Styling   | Tailwind CSS + DaisyUI (dark theme)                              |
-| Hosting   | Netlify (SSR via @astrojs/netlify) — migration in progress       |
+| Hosting   | Cloudflare Workers (alapar.jorjoso.dev) — CI auto-deploy         |
 | Packaging | PWA (web manifest + service worker + Web Push)                   |
 
 ## Engineering highlights
@@ -96,9 +98,8 @@ The dev server runs entirely against a local Postgres — no Supabase, no
 OAuth, no Polar, no credentials:
 
 ```bash
-git clone https://github.com/JS-Taiyou/alapar-fresh.git
-cd alapar-fresh
-git checkout migration/astro
+git clone https://github.com/JS-Taiyou/alapar.git
+cd alapar
 npm install
 npm run db:schema           # apply db/schema.sql to the local Postgres
 npm run db:seed             # optional: demo users + registries
@@ -170,7 +171,7 @@ as part of the migration._
 
 ## Roadmap
 
-- [ ] Complete the Astro migration and cut over hosting to Netlify
+- [x] Port to Astro 7 + React 19 and deploy on Cloudflare Workers
 - [ ] Android release via TWA (Google Play)
 - [ ] Custom domain
 

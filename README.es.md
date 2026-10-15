@@ -1,5 +1,7 @@
 # A la Par
 
+[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
+
 [English](README.md) | **Español**
 
 > Comparte gastos con tu pareja, amigos o roomies — y queden siempre _a la par_.
@@ -16,7 +18,7 @@ original de Fresh mientras aterriza esta migración)_
 A la Par nació como un proyecto de **Deno**, construido sobre **Fresh**, el
 framework web de Deno (Preact + islas renderizadas en servidor), y desplegado
 en **Deno Deploy**. Cuando se anunció la adquisición de Deno por Cloudflare, el
-proyecto fue portado a **Astro 7 sobre Node**, con Netlify como nuevo destino
+proyecto fue portado a **Astro 7 + React 19**, desplegado en Cloudflare Workers
 de hosting. El código original de Fresh sigue en la rama `main`; la migración
 vive en `migration/astro` — consulta [`MIGRATION.md`](MIGRATION.md) para el
 mapa del port, el estado de verificación y lo que falta.
@@ -56,7 +58,7 @@ cargos recurrentes y pagos directos entre miembros.
 | Tooling  | Vite+ (`vp`) — lint (Oxlint), formato (Oxfmt), pruebas (Vitest)      |
 | Backend  | Supabase — Postgres, Auth (email/contraseña + Google OAuth), RLS     |
 | Estilos  | Tailwind CSS + DaisyUI (tema oscuro)                                 |
-| Hosting  | Netlify (SSR vía @astrojs/netlify) — migración en curso              |
+| Hosting  | Cloudflare Workers (alapar.jorjoso.dev) — deploy automático vía CI   |
 | Empaque  | PWA (web manifest + service worker + Web Push)                       |
 
 ## Detalles de ingeniería
@@ -97,9 +99,8 @@ El dev server corre 100% contra Postgres local — sin Supabase, sin OAuth,
 sin Polar, sin credenciales:
 
 ```bash
-git clone https://github.com/JS-Taiyou/alapar-fresh.git
-cd alapar-fresh
-git checkout migration/astro
+git clone https://github.com/JS-Taiyou/alapar.git
+cd alapar
 npm install
 npm run db:schema           # aplica db/schema.sql al Postgres local
 npm run db:seed             # opcional: usuarios y registros demo
@@ -172,7 +173,7 @@ como parte de la migración._
 
 ## Próximos pasos
 
-- [ ] Completar la migración a Astro y mover el hosting a Netlify
+- [x] Portar a Astro 7 + React 19 y desplegar en Cloudflare Workers
 - [ ] Publicación en Android vía TWA (Google Play)
 - [ ] Dominio propio
 
