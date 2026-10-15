@@ -143,12 +143,12 @@ Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deplo
 - ✅ CI: job `deploy` manual (`workflow_dispatch`) que construye y corre
   `wrangler deploy -c dist/server/wrangler.json` (requiere secrets de repo
   `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
-- ⬜ Crear el Hyperdrive real (`wrangler hyperdrive create alapar-db
-  --connection-string=…`) y descomentar la binding en `wrangler.toml`.
-- ⬜ Subir los secrets (`wrangler secret put …`) y rellenar las vars
-  públicas de `wrangler.toml`.
-- ⬜ Verificar `pg` + TLS bajo `nodejs_compat` empíricamente y smoke
-  post-deploy en `*.workers.dev` ANTES del cutover de dominio.
+- ✅ Hyperdrive creado y activo (id en wrangler.toml; origen: direct
+  connection string, el correcto según los docs oficiales).
+- ✅ Secrets subidos; login, dashboard y transacciones verificados en
+  producción.
+- ✅ `pg` bajo `nodejs_compat` verificado empíricamente (patrón canónico
+  Client-por-llamada; toda la saga de sockets documentada en commits).
 
 ## Cutover de dominio (Workers) — dominio: `alapar.jorjoso.dev`
 
@@ -159,7 +159,7 @@ Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deplo
    wildcard `*.jorjoso.dev`, que se CONSERVA apuntando a su servidor
    (187.147.89.106) — ningún otro subdominio cambió. El apex tampoco.
    Verificado: `/demo` → 200, `/` → 302 (guard), TLS OK.
-2. ⬜ **Google OAuth — no aplica en Google Cloud Console**: las redirect URIs
+2. ✅ **Google OAuth — no aplica en Google Cloud Console**: las redirect URIs
    del cliente de Google apuntan a `https://<ref>.supabase.co/auth/v1/callback`
    (fijas, no dependen del dominio del app). **Lo que sí aplica es en
    Supabase**: Auth → URL Configuration → agregar a las Redirect URLs
@@ -187,15 +187,15 @@ Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deplo
      cuando empiecen a dar 410), cookies de sesión (todos re-inician
      sesión), IndexedDB snapshots y `localStorage` (`lastSplit_*`,
      `demo-tour-seen` — se regeneran solos).
-5. ⬜ **`COOKIE_SECURE`**: se infiere de producción; verificar tras el primer
-   deploy del dominio nuevo.
+5. ✅ **`COOKIE_SECURE`**: verificado — login completo con cookies Secure
+   funciona en producción.
 
 ## Pendiente — general
 
-1. **Auth E2E**: las páginas autenticadas (`/dashboard/*`) no se han ejercido
-   con sesión real contra Supabase.
-2. **Web Push**: `lib/push.ts` usa WebCrypto global — en Workers es nativo
-   (mejor que en Node), pero probarlo igual en staging.
+1. ✅ **Auth E2E**: login (Google OAuth + PKCE), dashboard, transacciones,
+   history — todo ejercido con sesión real en producción.
+2. ~~**Web Push**~~: retirado junto con Realtime (notificaciones eliminadas
+   por decisión de producto; `lib/push.ts` y `/api/push/*` quedan inertes).
 3. **Docs**: `README*.md` y `MIGRATION.md` al día (Astro 7 + React 19 +
    Workers); `docs/ARCHITECTURE.md` aún arrastra detalles de la era
    Fresh/Deno en secciones no críticas; `docs/ROUTES.md` sin revisar.
