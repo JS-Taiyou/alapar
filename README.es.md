@@ -1,17 +1,15 @@
 # A la Par
 
-[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
-
 [English](README.md) | **Español**
 
 > Comparte gastos con tu pareja, amigos o roomies — y queden siempre _a la par_.
 
+[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
 ![Licencia](https://img.shields.io/badge/licencia-AGPLv3-blue)
 ![Demo](https://img.shields.io/badge/demo-en%20vivo-brightgreen)
 
-**[▶ Prueba la demo guiada en vivo — sin registro](https://alapar.itzayanos.deno.net/demo)**
-**App en vivo:** https://alapar.itzayanos.deno.net _(aún servida por la build
-original de Fresh mientras aterriza esta migración)_
+**[▶ Prueba la demo guiada en vivo — sin registro](https://alapar.jorjoso.dev/demo)**
+**App en vivo:** https://alapar.jorjoso.dev
 
 ## Historia del proyecto
 
@@ -175,7 +173,7 @@ como parte de la migración._
 
 - [x] Portar a Astro 7 + React 19 y desplegar en Cloudflare Workers
 - [ ] Publicación en Android vía TWA (Google Play)
-- [ ] Dominio propio
+- [x] Dominio propio (alapar.jorjoso.dev)
 
 ## Licencia
 

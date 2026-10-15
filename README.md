@@ -1,18 +1,16 @@
 # A la Par
 
-[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
-
 **English** | [Español](README.es.md)
 
 > Split shared expenses with your partner, friends, or roommates — and always
 > settle _a la par_ (dead even).
 
+[![CI](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/JS-Taiyou/alapar/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-AGPLv3-blue)
 ![Demo](https://img.shields.io/badge/demo-live-brightgreen)
 
-**[▶ Try the live guided demo — no signup needed](https://alapar.itzayanos.deno.net/demo)**
-**Live app:** https://alapar.itzayanos.deno.net _(still served by the original
-Fresh build while this migration lands)_
+**[▶ Try the live guided demo — no signup needed](https://alapar.jorjoso.dev/demo)**
+**Live app:** https://alapar.jorjoso.dev
 
 ## Project history
 
@@ -173,7 +171,7 @@ as part of the migration._
 
 - [x] Port to Astro 7 + React 19 and deploy on Cloudflare Workers
 - [ ] Android release via TWA (Google Play)
-- [ ] Custom domain
+- [x] Custom domain (alapar.jorjoso.dev)
 
 ## License
 
