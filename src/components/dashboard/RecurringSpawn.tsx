@@ -1,14 +1,18 @@
 import { useState } from "react";
 import type { SpawnCandidate } from "../../lib/types";
 import { formatMoney } from "../../lib/format";
+import { t as translate, type Locale } from "../../lib/i18n";
 import Modal from "../ui/Modal";
 
 interface RecurringSpawnProps {
   candidates: SpawnCandidate[];
   isDemo?: boolean;
+  locale?: Locale;
 }
 
 export default function RecurringSpawn(props: RecurringSpawnProps) {
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(props.locale ?? "es", key, params);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(
@@ -83,13 +87,13 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
         if (!res.ok) {
           setLoading(false);
           setShowModal(false);
-          alert("No se pudieron incluir los gastos recurrentes.");
+          alert(t("recurring.spawn_error"));
           return;
         }
       } catch {
         setLoading(false);
         setShowModal(false);
-        alert("Error de conexión al incluir gastos recurrentes.");
+        alert(t("recurring.spawn_error_conn"));
         return;
       }
     }
@@ -105,7 +109,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
           setShowModal(true);
         }}
         className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-zinc-300 relative"
-        title="Recurrentes"
+        title={t("recurring.recurring")}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -125,8 +129,8 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
       {showModal && (
         <Modal
           onClose={() => setShowModal(false)}
-          title="Gastos Recurrentes"
-          subtitle="Selecciona cuáles incluir en este periodo."
+          title={t("recurring.title")}
+          subtitle={t("recurring.subtitle")}
           widthClass="max-w-lg"
           footer={
             <div className="ml-auto flex items-center gap-3">
@@ -135,7 +139,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                 onClick={() => setShowModal(false)}
                 className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -143,7 +147,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                 disabled={loading}
                 className="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
               >
-                {loading ? "Creando..." : "Incluir"}
+                {loading ? t("recurring.creating") : t("recurring.include")}
               </button>
             </div>
           }
@@ -163,7 +167,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                           {item.description}
                         </span>
                         <span className="text-xs font-medium px-2 py-0.5 rounded bg-red-500/20 text-red-400">
-                          Desactivado
+                          {t("recurring.disabled")}
                         </span>
                       </div>
                     </div>
@@ -201,7 +205,9 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                             : "bg-emerald-500/20 text-emerald-400"
                         }`}
                       >
-                        {item.type === "parcialidad" ? "Parcialidad" : "Recurrente"}
+                        {item.type === "parcialidad"
+                          ? t("recurring.installment")
+                          : t("recurring.recurring")}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400">
@@ -243,7 +249,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                     <button
                       type="button"
                       onClick={() => handleDisableRecurring(item.id)}
-                      title="Desactivar recurrente"
+                      title={t("recurring.disable")}
                       className="shrink-0 p-1.5 text-zinc-400 hover:text-red-400 transition-colors rounded-custom hover:bg-red-400/10"
                     >
                       <svg

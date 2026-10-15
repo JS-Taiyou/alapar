@@ -11,7 +11,7 @@ import type {
   User,
 } from "../../lib/types";
 import { cache } from "../../lib/cache";
-import type { Locale } from "../../lib/i18n";
+import { t, type Locale } from "../../lib/i18n";
 import Sidebar from "./Sidebar";
 import TransactionList from "./TransactionList";
 import BalanceBreakdown from "./BalanceBreakdown";
@@ -197,11 +197,11 @@ export default function DashboardShell(props: DashboardShellProps) {
               locale={props.locale}
             />
             <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <RecurringSpawn candidates={state.spawnCandidates} />
+              <RecurringSpawn candidates={state.spawnCandidates} locale={props.locale} />
               <a
                 href="/dashboard/history"
                 className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
-                title="Histórico"
+                title={t(props.locale, "shell.history_title")}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -212,7 +212,11 @@ export default function DashboardShell(props: DashboardShellProps) {
                   />
                 </svg>
               </a>
-              <CortarButton hasTransactions={props.hasTransactions} registryId={state.registryId} />
+              <CortarButton
+                hasTransactions={props.hasTransactions}
+                registryId={state.registryId}
+                locale={props.locale}
+              />
             </div>
           </header>
         )}

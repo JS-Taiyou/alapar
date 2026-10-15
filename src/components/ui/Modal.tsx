@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   onClose: () => void;
@@ -44,7 +45,12 @@ export default function Modal(props: ModalProps) {
     };
   }, [props.onClose]);
 
-  return (
+  // Portal to <body>: modals must escape any ancestor that hides or clips
+  // content (the collapsed sidebar wraps EntityManager in opacity-0 h-0
+  // overflow-hidden — an in-place fixed overlay there is invisible yet
+  // still swallows every click on the page).
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay"
       role="presentation"
@@ -91,6 +97,7 @@ export default function Modal(props: ModalProps) {
           </footer>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Entity } from "../../lib/types";
 import { initials } from "../../lib/format";
+import { t as translate, type Locale } from "../../lib/i18n";
 import Modal from "../ui/Modal";
 
 interface EntityManagerProps {
@@ -19,9 +20,12 @@ interface EntityManagerProps {
    */
   externalOpen?: boolean;
   onExternalClose?: () => void;
+  locale?: Locale;
 }
 
 export default function EntityManager(props: EntityManagerProps) {
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(props.locale ?? "es", key, params);
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = props.externalOpen ?? internalOpen;
   const close = () => {
@@ -71,10 +75,10 @@ export default function EntityManager(props: EntityManagerProps) {
         await reload();
       } else {
         const data = await res.json();
-        setError(data.error || "Error al crear");
+        setError(data.error || t("entities.create_error"));
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
     }
     setLoading(false);
   }
@@ -97,16 +101,16 @@ export default function EntityManager(props: EntityManagerProps) {
         await reload();
       } else {
         const data = await res.json();
-        setError(data.error || "Error al actualizar");
+        setError(data.error || t("entities.update_error"));
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
     }
     setLoading(false);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Eliminar este tercero?")) return;
+    if (!confirm(t("entities.delete_confirm"))) return;
     setLoading(true);
     setError("");
     try {
@@ -115,10 +119,10 @@ export default function EntityManager(props: EntityManagerProps) {
         await reload();
       } else {
         const data = await res.json();
-        setError(data.error || "Error al eliminar");
+        setError(data.error || t("entities.delete_error"));
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
     }
     setLoading(false);
   }
@@ -156,7 +160,7 @@ export default function EntityManager(props: EntityManagerProps) {
               strokeWidth="2"
             />
           </svg>
-          <span>Terceros</span>
+          <span>{t("entities.title")}</span>
         </button>
       )}
 
@@ -166,8 +170,8 @@ export default function EntityManager(props: EntityManagerProps) {
             close();
             setEditingId(null);
           }}
-          title="Terceros"
-          subtitle="Personas o entidades que participan en gastos"
+          title={t("entities.title")}
+          subtitle={t("entities.subtitle")}
           footer={
             <div className="ml-auto">
               <button
@@ -178,7 +182,7 @@ export default function EntityManager(props: EntityManagerProps) {
                 }}
                 className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
-                Cerrar
+                {t("common.close")}
               </button>
             </div>
           }
@@ -190,7 +194,7 @@ export default function EntityManager(props: EntityManagerProps) {
               <input
                 className="flex-1 px-2 py-1 bg-transparent border border-white/20 rounded text-white text-sm focus:ring-primary"
                 type="text"
-                placeholder="Nombre del tercero"
+                placeholder={t("entities.name_placeholder")}
                 value={newName}
                 onInput={(e) => setNewName(e.currentTarget.value)}
                 onKeyDown={(e) => {
@@ -224,7 +228,7 @@ export default function EntityManager(props: EntityManagerProps) {
             </div>
 
             {entities.length === 0 ? (
-              <p className="text-sm text-zinc-400 text-center py-4">No hay terceros agregados</p>
+              <p className="text-sm text-zinc-400 text-center py-4">{t("entities.empty")}</p>
             ) : (
               <div className="space-y-2">
                 {entities.map((entity) => (
@@ -281,7 +285,7 @@ export default function EntityManager(props: EntityManagerProps) {
                         </div>
                         <span className="flex-1 text-sm font-medium text-white">{entity.name}</span>
                         <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-zinc-300">
-                          Tercero
+                          {t("entities.badge")}
                         </span>
                         <button
                           type="button"

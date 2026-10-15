@@ -9,7 +9,7 @@ import UpgradeButton from "../ui/UpgradeButton";
 import Modal from "../ui/Modal";
 import ProBadge from "../ui/ProBadge";
 import { showUpgradeToast } from "../ui/toast-store";
-import type { Locale } from "../../lib/i18n";
+import { t as translate, type Locale } from "../../lib/i18n";
 
 interface SidebarProps {
   registries: Registry[];
@@ -40,7 +40,22 @@ interface SidebarProps {
 
 const REGISTRY_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444", "#14b8a6"];
 
+/**
+ * Stable color per registry: a deterministic hash of its ID. List-index
+ * coloring made colors SWAP when the active registry jumped to the top of
+ * the sort — the same button turned different colors between clicks. The
+ * hash keeps a registry's color constant forever, across sessions and
+ * devices, with nothing stored.
+ */
+function registryColor(id: string): string {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
+  return REGISTRY_COLORS[Math.abs(hash) % REGISTRY_COLORS.length];
+}
+
 export default function Sidebar(props: SidebarProps) {
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(props.locale ?? "es", key, params);
   const [registries, setRegistries] = useState(props.registries);
   const [collapsed, setCollapsed] = useState(props.initialCollapsed ?? false);
   const [mobileOpen, setMobileOpenState] = useState(false);
@@ -316,10 +331,10 @@ export default function Sidebar(props: SidebarProps) {
       if (data.code) {
         setInviteCode(data.code);
       } else {
-        setInviteError(data.error || "Error al crear invitación");
+        setInviteError(data.error || t("sidebar.invite_error"));
       }
     } catch {
-      setInviteError("Error de conexión");
+      setInviteError(t("common.error_connection"));
     }
     setInviteLoading(false);
   }
@@ -377,7 +392,7 @@ export default function Sidebar(props: SidebarProps) {
   }
 
   async function handleDeleteRegistry(id: string) {
-    if (!confirm("Eliminar este registro? Esta acción no se puede deshacer.")) {
+    if (!confirm(t("sidebar.delete_confirm"))) {
       return;
     }
     let res: Response;
@@ -387,7 +402,7 @@ export default function Sidebar(props: SidebarProps) {
       return; // offline — nothing was deleted, nothing to update
     }
     if (res.status === 409) {
-      alert("No se puede eliminar un registro con transacciones.");
+      alert(t("sidebar.delete_has_tx"));
       return;
     }
     if (!res.ok) return;
@@ -536,9 +551,9 @@ export default function Sidebar(props: SidebarProps) {
             collapsed && !mobileOpen ? "opacity-0 h-0" : "opacity-100"
           }`}
         >
-          Registros
+          {t("sidebar.registries")}
         </h3>
-        {sortedRegistries.map((r, i) => {
+        {sortedRegistries.map((r) => {
           const isPending = r.id === newRegistryPendingId;
           const isOwnedByMe = isPending || props.ownerRegistryIds.has(r.id);
           const isDeletable = isPending || props.deletableRegistryIds.has(r.id);
@@ -556,7 +571,7 @@ export default function Sidebar(props: SidebarProps) {
                 >
                   <div
                     className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }}
+                    style={{ backgroundColor: registryColor(r.id) }}
                   />
                   <input
                     type="text"
@@ -600,8 +615,8 @@ export default function Sidebar(props: SidebarProps) {
                   style={
                     collapsed && !mobileOpen && !isPending
                       ? {
-                          backgroundColor: `${REGISTRY_COLORS[i % REGISTRY_COLORS.length]}20`,
-                          border: `1px solid ${REGISTRY_COLORS[i % REGISTRY_COLORS.length]}40`,
+                          backgroundColor: `${registryColor(r.id)}20`,
+                          border: `1px solid ${registryColor(r.id)}40`,
                         }
                       : undefined
                   }
@@ -613,7 +628,7 @@ export default function Sidebar(props: SidebarProps) {
                   {collapsed && !mobileOpen ? (
                     <div
                       className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
-                      style={{ backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }}
+                      style={{ backgroundColor: registryColor(r.id) }}
                     >
                       {r.name
                         .split(/\s+/)
@@ -625,7 +640,7 @@ export default function Sidebar(props: SidebarProps) {
                   ) : (
                     <div
                       className="rounded-full flex-shrink-0 transition-all duration-300 w-2 h-2"
-                      style={{ backgroundColor: REGISTRY_COLORS[i % REGISTRY_COLORS.length] }}
+                      style={{ backgroundColor: registryColor(r.id) }}
                     />
                   )}
                   <span
@@ -672,7 +687,7 @@ export default function Sidebar(props: SidebarProps) {
                           startRename(r.id, r.name);
                         }}
                         className="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors"
-                        title="Renombrar"
+                        title={t("sidebar.rename")}
                       >
                         <svg
                           className="w-4.5 h-4.5"
@@ -697,7 +712,7 @@ export default function Sidebar(props: SidebarProps) {
                           setShowSplitConfig(r.id);
                         }}
                         className="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors text-sm font-bold"
-                        title="División Default"
+                        title={t("sidebar.default_split")}
                       >
                         %
                       </button>
@@ -710,7 +725,7 @@ export default function Sidebar(props: SidebarProps) {
                           handleDeleteRegistry(r.id);
                         }}
                         className="p-2 hover:bg-red-500/20 rounded text-zinc-400 hover:text-red-400 transition-colors"
-                        title="Eliminar"
+                        title={t("sidebar.delete")}
                       >
                         <svg
                           className="w-4.5 h-4.5"
@@ -763,7 +778,7 @@ export default function Sidebar(props: SidebarProps) {
                 collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
               }`}
             >
-              Invitar
+              {t("sidebar.invite")}
             </span>
           </button>
         </div>
@@ -784,8 +799,9 @@ export default function Sidebar(props: SidebarProps) {
               registryId={activeRegistryId}
               entities={entityList}
               onEntitiesChanged={handleEntitiesChanged}
-              externalOpen={entitiesOpen}
+              externalOpen={entitiesOpen || undefined}
               onExternalClose={() => setEntitiesOpen(false)}
+              locale={props.locale}
             />
           </div>
           {collapsed && !mobileOpen && (
@@ -793,7 +809,7 @@ export default function Sidebar(props: SidebarProps) {
               type="button"
               onClick={() => setEntitiesOpen(true)}
               className="w-full flex items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-white"
-              title="Terceros"
+              title={t("sidebar.third_parties")}
             >
               <svg
                 className="w-5 h-5 shrink-0"
@@ -833,7 +849,7 @@ export default function Sidebar(props: SidebarProps) {
               collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
             }`}
           >
-            Nuevo Registro
+            {t("sidebar.new_registry")}
           </span>
         </button>
         {props.showUpgrade && activeRegistryId && (
@@ -862,7 +878,7 @@ export default function Sidebar(props: SidebarProps) {
               collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
             }`}
           >
-            Cerrar sesión
+            {t("sidebar.logout")}
           </span>
         </button>
       </div>
@@ -918,7 +934,7 @@ export default function Sidebar(props: SidebarProps) {
         }}
       >
         <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <span className="text-lg font-bold text-white">Menu</span>
+          <span className="text-lg font-bold text-white">{t("sidebar.menu")}</span>
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
@@ -940,8 +956,8 @@ export default function Sidebar(props: SidebarProps) {
       {showInvite && (
         <Modal
           onClose={closeInviteModal}
-          title="Invitar al Registro"
-          subtitle="Genera un código para invitar a alguien"
+          title={t("sidebar.invite_title")}
+          subtitle={t("sidebar.invite_subtitle")}
           footer={
             <div className="ml-auto">
               <button
@@ -962,12 +978,12 @@ export default function Sidebar(props: SidebarProps) {
                 disabled={inviteLoading}
                 className="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all active:scale-95 disabled:opacity-50"
               >
-                {inviteLoading ? "Generando..." : "Generar Código de Invitación"}
+                {inviteLoading ? t("sidebar.invite_generating") : t("sidebar.invite_generate")}
               </button>
             ) : (
               <div className="space-y-3">
                 <div className="text-center">
-                  <p className="text-sm text-zinc-400 mb-2">Código de invitación:</p>
+                  <p className="text-sm text-zinc-400 mb-2">{t("sidebar.invite_code_label")}</p>
                   <div className="flex items-center justify-center gap-2">
                     <span className="text-3xl font-mono font-bold text-white tracking-widest">
                       {inviteCode}
@@ -976,7 +992,7 @@ export default function Sidebar(props: SidebarProps) {
                       type="button"
                       onClick={copyCode}
                       className="p-2 hover:bg-white/10 rounded-custom text-primary transition-colors"
-                      title="Copiar"
+                      title={t("sidebar.invite_copy")}
                     >
                       <svg
                         className="w-5 h-5"
@@ -993,7 +1009,9 @@ export default function Sidebar(props: SidebarProps) {
                       </svg>
                     </button>
                   </div>
-                  {copied && <p className="text-xs text-emerald-400 mt-1">Copiado!</p>}
+                  {copied && (
+                    <p className="text-xs text-emerald-400 mt-1">{t("sidebar.invite_copied")}</p>
+                  )}
                 </div>
                 <p className="text-xs text-zinc-500 text-center">
                   Comparte este código o el enlace: {globalThis.location.origin}/join/
@@ -1009,8 +1027,8 @@ export default function Sidebar(props: SidebarProps) {
       {showNewRegistry && (
         <Modal
           onClose={() => setShowNewRegistry(false)}
-          title="Nuevo Registro"
-          subtitle="Crea un grupo para gestionar gastos compartidos"
+          title={t("sidebar.new_title")}
+          subtitle={t("sidebar.new_subtitle")}
           footer={
             <>
               <button
@@ -1018,7 +1036,7 @@ export default function Sidebar(props: SidebarProps) {
                 onClick={() => setShowNewRegistry(false)}
                 className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
-                Cancelar
+                {t("common.cancel")}
               </button>
               <button
                 type="button"
@@ -1026,7 +1044,7 @@ export default function Sidebar(props: SidebarProps) {
                 disabled={!newRegistryName.trim() || newRegistryLoading}
                 className="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
               >
-                Crear
+                {t("sidebar.new_create")}
               </button>
             </>
           }
@@ -1042,7 +1060,7 @@ export default function Sidebar(props: SidebarProps) {
               type="text"
               value={newRegistryName}
               onInput={(e) => setNewRegistryName(e.currentTarget.value)}
-              placeholder="Ej: Compañeros de piso"
+              placeholder={t("sidebar.new_placeholder")}
               className="block w-full px-4 py-2.5 bg-background border border-border-custom rounded-custom text-white focus:ring-primary focus:border-primary"
               autoFocus
             />
