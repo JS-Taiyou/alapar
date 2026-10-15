@@ -57,12 +57,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Debug credentials (safe: no secret values printed)
-        run: |
-          echo "TOKEN set: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}"
-          echo "ACCOUNT set: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}"
-          npx wrangler whoami 2>&1 | tail -5
-
       - name: Deploy Worker
         run: npx wrangler deploy -c dist/server/wrangler.json
         env:
