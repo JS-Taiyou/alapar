@@ -1,13 +1,12 @@
-# Migración a Astro (rama `migration/astro`, worktree `../alapar-astro`)
+# Migración a Astro
 
 Estado: **port completo del código — pendiente de hardening y despliegue.**
 
-La app Deno Fresh original sigue intacta en la rama `main` (worktree
-`../alapar-fresh`). Esta rama reemplaza Deno + Fresh + Deno Deploy por
-**Astro 7 + React 19 + adaptador Netlify**, manteniendo Supabase (auth +
-Postgres). El toolchain de lint/formato/tests es **Vite+ (`vp`)**: Vite 8
-(queda fijado a `@voidzero-dev/vite-plus-core` vía override de npm), Oxlint,
-Oxfmt y Vitest.
+La app Deno Fresh original vive en el historial de git (pre-`6b9a4d3`).
+`main` ahora contiene el port completo: **Astro 7 + React 19 + Cloudflare
+Workers**, manteniendo Supabase (auth + Postgres). El toolchain de
+lint/formato/tests es **Vite+ (`vp`)**: Vite 8 (fijado a
+`@voidzero-dev/vite-plus-core` vía override de npm), Oxlint, Oxfmt y Vitest.
 
 ## Qué se hizo
 
@@ -27,7 +26,7 @@ Oxfmt y Vitest.
 Cambios estructurales notables:
 
 - **Env vars**: `src/lib/env.ts` lee `import.meta.env` con fallback a
-  `process.env` (dev Vite vs runtime Netlify).
+  `process.env` (dev Vite vs runtime de Workers).
 - **Postgres local**: sin `DATABASE_URL`, `src/lib/db.ts` cae a
   `postgresql://alapar:alapar@localhost:5432/alapar` (sin SSL).
   `docker-compose.yml` incluido por si no hay Postgres local; el esquema se
@@ -74,7 +73,8 @@ a React 19, y con ellos desapareció el último residuo arquitectural de Fresh:
 
 - `npx astro check`: 0 errores, 0 warnings (109 archivos) — con Astro 7.3.8 y
   TypeScript 6.0.3.
-- `npx astro build`: OK, función SSR de Netlify generada.
+- `npx astro build`: OK (originalmente generaba función SSR de Netlify;
+  el adapter se cambió a Cloudflare después — ver sección Deploy).
 - Smoke test dev: `/login`, `/pricing`, `/demo`, `/join/:code` → 200;
   `/` y `/dashboard` → 302 a `/login` (guard); `/api/*` sin sesión → 401 JSON.
 - Fallback Postgres local (`alapar`/`alapar`/`alapar`) probado end-to-end con
@@ -216,10 +216,9 @@ Trabajo técnico de la migración (**hecho en el repo, pendiente de primer deplo
 ## Comandos
 
 ```bash
-cd ../alapar-astro
 npm install
 npm run dev        # dev server
-npm run build      # build SSR (Netlify; pendiente el swap a Cloudflare)
+npm run build      # build SSR (Cloudflare Workers)
 npm run check      # typecheck (astro check)
 npm run lint       # Oxlint vía Vite+
 npm run fmt        # Oxfmt vía Vite+ (fmt:check para verificar)

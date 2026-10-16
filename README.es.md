@@ -17,9 +17,8 @@ A la Par nació como un proyecto de **Deno**, construido sobre **Fresh**, el
 framework web de Deno (Preact + islas renderizadas en servidor), y desplegado
 en **Deno Deploy**. Cuando se anunció la adquisición de Deno por Cloudflare, el
 proyecto fue portado a **Astro 7 + React 19**, desplegado en Cloudflare Workers
-de hosting. El código original de Fresh sigue en la rama `main`; la migración
-vive en `migration/astro` — consulta [`MIGRATION.md`](MIGRATION.md) para el
-mapa del port, el estado de verificación y lo que falta.
+El código de Fresh vive en el historial de git (pre-`6b9a4d3` en `main`);
+consulta [`MIGRATION.md`](MIGRATION.md) para el mapa del port y lo que falta.
 
 ## ¿Qué es?
 
