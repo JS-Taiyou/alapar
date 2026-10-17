@@ -512,8 +512,11 @@ export default function Sidebar(props: SidebarProps) {
             if (globalThis.innerWidth < 768) {
               setMobileOpen(false);
             } else {
+              // Store the NEW value — `collapsed` in this closure is still
+              // the previous state (stale closure), so negate it to match
+              // what setCollapsed just applied.
               setCollapsed(!collapsed);
-              document.cookie = `sidebar-collapsed=${collapsed};path=/;max-age=${
+              document.cookie = `sidebar-collapsed=${!collapsed};path=/;max-age=${
                 60 * 60 * 24 * 365
               };samesite=lax`;
             }
