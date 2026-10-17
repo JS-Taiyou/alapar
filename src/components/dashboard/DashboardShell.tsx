@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import type {
   BalanceBreakdownEntry,
   DefaultSplit,
@@ -19,6 +19,7 @@ import RecurringSpawn from "./RecurringSpawn";
 import CortarButton from "./CortarButton";
 import Toaster from "../ui/Toaster";
 import { dashboardReducer, type DashboardState, type RegistrySnapshot } from "./dashboard-store";
+import { DashboardSkeleton } from "../ui/Skeleton";
 
 /**
  * The /dashboard hydration root. In the Fresh (and early Astro) layout the
@@ -62,6 +63,7 @@ export default function DashboardShell(props: DashboardShellProps) {
   const switchGen = useRef(0);
   const stateRef = useRef(state);
   stateRef.current = state;
+  const [switching, setSwitching] = useState(false);
 
   /** Apply a registry snapshot after any await, unless a newer switch won. */
   function applySnapshot(snapshot: RegistrySnapshot) {
@@ -78,6 +80,7 @@ export default function DashboardShell(props: DashboardShellProps) {
     if (gen !== switchGen.current) return;
 
     if (cached && cached.transactions && cached.entities) {
+      setSwitching(false);
       // The IndexedDB snapshot stores dates as ISO strings; the reducer
       // re-coerces them on apply.
       applyRegistrySwitch({
@@ -99,6 +102,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       return;
     }
 
+    setSwitching(true);
     try {
       const res = await fetch(`/api/dashboard?registryId=${id}`, {
         cache: "no-store",
@@ -106,9 +110,11 @@ export default function DashboardShell(props: DashboardShellProps) {
       if (gen !== switchGen.current) return;
       if (!res.ok) throw new Error();
       const data = (await res.json()) as RegistrySnapshot;
+      setSwitching(false);
       applyRegistrySwitch({ ...data, registryId: id });
     } catch {
       if (gen !== switchGen.current) return;
+      setSwitching(false);
       globalThis.location.href = "/dashboard";
     }
   }
@@ -188,39 +194,45 @@ export default function DashboardShell(props: DashboardShellProps) {
         onEntitiesChanged={(entities: Entity[]) => dispatch({ type: "SET_ENTITIES", entities })}
       />
       <div className="flex-1 flex flex-col min-w-0">
-        {hasMultipleParticipants && (
-          <header className="p-4 sm:p-6 bg-[#0a0a0a] border-b border-white/10 flex justify-between items-center gap-2">
-            <BalanceBreakdown
-              balance={state.balance}
-              entries={state.balanceEntries}
-              users={state.users}
-              locale={props.locale}
-            />
-            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-              <RecurringSpawn candidates={state.spawnCandidates} locale={props.locale} />
-              <a
-                href="/dashboard/history"
-                className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
-                title={t(props.locale, "shell.history_title")}
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
+        {switching ? (
+          <DashboardSkeleton />
+        ) : (
+          <>
+            {hasMultipleParticipants && (
+              <header className="p-4 sm:p-6 bg-[#0a0a0a] border-b border-white/10 flex justify-between items-center gap-2">
+                <BalanceBreakdown
+                  balance={state.balance}
+                  entries={state.balanceEntries}
+                  users={state.users}
+                  locale={props.locale}
+                />
+                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+                  <RecurringSpawn candidates={state.spawnCandidates} locale={props.locale} />
+                  <a
+                    href="/dashboard/history"
+                    className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+                    title={t(props.locale, "shell.history_title")}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                      />
+                    </svg>
+                  </a>
+                  <CortarButton
+                    hasTransactions={props.hasTransactions}
+                    registryId={state.registryId}
+                    locale={props.locale}
                   />
-                </svg>
-              </a>
-              <CortarButton
-                hasTransactions={props.hasTransactions}
-                registryId={state.registryId}
-                locale={props.locale}
-              />
-            </div>
-          </header>
+                </div>
+              </header>
+            )}
+            <TransactionList state={state} dispatch={dispatch} locale={props.locale} />
+          </>
         )}
-        <TransactionList state={state} dispatch={dispatch} locale={props.locale} />
       </div>
       <Toaster />
     </div>
