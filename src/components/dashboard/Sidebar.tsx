@@ -607,7 +607,9 @@ export default function Sidebar(props: SidebarProps) {
                     isPending
                       ? "bg-primary/10 border border-primary/30 text-primary"
                       : collapsed && !mobileOpen
-                        ? ""
+                        ? r.id === activeRegistryId
+                          ? ""
+                          : "collapsed-row-inactive border border-transparent"
                         : r.id === activeRegistryId
                           ? "row-active bg-white/[0.06] border border-white/10 text-white"
                           : "border border-transparent hover:bg-white/5 hover:border-white/10 text-zinc-300 hover:text-white"

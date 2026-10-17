@@ -109,6 +109,14 @@ select:focus-visible {
   outline: none;
 }
 
+/* Collapsed sidebar: inactive registry avatars are bare circles — the
+   tinted square only appears on hover (and on the active row via inline
+   style). Without this the collapsed rail reads as a wall of boxes. */
+.collapsed-row-inactive:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Left accent bar for the active registry row (applied via .row-active) */
 .row-active {
   box-shadow: inset 3px 0 0 0 var(--color-primary);
