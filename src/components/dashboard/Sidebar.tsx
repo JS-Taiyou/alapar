@@ -615,7 +615,7 @@ export default function Sidebar(props: SidebarProps) {
                           : "border border-transparent hover:bg-white/5 hover:border-white/10 text-zinc-300 hover:text-white"
                   }`}
                   style={
-                    collapsed && !mobileOpen && !isPending
+                    collapsed && !mobileOpen && !isPending && r.id === activeRegistryId
                       ? {
                           backgroundColor: `${registryColor(r.id)}20`,
                           border: `1px solid ${registryColor(r.id)}40`,
