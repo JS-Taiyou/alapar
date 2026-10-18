@@ -207,7 +207,11 @@ export default function DashboardShell(props: DashboardShellProps) {
                   locale={props.locale}
                 />
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                  <RecurringSpawn candidates={state.spawnCandidates} locale={props.locale} />
+                  <RecurringSpawn
+                    candidates={state.spawnCandidates}
+                    registryId={state.registryId}
+                    locale={props.locale}
+                  />
                   <a
                     href="/dashboard/history"
                     className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"

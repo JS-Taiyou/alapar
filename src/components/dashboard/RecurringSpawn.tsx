@@ -2,10 +2,12 @@ import { useState } from "react";
 import type { SpawnCandidate } from "../../lib/types";
 import { formatMoney } from "../../lib/format";
 import { t as translate, type Locale } from "../../lib/i18n";
+import { cache } from "../../lib/cache";
 import Modal from "../ui/Modal";
 
 interface RecurringSpawnProps {
   candidates: SpawnCandidate[];
+  registryId?: string;
   isDemo?: boolean;
   locale?: Locale;
 }
@@ -96,6 +98,11 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
         alert(t("recurring.spawn_error_conn"));
         return;
       }
+    }
+    // Cloned transactions changed the registry — drop the stale snapshot
+    // so the reload fetches fresh data instead of showing pre-clone state.
+    if (props.registryId) {
+      await cache.invalidateRegistry(props.registryId).catch(() => {});
     }
     globalThis.location.reload();
   }

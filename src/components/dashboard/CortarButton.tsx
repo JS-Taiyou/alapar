@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Modal from "../ui/Modal";
 import { t as translate, type Locale } from "../../lib/i18n";
+import { cache } from "../../lib/cache";
 
 interface CortarButtonProps {
   hasTransactions: boolean;
@@ -32,6 +33,10 @@ export default function CortarButton(props: CortarButtonProps) {
         alert(t("cortar.error"));
         return;
       }
+      // The settle archives transactions server-side — the IndexedDB
+      // snapshot is now stale and would show pre-settle data on reload.
+      // Drop it so the shell goes straight to the server.
+      await cache.invalidateRegistry(props.registryId).catch(() => {});
       globalThis.location.reload();
     } catch {
       setLoading(false);
