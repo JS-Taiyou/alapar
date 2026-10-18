@@ -424,44 +424,41 @@ export default function TransactionModal(props: TransactionModalProps) {
     return Object.values(percentages).reduce((s, v) => s + v, 0);
   }
 
-  function autoComplementPercentage(userId: string) {
-    if (users.length === 2) {
-      const otherId = users.find((u) => u.id !== userId)?.id;
-      if (otherId) {
-        const newPcts = { ...percentages };
-        newPcts[otherId] = Math.round((100 - (newPcts[userId] ?? 0)) * 100) / 100;
-        if (newPcts[otherId] < 0) newPcts[otherId] = 0;
-        setPercentages(newPcts);
-      }
-    }
-  }
-
+  /**
+   * Percentage + complement in ONE functional update. The old code did two
+   * sequential setPercentages calls where the complement read STALE state
+   * (React batches; Preact signals updated synchronously) — every keystroke
+   * was overwritten by the auto-complement computed from the PREVIOUS value,
+   * making the inputs completely unresponsive.
+   */
   function updatePercentage(userId: string, raw: string) {
-    let v = Math.min(parseFloat(raw) || 0, 100);
-    if (v < 0) v = 0;
-    setPercentages({ ...percentages, [userId]: v });
-    autoComplementPercentage(userId);
-  }
-
-  function autoComplementFixed(userId: string) {
-    if (users.length === 2) {
-      const otherId = users.find((u) => u.id !== userId)?.id;
-      if (otherId) {
-        const newAmounts = { ...fixedAmounts };
-        newAmounts[otherId] =
-          Math.round((Math.abs(amount) - (newAmounts[userId] ?? 0)) * 100) / 100;
-        if (newAmounts[otherId] < 0) newAmounts[otherId] = 0;
-        setFixedAmounts(newAmounts);
+    const v = Math.min(Math.max(parseFloat(raw) || 0, 0), 100);
+    setPercentages((prev) => {
+      const next = { ...prev, [userId]: v };
+      if (users.length === 2) {
+        const otherId = users.find((u) => u.id !== userId)?.id;
+        if (otherId) {
+          next[otherId] = Math.max(0, Math.round((100 - v) * 100) / 100);
+        }
       }
-    }
+      return next;
+    });
   }
 
+  /** Fixed amount + complement in ONE functional update (same fix). */
   function updateFixedAmount(userId: string, raw: string) {
     const total = Math.abs(amount);
-    let v = Math.min(parseFloat(raw) || 0, total);
-    if (v < 0) v = 0;
-    setFixedAmounts({ ...fixedAmounts, [userId]: v });
-    autoComplementFixed(userId);
+    const v = Math.min(Math.max(parseFloat(raw) || 0, 0), total);
+    setFixedAmounts((prev) => {
+      const next = { ...prev, [userId]: v };
+      if (users.length === 2) {
+        const otherId = users.find((u) => u.id !== userId)?.id;
+        if (otherId) {
+          next[otherId] = Math.max(0, Math.round((total - v) * 100) / 100);
+        }
+      }
+      return next;
+    });
   }
 
   function setAutoSplit() {
