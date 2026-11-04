@@ -1,14 +1,6 @@
 import { bumpRegistryVersion } from "@/lib/registry-version";
 import type { APIRoute } from "astro";
-import {
-  calculateFullPairwiseBalances,
-  createExercise,
-  createTransaction,
-  getActiveTransactions,
-  getEntities,
-  getUsers,
-} from "@/lib/store";
-import { withTransaction } from "@/lib/db";
+import { query } from "@/lib/db";
 import { invalidateRegistry } from "@/lib/server-cache";
 
 export const GET: APIRoute = async (ctx) => {
@@ -21,6 +13,15 @@ export const GET: APIRoute = async (ctx) => {
   return Response.json({ exercises });
 };
 
+/**
+ * POST /api/exercises — settle (cortar) the current period.
+ *
+ * Delegates entirely to the perform_corte() PL/pgSQL function (see
+ * db/perform_corte.sql): ONE round-trip instead of the previous JS loop's
+ * ~44 (4 per pairwise ajuste). The function archives transactions,
+ * computes pairwise debts from transaction_balances, creates ajustes,
+ * writes their deltas, and touches the registry stamp — all atomic.
+ */
 export const POST: APIRoute = async (ctx) => {
   let body: { registryId?: unknown } = {};
   const hasJsonBody = (ctx.request.headers.get("content-type") ?? "").includes("application/json");
@@ -49,98 +50,60 @@ export const POST: APIRoute = async (ctx) => {
 
   // Closing an exercise is destructive and owner-only (S8) — for the
   // active registry too, not just when a different one is requested.
+  // perform_corte re-checks ownership inside the DB too.
   if (!ctx.locals.ownerRegistryIds.has(registryId)) {
     const accept = ctx.request.headers.get("Accept") ?? "";
     if (accept.includes("application/json")) {
-      return Response.json(
-        { error: "Only owners can close an exercise" },
-        {
-          status: 403,
-        },
-      );
+      return Response.json({ error: "Only owners can close an exercise" }, { status: 403 });
     }
     return ctx.redirect("/dashboard");
   }
 
-  const active = await getActiveTransactions(registryId);
-  if (active.length === 0) {
+  try {
+    const result = await query("SELECT * FROM perform_corte($1::uuid, $2::uuid)", [
+      registryId,
+      userId,
+    ]);
+    const row = result.rows[0] as {
+      out_exercise_id: string;
+      out_exercise_start: string;
+      out_exercise_end: string;
+      out_tx_count: string;
+      out_total_amount: string;
+      out_adjustments: number;
+    };
+
+    invalidateRegistry(registryId);
+    void bumpRegistryVersion(registryId);
+
+    const exercise = {
+      id: row.out_exercise_id,
+      registry_id: registryId,
+      start_date: row.out_exercise_start,
+      end_date: row.out_exercise_end,
+      transaction_count: parseInt(String(row.out_tx_count)),
+      total_amount: parseFloat(row.out_total_amount),
+    };
+
     const accept = ctx.request.headers.get("Accept") ?? "";
     if (accept.includes("application/json")) {
-      return Response.json({ exercise: null, transactions: [] });
+      return Response.json({ exercise, adjustments: row.out_adjustments });
     }
     return ctx.redirect("/dashboard");
-  }
-
-  const [users, entities] = await Promise.all([
-    getUsers(registryId),
-    getEntities(registryId, userId),
-  ]);
-  const participants = [
-    ...users.map((u) => ({ id: u.id, name: u.name, color: u.color })),
-    ...entities.map((e) => ({ id: e.id, name: e.name, color: e.color })),
-  ];
-  const debts = calculateFullPairwiseBalances(active, participants);
-
-  const totalPending = debts.reduce((sum, d) => sum + d.amount, 0);
-  const maxRoundingError = 0.01 * active.length;
-
-  // Archiving the period and writing the carry-forward ajustes are ONE
-  // unit: if the ajuste writes fail, the archive rolls back too, so a
-  // crash mid-cut can never leave a period settled-without-its-debts.
-  const exercise = await withTransaction(async (q) => {
-    const created = await createExercise(registryId, q);
-
-    if (totalPending > maxRoundingError) {
-      for (const debt of debts) {
-        const ajuste = await createTransaction(
-          {
-            registry_id: registryId,
-            description: `Pendiente de ${debt.fromUserName} a favor de ${debt.toUserName}`,
-            amount: debt.amount,
-            originalAmount: debt.amount,
-            type: "ajuste" as const,
-            relatedTransactionId: null,
-            exerciseId: null,
-            installmentCurrent: null,
-            installmentTotal: null,
-            recurringDisabled: false,
-            recurringGroupId: crypto.randomUUID(),
-            notes: "Ajuste de balance pendiente del ejercicio anterior",
-            splitJson: {
-              splits: [
-                {
-                  userId: debt.fromUserId,
-                  percentage: 100,
-                  amount: debt.amount,
-                },
-              ],
-            },
-            creatorId: debt.toUserId,
-            userPaid: debt.toUserId,
-          },
-          userId,
-          undefined,
-          q,
-        );
-        if (!ajuste) {
-          // Membership vanished mid-cut (checked per write). Abort the
-          // whole cut rather than archive without the ajustes.
-          throw new Error("registry membership lost during cut");
-        }
-      }
+  } catch (err) {
+    // perform_corte raises specific exceptions for the known guards;
+    // surface those as structured errors, anything else as 500.
+    const msg = String((err as Error)?.message ?? err);
+    if (msg.includes("not_owner")) {
+      return Response.json({ error: "Only owners can close an exercise" }, { status: 403 });
     }
-
-    return created;
-  });
-  invalidateRegistry(registryId);
-  void bumpRegistryVersion(registryId);
-
-  const accept = ctx.request.headers.get("Accept") ?? "";
-  if (accept.includes("application/json")) {
-    return Response.json({
-      exercise,
-      transactions: totalPending > maxRoundingError ? debts : [],
-    });
+    if (msg.includes("no_active_transactions")) {
+      const accept = ctx.request.headers.get("Accept") ?? "";
+      if (accept.includes("application/json")) {
+        return Response.json({ exercise: null, transactions: [] });
+      }
+      return ctx.redirect("/dashboard");
+    }
+    throw err;
   }
-  return ctx.redirect("/dashboard");
 };
