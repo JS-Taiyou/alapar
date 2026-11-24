@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState, type ReactNode } from "react";
 import type {
   BalanceBreakdownEntry,
   DefaultSplit,
@@ -12,7 +12,7 @@ import type {
 } from "../../lib/types";
 import { cache } from "../../lib/cache";
 import { t, type Locale } from "../../lib/i18n";
-import Sidebar from "./Sidebar";
+import Sidebar, { MobileMenuButton, useIsStandalone } from "./Sidebar";
 import TransactionList from "./TransactionList";
 import BalanceBreakdown from "./BalanceBreakdown";
 import RecurringSpawn from "./RecurringSpawn";
@@ -54,6 +54,15 @@ interface DashboardShellProps {
   registryId: string;
   lastModified: string | null;
   hasTransactions: boolean;
+  /**
+   * Demo mode (/demo): books come from `demoSnapshots` and every write stays
+   * in memory — no API, no IndexedDB, no cookie.
+   */
+  isDemo?: boolean;
+  /** Demo only: each seed book's snapshot, keyed by registry id. */
+  demoSnapshots?: Record<string, RegistrySnapshot>;
+  /** Laid over the content column (the demo mounts its tour button here). */
+  children?: ReactNode;
 }
 
 export default function DashboardShell(props: DashboardShellProps) {
@@ -65,6 +74,12 @@ export default function DashboardShell(props: DashboardShellProps) {
   stateRef.current = state;
   const [switching, setSwitching] = useState(false);
 
+  // Demo: the last state of every book visited this session. A seed book
+  // starts from its static snapshot and a book created in the demo starts
+  // empty, but either way the book being left is stashed so switching back
+  // restores it — the role the IndexedDB cache plays on the real dashboard.
+  const demoVisited = useRef<Record<string, RegistrySnapshot | undefined>>({});
+
   /** Apply a registry snapshot after any await, unless a newer switch won. */
   function applySnapshot(snapshot: RegistrySnapshot) {
     dispatch({ type: "APPLY_SNAPSHOT", snapshot });
@@ -72,6 +87,30 @@ export default function DashboardShell(props: DashboardShellProps) {
 
   async function switchRegistry(id: string) {
     if (id === stateRef.current.registryId) return;
+
+    if (props.isDemo) {
+      const current = stateRef.current;
+      demoVisited.current[current.registryId] = snapshotOf(current);
+      dispatch({
+        type: "APPLY_SNAPSHOT",
+        snapshot: demoVisited.current[id] ??
+          props.demoSnapshots?.[id] ?? {
+            registryId: id,
+            transactions: [],
+            transactionPayments: [],
+            balance: 0,
+            balanceEntries: [],
+            users: current.users.filter((u) => u.id === props.currentUserId),
+            currentUserId: props.currentUserId,
+            defaultSplit: null,
+            spawnCandidates: [],
+            entityIds: [],
+            entities: [],
+            lastModified: null,
+          },
+      });
+      return;
+    }
 
     const gen = ++switchGen.current;
     cache.setLastActiveRegistry(id).catch(() => {});
@@ -123,6 +162,27 @@ export default function DashboardShell(props: DashboardShellProps) {
     applySnapshot(snapshot);
   }
 
+  function handleEntitiesChanged(entities: Entity[]) {
+    if (props.isDemo) {
+      // `users` carries the terceros too (it is the list's participants), and
+      // no server snapshot is coming to add one — refresh it from here.
+      const { users, entityIds, registryId } = stateRef.current;
+      dispatch({ type: "SET_ENTITIES", entities });
+      dispatch({
+        type: "APPLY_SNAPSHOT",
+        snapshot: {
+          registryId,
+          users: [
+            ...users.filter((u) => !entityIds.has(u.id)),
+            ...entities.map(({ id, name, color }) => ({ id, name, color })),
+          ],
+        },
+      });
+      return;
+    }
+    dispatch({ type: "SET_ENTITIES", entities });
+  }
+
   async function validateCacheInBackground(
     registryId: string,
     cachedLastModified: string | null,
@@ -157,6 +217,9 @@ export default function DashboardShell(props: DashboardShellProps) {
   // On mount: drop IndexedDB snapshots for deleted registries and pick up
   // where the last session left off (the last active registry).
   useEffect(() => {
+    // Demo books aren't the visitor's: cleaning orphans against them would
+    // drop the cached snapshots of their real registries.
+    if (props.isDemo) return;
     if (typeof globalThis.indexedDB === "undefined") return;
     cache.cleanOrphanedEntries(props.registries.map((r) => r.id)).catch(() => {});
     cache.getLastActiveRegistry().then((cachedId) => {
@@ -172,6 +235,26 @@ export default function DashboardShell(props: DashboardShellProps) {
   }, []);
 
   const hasMultipleParticipants = state.users.length + state.entities.length > 1;
+
+  // The sidebar owns the mobile drawer; this is how a trigger rendered here
+  // reaches it.
+  const openMobileMenu = useRef<(() => void) | null>(null);
+  const isStandalone = useIsStandalone();
+
+  // On phones the demo's menu button sits beside the balance instead of
+  // floating over the list. Only the demo header has the room: the regular one
+  // also carries history, "Cortar" and the recurring button, which on a
+  // 360px phone would leave the balance too little to show a typical amount.
+  const menuInHeader = props.isDemo === true && hasMultipleParticipants;
+
+  const balance = (
+    <BalanceBreakdown
+      balance={state.balance}
+      entries={state.balanceEntries}
+      users={state.users}
+      locale={props.locale}
+    />
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -190,53 +273,98 @@ export default function DashboardShell(props: DashboardShellProps) {
         initialCollapsed={props.initialCollapsed}
         locale={props.locale}
         showUpgrade={props.showUpgrade}
+        onMobileMenu={props.isDemo ? (open) => (openMobileMenu.current = open) : undefined}
+        floatingTrigger={!menuInHeader}
+        isDemo={props.isDemo}
         onRegistrySwitch={switchRegistry}
-        onEntitiesChanged={(entities: Entity[]) => dispatch({ type: "SET_ENTITIES", entities })}
+        onEntitiesChanged={handleEntitiesChanged}
       />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 relative">
         {switching ? (
           <DashboardSkeleton />
         ) : (
           <>
             {hasMultipleParticipants && (
               <header className="p-4 sm:p-6 bg-[#0a0a0a] border-b border-white/10 flex justify-between items-center gap-2">
-                <BalanceBreakdown
-                  balance={state.balance}
-                  entries={state.balanceEntries}
-                  users={state.users}
-                  locale={props.locale}
-                />
+                {menuInHeader ? (
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MobileMenuButton
+                      inHeader
+                      label={t(props.locale, "sidebar.menu")}
+                      hidden={isStandalone}
+                      onClick={() => openMobileMenu.current?.()}
+                    />
+                    {balance}
+                  </div>
+                ) : (
+                  balance
+                )}
                 <div className="flex items-center gap-2 sm:gap-4 shrink-0">
                   <RecurringSpawn
                     candidates={state.spawnCandidates}
                     registryId={state.registryId}
                     locale={props.locale}
                   />
-                  <a
-                    href="/dashboard/history"
-                    className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
-                    title={t(props.locale, "shell.history_title")}
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                      />
-                    </svg>
-                  </a>
+                  {props.isDemo ? (
+                    // No history or cut to offer here — a way back to the site instead.
+                    <a
+                      href="/"
+                      className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+                      title={t(props.locale, "shell.home_title")}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </a>
+                  ) : (
+                    <a
+                      href="/dashboard/history"
+                      className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+                      title={t(props.locale, "shell.history_title")}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </a>
+                  )}
                   <CortarButton
                     hasTransactions={props.hasTransactions}
                     registryId={state.registryId}
                     locale={props.locale}
+                    isDemo={props.isDemo}
                   />
                 </div>
               </header>
             )}
-            <TransactionList state={state} dispatch={dispatch} locale={props.locale} />
+            <TransactionList
+              state={state}
+              dispatch={dispatch}
+              isDemo={props.isDemo}
+              locale={props.locale}
+            />
           </>
         )}
+        {props.children}
       </div>
       <Toaster />
     </div>
@@ -258,5 +386,23 @@ function initialReducerArg(props: DashboardShellProps): DashboardState {
     lastModified: props.lastModified,
     entityIds: new Set(props.entities.map((e) => e.id)),
     entities: props.entities,
+  };
+}
+
+/** The store's state as a snapshot, so the same state can be re-applied later. */
+function snapshotOf(state: DashboardState): RegistrySnapshot {
+  return {
+    registryId: state.registryId,
+    transactions: state.transactions,
+    transactionPayments: state.transactionPayments,
+    balance: state.balance,
+    balanceEntries: state.balanceEntries,
+    users: state.users,
+    currentUserId: state.currentUserId,
+    defaultSplit: state.defaultSplit,
+    spawnCandidates: state.spawnCandidates,
+    entityIds: [...state.entityIds],
+    entities: state.entities,
+    lastModified: state.lastModified,
   };
 }

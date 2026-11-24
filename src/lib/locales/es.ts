@@ -288,9 +288,15 @@ export const es: Record<string, string> = {
   "tour.menu_title": "🎓 Tour Guiado",
   "tour.menu_desc": "Conoce las funciones de A la Par en pocos minutos.",
   "tour.quick_title": "Tour Rápido",
-  "tour.quick_sub": "Lo esencial en 5 pasos",
+  "tour.quick_sub": "Lo esencial en 6 pasos",
   "tour.full_title": "Tour Completo",
   "tour.full_sub": "Incluye el modal de gastos y pagos",
+  "tour.books_title": "📚 Tus Libros",
+  "tour.books_desc":
+    "Cada libro es un grupo de gastos independiente: la casa, un viaje, tu pareja. Elige un libro para cambiar entre ellos — el balance y las transacciones son propios de cada uno.",
+  // Same step where the menu opens with a swipe (the installed PWA on a phone).
+  "tour.books_desc_swipe":
+    "Cada libro es un grupo de gastos independiente: la casa, un viaje, tu pareja. Desliza a la derecha para abrir tus libros y elegir uno — el balance y las transacciones son propios de cada uno.",
   "tour.balance_title": "💰 Balance Total",
   "tour.balance_desc":
     "Este es tu balance neto. Verde = te deben, rojo = debes. Haz clic para ver el desglose detallado por persona.",
@@ -320,7 +326,7 @@ export const es: Record<string, string> = {
     "Decide cómo dividir el gasto: Automático (partes iguales), Porcentaje (ej. 60%/40%), o Monto Fijo (cantidades específicas por persona).",
   "tour.pay_debt_title": "✅ Saldar Deuda",
   "tour.pay_debt_desc":
-    "Cuando alguien te debe, este botón calcula automáticamente el monto exacto. Un clic y el pago queda registrado por la cantidad correcta.",
+    "Si hay un saldo pendiente entre quien paga y quien recibe, este botón pone el monto exacto. Un clic y el pago queda listo para guardar.",
   "tour.finale_title": "🎉 ¡Eso es todo!",
   "tour.finale_desc":
     "Ya conoces las funciones principales de A la Par. Explora el demo libremente — todos los cambios son temporales y se reinician al recargar.",
@@ -377,4 +383,5 @@ export const es: Record<string, string> = {
   "cortar.error": "No se pudo cortar el ejercicio. Inténtalo de nuevo.",
   "cortar.error_conn": "Error de conexión al cortar el ejercicio.",
   "shell.history_title": "Histórico",
+  "shell.home_title": "Inicio",
 };

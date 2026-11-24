@@ -4,6 +4,47 @@ All notable changes to this project are documented here. Dates are approximate.
 
 ---
 
+## 2026-11-24 — Demo: several books + the real sidebar
+
+`/demo` now mounts the real `DashboardShell` in demo mode instead of a
+hand-rolled header + list, so it gets the sidebar and the book switcher.
+
+- **Three books** in `data/demo.json` — _Depto Compartido_ (roommates), _Viaje
+  a Oaxaca_ (a trip the demo user was invited to, so it shows a member's view),
+  _Gastos de Pareja_ — with proper names for books and people; the demo user is
+  signed in as "Ana Torres". Every book is a balanced ledger: one comes out
+  negative, one positive.
+- **`demo-data.ts`** builds each book's sidebar row, members and registry
+  snapshot. An integrity test keeps the hand-written seed consistent: members
+  only, shares add up, payment links stay inside the book, members' balances
+  sum to zero.
+- **Demo mode on the shell** (`isDemo`, `demoSnapshots`): switching books
+  applies snapshots in memory, and the book being left is stashed so switching
+  back restores it. No API, no IndexedDB, no cookie. The mount-time cache
+  cleanup is skipped — run against the demo's registry ids, it would have
+  dropped a signed-in visitor's real registry snapshots.
+- **Sidebar in demo**: switching, collapse, rename, "Nuevo Libro" and terceros
+  work locally; logout, invite, default split and delete are not offered.
+- **Tour**: a "books" step opens both tours (now 6 and 9 steps), anchored to
+  the book list on desktop and the menu button on mobile. The floating button
+  lives in a bottom corner of the content column — bottom-right on phones —
+  clear of the sidebar, its drawer and the FABs. In the installed PWA on a
+  phone there is no menu button to anchor that step to, so it is a centered
+  popover whose copy says to swipe. The settle-debt step's copy no longer
+  promises that one click records the payment — the button fills in the amount.
+- **Phone layout**: on `/demo` the menu button moves into the header, beside
+  the balance (`MobileMenuButton`, plus `onMobileMenu`/`floatingTrigger` on the
+  Sidebar), so nothing floats over the list and switching books never depends
+  on scrolling. It stays hidden in the installed PWA, as the floating button
+  always was — a swipe opens the drawer there. The regular dashboard keeps its
+  floating button: its header also carries history, "Cortar" and the recurring
+  button, and on a 360–375px phone a menu button beside the balance would
+  leave the balance 95–136px — too little for a typical amount, which needs
+  111–150px.
+- Tests: seed-data integrity (8). 36 suites / 488 steps green.
+
+---
+
 ## 2026-08-20 (b) — Public pricing page + in-app cancel + paywall funnel
 
 Every upgrade CTA now funnels to a public **`/pricing`** page; Pro owners can

@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
-import { driver } from "driver.js";
+import { driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import { type Locale, tt } from "../../lib/i18n";
+import { useIsStandalone } from "../dashboard/Sidebar";
 
 /**
  * Guided tour island for the /demo page, powered by driver.js (MIT, zero deps).
  *
- * Offers two tours the user can choose from via a floating button (bottom-left,
- * so it doesn't clash with the FABs at bottom-right):
+ * Offers two tours the user can choose from via a floating button (a bottom
+ * corner of the content column, clear of the sidebar and the FABs):
  *
- * - **Quick Tour** (5 steps): main-page highlights only.
- * - **Full Tour** (10 steps): main page + modal walkthrough (type selector,
+ * - **Quick Tour** (6 steps): main-page highlights only.
+ * - **Full Tour** (9 steps): main page + modal walkthrough (type selector,
  *   split modes, pay-exact-debt button).
  *
  * The deep-dive tour programmatically opens the modal by clicking the FABs,
@@ -33,6 +34,7 @@ export default function DemoTour(props: DemoTourProps) {
   const t = tt(props.locale ?? "es");
   const [showMenu, setShowMenu] = useState(false);
   const [tourActive, setTourActive] = useState(false);
+  const installed = useIsStandalone();
 
   useEffect(() => {
     // Auto-prompt on first visit (only if never seen).
@@ -45,21 +47,58 @@ export default function DemoTour(props: DemoTourProps) {
   }, []);
 
   /**
+   * The first on-screen element among `selectors`. Desktop and mobile often
+   * render the same control twice (the FABs; the sidebar vs its hamburger
+   * button), so callers list both and this picks the visible one.
+   */
+  function visibleAnchor(...selectors: string[]): Element {
+    const found = selectors.map((selector) => document.querySelector(selector));
+    return (
+      found.find((el) => el?.checkVisibility?.()) ??
+      // Fallback: offsetParent is non-null for visible elements.
+      found.find((el) => (el as HTMLElement | null)?.offsetParent !== null) ??
+      found.find((el) => el !== null) ??
+      document.body
+    );
+  }
+
+  /**
    * Find the visible add-expense or add-payment button. On desktop the FABs
    * carry data-tour="add-expense"/"add-payment"; on mobile the inline buttons
-   * carry the "-mobile" suffix. Return whichever is currently displayed.
+   * carry the "-mobile" suffix.
    */
   function visibleFab(base: "add-expense" | "add-payment"): Element {
-    const desktop = document.querySelector(`[data-tour="${base}"]`);
-    if (desktop && desktop.checkVisibility?.()) return desktop;
-    const mobile = document.querySelector(`[data-tour="${base}-mobile"]`);
-    if (mobile && mobile.checkVisibility?.()) return mobile;
-    // Fallback: offsetParent is non-null for visible elements.
-    const all = document.querySelectorAll(`[data-tour="${base}"], [data-tour="${base}-mobile"]`);
-    for (const el of all) {
-      if ((el as HTMLElement).offsetParent !== null) return el;
+    return visibleAnchor(`[data-tour="${base}"]`, `[data-tour="${base}-mobile"]`);
+  }
+
+  /**
+   * The books step: the sidebar's book list on desktop, the menu button on
+   * mobile — up in the header for most books, floating near the bottom for a
+   * one-member book. The popover side is decided here from where the anchor
+   * sits when the tour starts; fine, because every tour opens with this step.
+   *
+   * The installed PWA on a phone shows no menu button (a swipe opens the
+   * drawer), so there is nothing to point at: the step has no anchor, which
+   * makes driver.js center a popover that highlights nothing, and its copy
+   * says how to reach the books instead.
+   */
+  function booksStep(): DriveStep {
+    if (installed && globalThis.innerWidth < 768) {
+      return {
+        popover: { title: t("tour.books_title"), description: t("tour.books_desc_swipe") },
+      };
     }
-    return desktop ?? mobile ?? document.body;
+    const anchor = visibleAnchor('[data-tour="sidebar-books"]', '[data-tour="sidebar-open"]');
+    const popoverBelow = anchor.getBoundingClientRect().top < globalThis.innerHeight / 2;
+    return {
+      element: () => visibleAnchor('[data-tour="sidebar-books"]', '[data-tour="sidebar-open"]'),
+      popover: {
+        title: t("tour.books_title"),
+        description: t("tour.books_desc"),
+        side: globalThis.innerWidth >= 768 ? "right" : popoverBelow ? "bottom" : "top",
+        align: "start",
+      },
+    };
   }
 
   function markSeen() {
@@ -93,6 +132,7 @@ export default function DemoTour(props: DemoTourProps) {
       doneBtnText: t("tour.done"),
       popoverClass: "alapar-popover",
       steps: [
+        booksStep(),
         {
           element: '[data-tour="balance-total"]',
           popover: {
@@ -161,6 +201,7 @@ export default function DemoTour(props: DemoTourProps) {
       popoverClass: "alapar-popover",
       steps: [
         // --- Main page (same as quick tour) ---
+        booksStep(),
         {
           element: '[data-tour="balance-total"]',
           popover: {
@@ -265,11 +306,16 @@ export default function DemoTour(props: DemoTourProps) {
 
   return (
     <>
-      {/* Floating tour button */}
+      {/* Floating tour button. Bottom-right on phones (no FABs there, and the
+          menu button is up in the header); bottom-left from sm up, riding
+          above the floating menu button a one-member book still gets, and in
+          the corner from md up, beside the sidebar. It stays below the mobile
+          drawer's layers (z-40 backdrop, z-50 panel) so an open menu covers it
+          like any other content. */}
       <button
         type="button"
         onClick={() => setShowMenu(!showMenu)}
-        className="fixed bottom-8 left-8 z-50 w-14 h-14 bg-primary hover:bg-primary-light text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+        className="absolute bottom-8 right-4 sm:bottom-36 sm:left-4 sm:right-auto md:bottom-8 md:left-8 z-30 w-14 h-14 bg-primary hover:bg-primary-light text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
         title={t("tour.button_title")}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -287,8 +333,8 @@ export default function DemoTour(props: DemoTourProps) {
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-          {/* Menu card */}
-          <div className="fixed bottom-24 left-8 z-50 bg-surface border border-border-custom rounded-custom shadow-2xl p-4 w-72 animate-fade-up">
+          {/* Menu card: above its own backdrop, below the mobile drawer */}
+          <div className="absolute bottom-24 right-4 sm:bottom-52 sm:left-4 sm:right-auto md:bottom-24 md:left-8 z-40 bg-surface border border-border-custom rounded-custom shadow-2xl p-4 w-72 animate-fade-up">
             <h3 className="text-sm font-bold text-zinc-200 mb-3">{t("tour.menu_title")}</h3>
             <p className="text-xs text-zinc-400 mb-4">{t("tour.menu_desc")}</p>
             <button

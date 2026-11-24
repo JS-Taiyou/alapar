@@ -26,7 +26,8 @@ are typed actions:
   modal's optimistic write, server merge and rollback paths
 - `SET_ENTITIES / SET_ENTITY_IDS / SET_LAST_MODIFIED`
 
-The demo page (`DemoApp`) runs the same reducer seeded with static data.
+The demo page (`DemoApp`) mounts the same shell in demo mode — see
+`DashboardShell` below.
 
 The upgrade toasts are the one piece of cross-cutting client state: a tiny
 framework-agnostic store (`components/ui/toast-store.ts`, subscribe/snapshot)
@@ -116,7 +117,7 @@ exist.
 
 ## `EntityManager` — `components/dashboard/EntityManager.tsx`
 
-**Props**: `{ registryId: string, entities: Entity[], onEntitiesChanged: (entities: Entity[] | null) => void }`
+**Props**: `{ registryId: string, entities: Entity[], onEntitiesChanged: (entities: Entity[] | null) => void, isDemo?: boolean }`
 
 Modal (shared `Modal` scaffold) for managing third-party entities (terceros).
 Button with users icon. Rendered inside the Sidebar (desktop and mobile asides
@@ -134,6 +135,9 @@ share the Sidebar's local entity-list mirror).
   (or `null` when the post-mutation refetch itself failed — the Sidebar then
   retries the fetch and, in the shell, forwards the result to the store, which
   also refreshes the entity ids)
+- With `isDemo` (`/demo`): create and edit are applied in memory through
+  `onEntitiesChanged` and delete is not offered — the server is what checks
+  that a third party has no active transactions
 
 ---
 
@@ -229,13 +233,19 @@ Search input for the exercise history page.
 ## `Sidebar` — `components/dashboard/Sidebar.tsx`
 
 **Props**:
-`{ registries: Registry[], activeRegistryId: string, userName: string, userInitials: string, userPro: User["pro"], isOwner: boolean, ownerRegistryIds: Set<string>, entities: Entity[], registryUsers: User[], defaultSplit: DefaultSplit | null, deletableRegistryIds: Set<string>, initialCollapsed?: boolean, locale?: Locale, showUpgrade?: boolean, onRegistrySwitch?: (id: string) => void, onEntitiesChanged?: (entities: Entity[]) => void }`
+`{ registries: Registry[], activeRegistryId: string, userName: string, userInitials: string, userPro: User["pro"], isOwner: boolean, ownerRegistryIds: Set<string>, entities: Entity[], registryUsers: User[], defaultSplit: DefaultSplit | null, deletableRegistryIds: Set<string>, initialCollapsed?: boolean, locale?: Locale, showUpgrade?: boolean, onRegistrySwitch?: (id: string) => void, onEntitiesChanged?: (entities: Entity[]) => void, isDemo?: boolean, onMobileMenu?: (open: () => void) => void, floatingTrigger?: boolean }`
 
 Collapsible sidebar with user info, registry list, entity manager, default split
 config, invite button, and actions. On `/dashboard` it renders inside the
 `DashboardShell` (one React tree); the history pages mount it standalone via
 `SidebarIsland.astro` — there, without a shell to broadcast to, switching
 registries records the choice in IndexedDB and lands on `/dashboard`.
+
+**Demo mode** (`isDemo`, set by the `/demo` shell — no session behind it):
+logout, invite and the default-split `%` action are not rendered; rename and
+"new book" stay in memory (a new book's id is handed to `onRegistrySwitch`,
+where the shell opens it empty); the collapsed state isn't written to the
+cookie. Deleting is unreachable too — the demo passes no deletable registries.
 
 **Registry list**: Sorted — active registry always first, rest alphabetically by
 name. `activeRegistryId` comes from the shell's store and updates on switch (no
@@ -251,11 +261,19 @@ page reload needed).
 
 **Mobile behavior**:
 
-- Hamburger menu button (fixed bottom-left)
+- Menu button (`MobileMenuButton`, exported from this file): floating at the
+  bottom-left, unless the owner hosts it somewhere roomier — see below
 - Slides in from left with backdrop overlay
 - Close button in header
 - Two-finger swipe from left edge to open (PWA mode)
 - `touch-action: manipulation` prevents zoom interference
+- The button is hidden from `md` up (the rail is on screen) and in the
+  installed PWA (`useIsStandalone`, also exported), where the swipe is the way in
+
+**Hosting the menu button elsewhere**: an owner that has room renders
+`MobileMenuButton` itself and receives the drawer opener through `onMobileMenu`;
+while it does, it leaves `floatingTrigger` false so Sidebar draws no button of
+its own. The demo header does this — see `DashboardShell`.
 
 **Cache-aware registry switch** (owned by `DashboardShell`, called through the
 `onRegistrySwitch` prop):
@@ -332,6 +350,24 @@ The single hydration root for `/dashboard`: owns the `useReducer` store, the
 async registry-switch flow and the Toaster, and renders `Sidebar` + the content
 (header with `BalanceBreakdown`/`RecurringSpawn`/`CortarButton` when the
 registry has multiple participants, then `TransactionList`).
+
+**Demo mode** — extra props `isDemo`, `demoSnapshots` (seed snapshot per
+registry id) and `children` (laid over the content column; `/demo` mounts
+`DemoTour` there). `/demo` mounts this same shell with `isDemo`: switching a
+registry applies `demoSnapshots[id]` straight to the store — or an empty
+snapshot for an id the demo created — and stashes the book being left, so
+switching back restores it. No API, no IndexedDB: the mount-time cache cleanup
+is skipped (it would otherwise drop a signed-in visitor's real registry
+snapshots), and a tercero change also refreshes `users`, since no server
+snapshot is coming to do it. The header's history link becomes a link home and
+`CortarButton`/`RecurringSpawn` render nothing. On phones the menu button moves
+into that header, beside the balance (`MobileMenuButton` in the shell,
+`onMobileMenu`/`floatingTrigger` on the Sidebar), so nothing floats over the
+list; a one-member demo book has no header and keeps the floating button. The
+regular dashboard keeps the floating button at every size: its header also
+carries history, `CortarButton` and `RecurringSpawn`, and on a 360–375px phone a
+menu button beside the balance would leave the balance 95–136px — too little for
+a typical amount, which needs 111–150px at its phone size.
 
 ---
 
@@ -453,17 +489,25 @@ callbacks, which dispatch store actions.
 
 ## `DemoTour` — `components/demo/DemoTour.tsx`
 
-**Props**: `{ locale?: Locale }`. Floating tour button (bottom-left) on the
-`/demo` page, powered by driver.js.
+**Props**: `{ locale?: Locale }`. Floating tour button on the `/demo` page,
+powered by driver.js. It is mounted inside `DashboardShell`'s content column, in
+a bottom corner — bottom-right on phones, bottom-left from `sm` up — so it
+never sits on top of the sidebar, its drawer or the FABs.
 
 **Behavior**:
 
 - Auto-opens the tour picker on first visit (suppressed afterwards via a
   `localStorage` flag; the button always remains)
-- **Tour Rápido** (5 steps): dashboard highlights only
-- **Tour Completo**: additionally opens the real expense modal (clicks the FAB
-  programmatically), walks the type/split-mode controls, then closes it by
-  dispatching a synthetic Escape — which works because every modal gets its
+- Both tours open on the **books** step: the sidebar's book list on desktop,
+  the menu button on mobile — wherever it is (the demo header, or floating for
+  a one-member book), with the popover on the side that leaves room. In the
+  installed PWA on a phone there is no menu button to point at (`useIsStandalone`),
+  so the step becomes a centered popover with nothing highlighted, and its copy
+  says to swipe (`tour.books_desc_swipe`)
+- **Tour Rápido** (6 steps): dashboard highlights only
+- **Tour Completo** (9 steps): additionally opens the real expense modal (clicks
+  the FAB programmatically), walks the type/split-mode controls, then closes it
+  by dispatching a synthetic Escape — which works because every modal gets its
   Escape handling from the shared `Modal` component — and repeats inside the
   payment modal for the pay-exact-debt step
 - Tour end/dismissal is detected via driver's `onDestroyed` hook

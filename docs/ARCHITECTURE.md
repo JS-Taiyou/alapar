@@ -112,7 +112,8 @@ alapar-fresh/
 │   │   │                      #   EntityManager, BalanceBreakdown, RecurringSpawn,
 │   │   │                      #   DefaultSplitConfig, CortarButton, SearchBar,
 │   │   │                      #   SidebarIsland.astro (standalone history mount)
-│   ├── demo/                  # DemoApp (same reducer, static data), DemoTour
+│   ├── demo/                  # DemoApp (DashboardShell in demo mode), DemoTour,
+│   │                          #   demo-data (seed books → shell props)
 │   ├── history/               # ExerciseCard/PaywallCard/TransactionCard (.astro)
 │   ├── ui/                    # Modal, ProBadge, LocaleToggle, UpgradeButton,
 │   │                          #   Toaster + toast-store (useSyncExternalStore)
@@ -160,7 +161,7 @@ alapar-fresh/
 │   ├── enable_rls.sql         # Row-Level Security policies (re-runnable)
 │   ├── tighten_rls.sql        # RLS hardening follow-up (idempotent)
 │   └── enable_realtime.sql    # Publishes `transactions` via supabase_realtime
-├── data/demo.json             # Static demo data (3 users, 7 transactions)
+├── data/demo.json             # Static demo seed (3 books, 6 people, 19 transactions)
 ├── deno.json                  # Deno config (imports, tasks, compiler options)
 ├── deno.check.jsonc           # Type-check-only config (real npm types)
 ├── deno.test.json             # Test-only config (remaps db/supabase → stubs)
@@ -359,7 +360,8 @@ The `/dashboard` page hydrates a single tree (`DashboardShell`) whose
 `useReducer` store (`components/dashboard/dashboard-store.ts`) owns the shared
 dashboard data; realtime events, registry switches and the transaction modal's
 optimistic writes are typed actions, and balance recomputation happens inside
-the reducer. The demo page runs the same reducer with static data. The upgrade
+the reducer. The demo page mounts the same shell in demo mode, fed from static
+seed data. The upgrade
 toasts are the one cross-cutting store: a framework-agnostic
 subscribe/snapshot module (`components/ui/toast-store.ts`) bound with
 `useSyncExternalStore`.

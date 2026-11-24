@@ -280,9 +280,15 @@ export const en: Record<string, string> = {
   "tour.menu_title": "🎓 Guided Tour",
   "tour.menu_desc": "Learn A la Par's features in a few minutes.",
   "tour.quick_title": "Quick Tour",
-  "tour.quick_sub": "The essentials in 5 steps",
+  "tour.quick_sub": "The essentials in 6 steps",
   "tour.full_title": "Full Tour",
   "tour.full_sub": "Includes the expense and payment dialogs",
+  "tour.books_title": "📚 Your Books",
+  "tour.books_desc":
+    "Each book is its own expense group: home, a trip, your partner. Pick a book to switch between them — the balance and transactions belong to each book alone.",
+  // Same step where the menu opens with a swipe (the installed PWA on a phone).
+  "tour.books_desc_swipe":
+    "Each book is its own expense group: home, a trip, your partner. Swipe right to open your books and pick one — the balance and transactions belong to each book alone.",
   "tour.balance_title": "💰 Total Balance",
   "tour.balance_desc":
     "This is your net balance. Green = you're owed, red = you owe. Click it for a detailed per-person breakdown.",
@@ -310,7 +316,7 @@ export const en: Record<string, string> = {
     "Decide how to split the expense: Automatic (equal parts), Percentage (e.g. 60%/40%), or Fixed Amount (specific amounts per person).",
   "tour.pay_debt_title": "✅ Settle Debt",
   "tour.pay_debt_desc":
-    "When someone owes you, this button computes the exact amount automatically. One click and the payment is recorded for the right amount.",
+    "When there's an outstanding balance between who pays and who gets paid, this button fills in the exact amount. One click and the payment is ready to save.",
   "tour.finale_title": "🎉 That's it!",
   "tour.finale_desc":
     "You now know A la Par's main features. Explore the demo freely — all changes are temporary and reset on reload.",
@@ -367,4 +373,5 @@ export const en: Record<string, string> = {
   "cortar.error": "Could not settle the period. Try again.",
   "cortar.error_conn": "Connection error while settling the period.",
   "shell.history_title": "History",
+  "shell.home_title": "Home",
 };

@@ -84,13 +84,18 @@ ask-the-owner hint; no registries → create-first CTA.
 
 ### `/demo` — Guided Demo
 
-**File**: `routes/demo/index.tsx`
+**File**: `src/pages/demo/index.astro`
 
-Public, no auth and no DB: the dashboard rendered from static `data/demo.json`
-(3 users, 7 transactions). All mutations are client-side-only and reset on
-reload. Includes the `DemoTour` island (driver.js quick/full tours — the full
-tour opens and closes the real transaction modal via Escape) and a
-`LocaleToggle`.
+Public, no auth and no DB: the real dashboard (`DashboardShell` in demo mode)
+rendered from static `data/demo.json` — three books (roommates, a trip with
+friends, a couple) shared between six people. The sidebar lists the books and
+switching between them happens in memory: no API, no IndexedDB, no cookie (on
+phones the menu button sits in the header, beside the balance).
+What the sidebar offers there works locally (switch, rename, "Nuevo Libro",
+terceros) and resets on reload; what needs a session is not rendered (logout,
+invite, default split). Includes the `DemoTour` island (driver.js quick/full
+tours — the full tour opens and closes the real transaction modal via Escape)
+and a `LocaleToggle`.
 
 ### `/join/[code]` — Join Registry via Invitation
 

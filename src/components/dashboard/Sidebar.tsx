@@ -36,6 +36,20 @@ interface SidebarProps {
   onRegistrySwitch?: (id: string) => void;
   /** Entity-list updates propagated to the owning store (shell mode only). */
   onEntitiesChanged?: (entities: Entity[]) => void;
+  /**
+   * Demo mode (/demo): there is no session behind the sidebar. Logout,
+   * invite and the default-split config are not rendered; rename and "new
+   * book" stay in memory; the collapsed state is not persisted to the cookie.
+   */
+  isDemo?: boolean;
+  /**
+   * Hands the owner a function that opens the mobile drawer, so it can render
+   * the trigger itself (`MobileMenuButton`) — the demo header puts it beside
+   * the balance. The owner sets `floatingTrigger` for as long as it has no
+   * header to host the trigger, so the floating button still shows there.
+   */
+  onMobileMenu?: (open: () => void) => void;
+  floatingTrigger?: boolean;
 }
 
 const REGISTRY_COLORS = ["#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444", "#14b8a6"];
@@ -53,6 +67,61 @@ function registryColor(id: string): string {
   return REGISTRY_COLORS[Math.abs(hash) % REGISTRY_COLORS.length];
 }
 
+/** True once the app is known to run as an installed PWA (no browser chrome). */
+export function useIsStandalone(): boolean {
+  const [standalone, setStandalone] = useState(false);
+  useEffect(() => {
+    setStandalone(
+      globalThis.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as unknown as { standalone?: boolean }).standalone === true,
+    );
+  }, []);
+  return standalone;
+}
+
+/**
+ * The button that opens the mobile drawer. Hidden from md up (the rail is
+ * always on screen) and in the installed PWA, where a swipe opens the drawer.
+ *
+ * It floats over the bottom-left corner by default. Where there is room, the
+ * owner renders it with `inHeader` instead — putting it beside the balance —
+ * using the opener Sidebar hands over through `onMobileMenu`.
+ */
+export function MobileMenuButton(props: {
+  onClick: () => void;
+  label: string;
+  inHeader?: boolean;
+  hidden?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      data-tour="sidebar-open"
+      aria-label={props.label}
+      onClick={props.onClick}
+      className={`${
+        props.inHeader
+          ? "md:hidden shrink-0 p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+          : "md:hidden fixed bottom-20 left-4 z-40 w-12 h-12 bg-surface border border-border-custom rounded-full text-white shadow-lg flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
+      } ${props.hidden ? "hidden" : ""}`}
+    >
+      <svg
+        className={props.inHeader ? "w-6 h-6" : "w-5 h-5"}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          d="M4 6h16M4 12h16M4 18h16"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+        />
+      </svg>
+    </button>
+  );
+}
+
 export default function Sidebar(props: SidebarProps) {
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(props.locale ?? "es", key, params);
@@ -60,7 +129,7 @@ export default function Sidebar(props: SidebarProps) {
   const [collapsed, setCollapsed] = useState(props.initialCollapsed ?? false);
   const [mobileOpen, setMobileOpenState] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const isStandalone = useIsStandalone();
   const [dragOffset, setDragOffsetState] = useState<number | null>(null);
   const SIDEBAR_WIDTH = 288;
 
@@ -131,11 +200,6 @@ export default function Sidebar(props: SidebarProps) {
   const activeRegistryId = props.activeRegistryId;
 
   useEffect(() => {
-    const standalone =
-      globalThis.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as unknown as { standalone?: boolean }).standalone === true;
-    setIsStandalone(standalone);
-
     let touchStartX = 0;
     let touchStartY = 0;
     let touchStartTime = 0;
@@ -170,7 +234,7 @@ export default function Sidebar(props: SidebarProps) {
         touchStartY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
         touchStartTime = Date.now();
         dragging = true;
-      } else if (e.touches.length === 1 && standalone) {
+      } else if (e.touches.length === 1 && isStandalone) {
         twoFingerActive = false;
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
@@ -268,6 +332,14 @@ export default function Sidebar(props: SidebarProps) {
       document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("touchcancel", onTouchCancel);
     };
+    // Re-registered once the PWA check resolves, so the swipe rule matches.
+  }, [isStandalone]);
+
+  // One-time hand-off: `setMobileOpen` only touches a ref and a state setter,
+  // so the function the owner keeps stays good for the life of the page.
+  useEffect(() => {
+    props.onMobileMenu?.(() => setMobileOpen(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const sortedRegistries = useMemo(() => {
@@ -379,6 +451,7 @@ export default function Sidebar(props: SidebarProps) {
     const oldRegistries = registries;
     setRegistries(registries.map((r) => (r.id === id ? { ...r, name } : r)));
     setRenamingId(null);
+    if (props.isDemo) return;
     try {
       const res = await fetch(`/api/registries/${id}`, {
         method: "PATCH",
@@ -423,6 +496,27 @@ export default function Sidebar(props: SidebarProps) {
   async function handleCreateRegistry() {
     const name = newRegistryName.trim();
     if (!name || newRegistryLoading) return;
+
+    if (props.isDemo) {
+      // In memory only: the shell picks up the unknown id as an empty book.
+      const id = crypto.randomUUID();
+      setRegistries((prev) => [
+        ...prev,
+        {
+          id,
+          name,
+          isDefault: false,
+          latestAccessed: new Date(),
+          defaultSplit: null,
+          defaultSplitMemberCount: null,
+          lastModified: null,
+        },
+      ]);
+      setShowNewRegistry(false);
+      setNewRegistryName("");
+      switchRegistry(id);
+      return;
+    }
 
     const tempId = crypto.randomUUID();
     setNewRegistryLoading(true);
@@ -516,6 +610,8 @@ export default function Sidebar(props: SidebarProps) {
               // the previous state (stale closure), so negate it to match
               // what setCollapsed just applied.
               setCollapsed(!collapsed);
+              // Demo changes reset on reload — the cookie would outlive them.
+              if (props.isDemo) return;
               document.cookie = `sidebar-collapsed=${!collapsed};path=/;max-age=${
                 60 * 60 * 24 * 365
               };samesite=lax`;
@@ -545,6 +641,7 @@ export default function Sidebar(props: SidebarProps) {
         </button>
       </div>
       <div
+        data-tour="sidebar-books"
         className={`flex-1 overflow-hidden space-y-2 transition-all duration-300 ${
           collapsed && !mobileOpen ? "p-1.5" : "p-4 overflow-y-auto custom-scrollbar"
         }`}
@@ -709,7 +806,7 @@ export default function Sidebar(props: SidebarProps) {
                         </svg>
                       </button>
                     )}
-                    {isOwnedByMe && !isPending && (
+                    {isOwnedByMe && !isPending && !props.isDemo && (
                       <button
                         type="button"
                         onClick={(e) => {
@@ -755,7 +852,7 @@ export default function Sidebar(props: SidebarProps) {
         })}
       </div>
 
-      {props.isOwner && activeRegistryId && (
+      {!props.isDemo && props.isOwner && activeRegistryId && (
         <div
           className={`transition-all duration-300 ${
             collapsed && !mobileOpen ? "px-1.5 pb-1.5" : "px-4 pb-2"
@@ -807,6 +904,7 @@ export default function Sidebar(props: SidebarProps) {
               externalOpen={entitiesOpen || undefined}
               onExternalClose={() => setEntitiesOpen(false)}
               locale={props.locale}
+              isDemo={props.isDemo}
             />
           </div>
           {collapsed && !mobileOpen && (
@@ -863,51 +961,44 @@ export default function Sidebar(props: SidebarProps) {
         {(!collapsed || mobileOpen) && (
           <LocaleToggle locale={props.locale ?? "es"} full className="my-1" />
         )}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={`w-full flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-zinc-400 hover:text-red-400 transition-all duration-300 ${
-            collapsed && !mobileOpen ? "justify-center p-2.5" : "justify-center gap-2 py-2.5 px-4"
-          }`}
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
-          <span
-            className={`whitespace-nowrap transition-opacity duration-200 ${
-              collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+        {!props.isDemo && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={`w-full flex items-center bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-sm font-semibold text-zinc-400 hover:text-red-400 transition-all duration-300 ${
+              collapsed && !mobileOpen ? "justify-center p-2.5" : "justify-center gap-2 py-2.5 px-4"
             }`}
           >
-            {t("sidebar.logout")}
-          </span>
-        </button>
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+            <span
+              className={`whitespace-nowrap transition-opacity duration-200 ${
+                collapsed && !mobileOpen ? "opacity-0 w-0 overflow-hidden" : "opacity-100"
+              }`}
+            >
+              {t("sidebar.logout")}
+            </span>
+          </button>
+        )}
       </div>
     </>
   );
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        className={`md:hidden fixed bottom-20 left-4 z-40 w-12 h-12 bg-surface border border-border-custom rounded-full text-white shadow-lg flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all ${
-          isStandalone ? "hidden" : ""
-        }`}
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            d="M4 6h16M4 12h16M4 18h16"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-          />
-        </svg>
-      </button>
+      {props.floatingTrigger !== false && (
+        <MobileMenuButton
+          onClick={() => setMobileOpen(true)}
+          label={t("sidebar.menu")}
+          hidden={isStandalone}
+        />
+      )}
 
       {(mobileOpen || dragOffset !== null) && (
         <div

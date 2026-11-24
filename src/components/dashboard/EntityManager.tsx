@@ -21,6 +21,12 @@ interface EntityManagerProps {
   externalOpen?: boolean;
   onExternalClose?: () => void;
   locale?: Locale;
+  /**
+   * Demo mode (/demo): create and edit are applied in memory through
+   * `onEntitiesChanged`; delete is not offered (the server is what checks
+   * that a third party has no active transactions).
+   */
+  isDemo?: boolean;
 }
 
 export default function EntityManager(props: EntityManagerProps) {
@@ -57,6 +63,13 @@ export default function EntityManager(props: EntityManagerProps) {
 
   async function handleCreate() {
     if (!newName.trim()) return;
+    if (props.isDemo) {
+      const created: Entity = { id: crypto.randomUUID(), name: newName.trim(), color: newColor };
+      props.onEntitiesChanged([...entities, created]);
+      setNewName("");
+      setNewColor("#6b7280");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -85,6 +98,17 @@ export default function EntityManager(props: EntityManagerProps) {
 
   async function handleUpdate() {
     if (!editingId || !editName.trim()) return;
+    if (props.isDemo) {
+      const id = editingId;
+      const name = editName.trim();
+      props.onEntitiesChanged(
+        entities.map((entity) =>
+          entity.id === id ? { ...entity, name, color: editColor } : entity,
+        ),
+      );
+      setEditingId(null);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -306,25 +330,27 @@ export default function EntityManager(props: EntityManagerProps) {
                             />
                           </svg>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(entity.id)}
-                          className="text-zinc-400 hover:text-red-400 transition-colors"
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                        {!props.isDemo && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(entity.id)}
+                            className="text-zinc-400 hover:text-red-400 transition-colors"
                           >
-                            <path
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                            />
-                          </svg>
-                        </button>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                              />
+                            </svg>
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
