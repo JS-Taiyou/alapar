@@ -19,6 +19,7 @@
  *     group id is null (load-bearing for spawn-candidate grouping).
  *   - `rowToRegistry.defaultSplit`: three-way branch — falsy → null, string →
  *     JSON.parse, object → as-is.
+ *   - `rowToRegistry.remainderQueue`: read through {@link parseRemainderQueue}.
  */
 import type {
   DefaultSplit,
@@ -115,7 +116,23 @@ export function rowToRegistry(row: Record<string, unknown>): Registry {
       : null,
     defaultSplitMemberCount: (row.default_split_member_count as number) ?? null,
     lastModified: row.last_modified ? new Date(row.last_modified as string) : null,
+    remainderQueue: parseRemainderQueue(row.remainder_queue),
   };
+}
+
+/**
+ * The book's line for leftover cents as stored in `registries.remainder_queue`
+ * (JSONB). It arrives parsed, as text on some drivers, and is missing
+ * altogether before the column's migration: an empty line in every case but
+ * the first.
+ */
+export function parseRemainderQueue(value: unknown): string[] {
+  try {
+    const queue = typeof value === "string" ? (JSON.parse(value) as unknown) : value;
+    return Array.isArray(queue) ? queue.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 // Entity and Participant are structurally identical for row-mapping purposes;

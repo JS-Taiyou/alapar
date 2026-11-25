@@ -87,6 +87,7 @@ export const PUT: APIRoute = async (ctx) => {
       type: data.type,
       notes: data.notes,
       splitJson: data.splitJson,
+      splitMode: data.splitMode,
       userPaid: data.userPaid,
       installmentCurrent: data.installmentCurrent,
       installmentTotal: data.installmentTotal,
@@ -116,7 +117,11 @@ export const PUT: APIRoute = async (ctx) => {
   // its own write produced.
   const lastModified = await getStamp(tx.registry_id);
   void bumpRegistryVersion(updated.registry_id);
-  return Response.json({ ...updated, lastModified });
+  return Response.json({
+    ...updated,
+    lastModified,
+    ...(updated.remainderQueue && { remainderQueue: updated.remainderQueue }),
+  });
 };
 
 export const DELETE: APIRoute = async (ctx) => {

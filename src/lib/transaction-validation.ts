@@ -8,7 +8,7 @@
  * be able to store splits that don't add up to the transaction they belong
  * to (that would silently create or destroy group money).
  */
-import type { TransactionSplit } from "./types";
+import type { SplitMode, TransactionSplit } from "./types";
 
 export interface TransactionFormData {
   description: string;
@@ -21,6 +21,8 @@ export interface TransactionFormData {
   installmentTotal: number | null;
   relatedTransactionId: string | null;
   splitJson: TransactionSplit;
+  /** How the client decided the split. Auto and Porcentaje are dealt by the server; absent means an older client. */
+  splitMode: SplitMode | undefined;
   transactionPaymentEntries: { expenseId: string; amount: number }[] | undefined;
 }
 
@@ -29,6 +31,7 @@ export type ParseTransactionFormResult =
   | { ok: false; error: string };
 
 const TRANSACTION_TYPES = new Set(["unico", "parcialidad", "recurrente", "pago", "ajuste"]);
+const SPLIT_MODES = new Set(["auto", "percentage", "fixed"]);
 
 /** NUMERIC(12,2) headroom; anything above is not a real amount a user types. */
 const MAX_AMOUNT = 999_999_999.99;
@@ -106,6 +109,11 @@ export function parseTransactionForm(form: FormData): ParseTransactionFormResult
     ) {
       return { ok: false, error: "Parcialidad actual inválida" };
     }
+  }
+
+  const splitModeRaw = form.get("splitMode") as string | null;
+  if (splitModeRaw !== null && splitModeRaw !== "" && !SPLIT_MODES.has(splitModeRaw)) {
+    return { ok: false, error: "Modo de división inválido" };
   }
 
   let splitJson: TransactionSplit;
@@ -216,6 +224,8 @@ export function parseTransactionForm(form: FormData): ParseTransactionFormResult
       installmentTotal,
       relatedTransactionId,
       splitJson,
+      splitMode:
+        splitModeRaw && SPLIT_MODES.has(splitModeRaw) ? (splitModeRaw as SplitMode) : undefined,
       transactionPaymentEntries,
     },
   };

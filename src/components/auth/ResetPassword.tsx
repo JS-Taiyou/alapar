@@ -146,7 +146,7 @@ export default function ResetPassword(props: ResetPasswordProps) {
         </label>
         <div className="relative">
           <input
-            className="block w-full px-4 py-2.5 pr-11 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+            className="block w-full px-4 py-2.5 pr-11 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
             id="new-password"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
@@ -199,7 +199,7 @@ export default function ResetPassword(props: ResetPasswordProps) {
           {t("reset.confirm_password")}
         </label>
         <input
-          className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+          className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
           id="confirm-password"
           type={showPassword ? "text" : "password"}
           placeholder="••••••••"
@@ -223,6 +223,13 @@ export default function ResetPassword(props: ResetPasswordProps) {
       >
         {loading ? t("reset.updating") : t("reset.submit")}
       </button>
+
+      <p className="text-center text-sm text-zinc-400">
+        {t("auth.demo_prefix")}{" "}
+        <a href="/demo" className="text-primary-text hover:underline">
+          {t("common.try_demo")}
+        </a>
+      </p>
     </form>
   );
 }

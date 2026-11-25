@@ -29,14 +29,13 @@ const locale = Astro.locals.locale;
     activated ? "billing.success_title" : "billing.success_pending_title",
   )}
 >
-  <main class="min-h-screen flex items-center justify-center p-6 bg-pattern">
-    <div class="absolute inset-0 gradient-glow pointer-events-none"></div>
+  <main class="min-h-screen flex items-center justify-center p-6">
     <div class="bg-surface border border-border-custom rounded-custom p-8 w-full max-w-md z-10 text-center">
       <div
         class={`w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center ${
           activated
             ? "bg-emerald-500/20 text-emerald-400"
-            : "bg-primary/20 text-primary"
+            : "bg-primary/20 text-primary-text"
         }`}
       >
         <svg

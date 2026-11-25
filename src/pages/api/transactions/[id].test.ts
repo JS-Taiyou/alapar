@@ -8,7 +8,7 @@ import { assertEquals } from "@test/compat";
 import { beforeEach, describe, it } from "@test/compat";
 import * as handler from "./[id]";
 import { formRequest, makeCtx, mkParticipant } from "@test/helpers";
-import { __resetDbStub, __setQueryResult } from "@test/fixtures/db_stub";
+import { __queryLog, __resetDbStub, __setQueryResult } from "@test/fixtures/db_stub";
 
 const URL = "https://test.local/api/transactions/tx-1";
 const participants = [mkParticipant("u1"), mkParticipant("u2")];
@@ -59,10 +59,13 @@ function validFields(overrides: Record<string, string> = {}): Record<string, str
   };
 }
 
-/** Stub getTransactionById (SELECT) + updateTransaction (UPDATE RETURNING). */
+/** Stub getTransactionById (SELECT) + updateTransaction (lock, UPDATE RETURNING). */
 function stubTxFound() {
   __setQueryResult((text) => {
     if (text.includes("SELECT * FROM transactions WHERE id = $1")) {
+      return { rows: [txRow("tx-1", "r1")] };
+    }
+    if (text.includes("FOR UPDATE")) {
       return { rows: [txRow("tx-1", "r1")] };
     }
     if (text.includes("id = ANY")) {
@@ -162,5 +165,74 @@ describe("transaction PUT — cross-reference validation (S7)", () => {
     const ctx = userCtx(formRequest(URL, validFields({ relatedTransactionId: "tx-2" })));
     const res = await handler.PUT!(ctx as never);
     assertEquals(res.status, 200);
+  });
+});
+
+describe("transaction PUT — the book's line for leftover cents", () => {
+  const even = (first: number, second: number) =>
+    JSON.stringify({
+      splits: [
+        { userId: "u1", percentage: 50, amount: first },
+        { userId: "u2", percentage: 50, amount: second },
+      ],
+    });
+
+  /** A $10.11 expense saved with `stored`, in a book whose line is `line`. */
+  function stubSaved(stored: unknown, line: string[]) {
+    const row: Record<string, unknown> = {
+      ...txRow("tx-1", "r1"),
+      amount: "10.11",
+      original_amount: "10.11",
+      split_json: stored,
+    };
+    __setQueryResult((text) => {
+      if (text.includes("remainder_queue = remainder_queue")) {
+        return { rows: [{ remainder_queue: line }] };
+      }
+      if (text.includes("id = ANY")) return { rows: [] };
+      return { rows: [row] };
+    });
+  }
+  const lineWrites = () =>
+    __queryLog.filter((c) => c.text.includes("UPDATE registries SET remainder_queue = $2"));
+
+  it("an edit that leaves the split alone returns the line untouched", async () => {
+    stubSaved(even(5.06, 5.05), ["u1", "u2"]);
+    const ctx = userCtx(
+      formRequest(
+        URL,
+        validFields({ amount: "10.11", splitJson: even(5.06, 5.05), splitMode: "auto" }),
+      ),
+    );
+    const res = await handler.PUT!(ctx as never);
+    assertEquals(res.status, 200);
+    assertEquals(lineWrites().length, 0);
+    assertEquals("remainderQueue" in (await res.json()), false);
+  });
+
+  it("an edit that moves the cent is dealt against the line and reports it", async () => {
+    // The amount became $10.21 and the form, predicting from the line, put the
+    // cent on u2; u1 is first in line, so the server moves it to u1.
+    stubSaved(
+      JSON.stringify({
+        splits: [
+          { userId: "u1", percentage: 50, amount: 5.06 },
+          { userId: "u2", percentage: 50, amount: 5.05 },
+        ],
+        mode: "auto",
+      }),
+      ["u1", "u2"],
+    );
+    const ctx = userCtx(
+      formRequest(
+        URL,
+        validFields({ amount: "10.21", splitJson: even(5.1, 5.11), splitMode: "auto" }),
+      ),
+    );
+    const res = await handler.PUT!(ctx as never);
+    assertEquals(res.status, 200);
+    const body = await res.json();
+    assertEquals(body.remainderQueue, ["u2", "u1"]);
+    assertEquals(lineWrites()[0]?.params, ["r1", '["u2","u1"]']);
   });
 });

@@ -223,7 +223,7 @@ export default function AuthForm(props: AuthFormProps) {
                 {t("auth.name")}
               </label>
               <input
-                className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+                className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
                 id="name"
                 type="text"
                 placeholder={t("auth.name_placeholder")}
@@ -238,7 +238,7 @@ export default function AuthForm(props: AuthFormProps) {
               {t("auth.email")}
             </label>
             <input
-              className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+              className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
               id="email"
               type="email"
               placeholder={t("auth.email_placeholder")}
@@ -253,7 +253,7 @@ export default function AuthForm(props: AuthFormProps) {
             </label>
             <div className="relative">
               <input
-                className="block w-full px-4 py-2.5 pr-11 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+                className="block w-full px-4 py-2.5 pr-11 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder={devMode ? "(dev: cualquier contraseña)" : "••••••••"}
@@ -339,7 +339,7 @@ export default function AuthForm(props: AuthFormProps) {
                 <div className="w-full border-t border-white/10" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="bg-surface px-3 text-zinc-500">{t("auth.or")}</span>
+                <span className="bg-surface px-3 text-zinc-400">{t("auth.or")}</span>
               </div>
             </div>
           )}
@@ -360,7 +360,10 @@ export default function AuthForm(props: AuthFormProps) {
 
       {props.mode === "login" && !devMode && (
         <p className="text-center text-sm">
-          <a href="/forgot-password" className="text-zinc-400 hover:text-primary hover:underline">
+          <a
+            href="/forgot-password"
+            className="text-zinc-400 hover:text-primary-text hover:underline"
+          >
             {t("auth.forgot_link")}
           </a>
         </p>
@@ -374,7 +377,7 @@ export default function AuthForm(props: AuthFormProps) {
               href={`/signup${
                 redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""
               }`}
-              className="text-primary hover:underline"
+              className="text-primary-text hover:underline"
             >
               {t("auth.signup_link")}
             </a>
@@ -386,12 +389,19 @@ export default function AuthForm(props: AuthFormProps) {
               href={`/login${
                 redirectPath !== "/dashboard" ? `?redirect=${encodeURIComponent(redirectPath)}` : ""
               }`}
-              className="text-primary hover:underline"
+              className="text-primary-text hover:underline"
             >
               {t("auth.login_link")}
             </a>
           </>
         )}
+      </p>
+
+      <p className="text-center text-sm text-zinc-400">
+        {t("auth.demo_prefix")}{" "}
+        <a href="/demo" className="text-primary-text hover:underline">
+          {t("common.try_demo")}
+        </a>
       </p>
     </form>
   );

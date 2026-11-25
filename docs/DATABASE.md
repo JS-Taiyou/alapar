@@ -39,18 +39,19 @@ for client (JWT) callers while still allowing server-side sync — see
 
 ### `registries` — Expense Groups
 
-| Column                     | Type        | Constraints                                                      | Description                                                    |
-| -------------------------- | ----------- | ---------------------------------------------------------------- | -------------------------------------------------------------- |
-| id                         | UUID        | PK, auto                                                         | Unique identifier                                              |
-| name                       | TEXT        | NOT NULL                                                         | Display name (e.g., "Viaje a la playa")                        |
-| is_default                 | BOOLEAN     | NOT NULL, default false                                          | Legacy field                                                   |
-| latest_accessed            | TIMESTAMPTZ | NOT NULL, default now()                                          | Last access time                                               |
-| default_split_json         | JSONB       | nullable                                                         | Custom default split percentages                               |
-| default_split_member_count | INTEGER     | nullable                                                         | Member count when default was set (auto-invalidates on change) |
-| entities_json              | JSONB       | default '[]'                                                     | Third-party entities stored as JSON array                      |
-| last_modified              | TIMESTAMPTZ | NOT NULL, default now()                                          | Updated by trigger on any transaction CUD                      |
-| plan                       | TEXT        | NOT NULL, default 'free', CHECK (`free`\|`pro`\|`grandfathered`) | Billing tier (owner pays, group benefits)                      |
-| created_at                 | TIMESTAMPTZ | NOT NULL, default now()                                          | Creation timestamp                                             |
+| Column                     | Type        | Constraints                                                      | Description                                                           |
+| -------------------------- | ----------- | ---------------------------------------------------------------- | --------------------------------------------------------------------- |
+| id                         | UUID        | PK, auto                                                         | Unique identifier                                                     |
+| name                       | TEXT        | NOT NULL                                                         | Display name (e.g., "Viaje a la playa")                               |
+| is_default                 | BOOLEAN     | NOT NULL, default false                                          | Legacy field                                                          |
+| latest_accessed            | TIMESTAMPTZ | NOT NULL, default now()                                          | Last access time                                                      |
+| default_split_json         | JSONB       | nullable                                                         | Custom default split percentages                                      |
+| default_split_member_count | INTEGER     | nullable                                                         | Member count when default was set (auto-invalidates on change)        |
+| entities_json              | JSONB       | default '[]'                                                     | Third-party entities stored as JSON array                             |
+| last_modified              | TIMESTAMPTZ | NOT NULL, default now()                                          | Updated by trigger on any transaction CUD                             |
+| remainder_queue            | JSONB       | NOT NULL, default '[]', CHECK (`jsonb_typeof` = `array`)         | The book's line for leftover cents: members who took one, front first |
+| plan                       | TEXT        | NOT NULL, default 'free', CHECK (`free`\|`pro`\|`grandfathered`) | Billing tier (owner pays, group benefits)                             |
+| created_at                 | TIMESTAMPTZ | NOT NULL, default now()                                          | Creation timestamp                                                    |
 
 **Purpose**: Central hub for each expense group.
 
@@ -260,6 +261,7 @@ The `split_json` JSONB field in transactions:
 
 ```json
 {
+  "mode": "auto",
   "splits": [
     {
       "userId": "uuid-1",
@@ -274,6 +276,12 @@ The `split_json` JSONB field in transactions:
   ]
 }
 ```
+
+`mode` is set by the server on expenses the form sends a mode for (`auto`,
+`percentage`, `fixed`; see
+[Leftover cents](BUSINESS_LOGIC.md#leftover-cents-libsplitsts-resolvetransactionsplit)).
+It is what later periods of a recurring or instalment expense are dealt by. It
+is absent on rows saved before the line existed, and on payments.
 
 For `pago` (payment) and `ajuste` (adjustment) types, split contains single
 recipient:
@@ -348,6 +356,9 @@ Migrations must be run in order:
      `transactions`
    - `add_registry_last_modified.sql` — `last_modified` column, the
      `update_registry_last_modified()` function and its trigger
+   - `add_remainder_queue.sql` — `registries.remainder_queue`, the line each
+     book keeps for leftover cents. **Run it before deploying the code that
+     deals leftover cents**: saving an expense reads the column
    - `add_transaction_payments.sql` — expense↔payment links table (+ RLS)
    - `add_transaction_balances.sql` — per-user balance deltas table (+ RLS),
      with a backfill for existing transactions

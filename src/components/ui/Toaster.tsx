@@ -23,7 +23,7 @@ export default function Toaster() {
             className="animate-slide-in-right pointer-events-auto flex items-center gap-3 max-w-sm bg-surface border border-white/10 rounded-custom shadow-raised px-4 py-3"
           >
             <svg
-              className="w-5 h-5 shrink-0 text-primary-light"
+              className="w-5 h-5 shrink-0 text-primary-text"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -38,15 +38,15 @@ export default function Toaster() {
             <span className="text-sm text-zinc-200">{t(toast.messageKey)}</span>
             <a
               href="/pricing"
-              className="text-sm font-semibold text-primary-light hover:text-white transition-colors shrink-0"
+              className="text-sm font-semibold text-primary-text hover:text-white transition-colors shrink-0"
             >
               {t("billing.view_plans")} →
             </a>
             <button
               type="button"
-              aria-label={t("common.cancel")}
+              aria-label={t("common.close")}
               onClick={() => dismissToast(toast.id)}
-              className="text-zinc-500 hover:text-white transition-colors shrink-0"
+              className="text-zinc-400 hover:text-white transition-colors shrink-0"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

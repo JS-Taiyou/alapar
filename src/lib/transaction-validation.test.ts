@@ -193,3 +193,23 @@ describe("parseTransactionForm — rejected", () => {
     );
   });
 });
+
+describe("parseTransactionForm — split mode", () => {
+  it("reads the mode the form sends", () => {
+    for (const splitMode of ["auto", "percentage", "fixed"]) {
+      const parsed = parseTransactionForm(form({ splitMode }));
+      assertEquals(parsed.ok && parsed.data.splitMode, splitMode);
+    }
+  });
+
+  it("reads no mode from a form that sends none, or an empty one", () => {
+    const plain = parseTransactionForm(form());
+    assertEquals(plain.ok && plain.data.splitMode, undefined);
+    const empty = parseTransactionForm(form({ splitMode: "" }));
+    assertEquals(empty.ok && empty.data.splitMode, undefined);
+  });
+
+  it("rejects a mode the server does not know", () => {
+    assertEquals(parseTransactionForm(form({ splitMode: "coin-toss" })).ok, false);
+  });
+});

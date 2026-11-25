@@ -4,6 +4,79 @@ All notable changes to this project are documented here. Dates are approximate.
 
 ---
 
+## 2026-11-24 (c) — Leftover cents rotate by a line each book keeps
+
+- **The rule.** A cent that cannot be divided is dealt by the server against a
+  line each book keeps (`registries.remainder_queue`): whole cents only,
+  largest remainders first, ties to whoever is first in line, and whoever took
+  a cent goes to the back. Among n members, whoever took a cent waits exactly
+  n − 1 turns, in an order the book keeps for good. Until now the browser
+  picked the member with a fresh random seed per form, the server stored
+  whatever it got, and nothing remembered who took the last cent.
+- **$10.11 at 50/50** is 5.06 / 5.05, then 5.05 / 5.06. $10.01 among three
+  leaves two cents, so two members take one each and every member carries a
+  cent in two expenses out of three.
+- **The 33.34 of an even split in Porcentaje moves along too.** Its holder
+  takes a turn even on an amount where every share is exact ($500.10 against
+  $499.95 of $1,500), so it is no longer the same member every time. A stored
+  default split and the remembered last split are dealt by the line, not by
+  the holder they were saved with.
+- **The server decides.** The split is dealt inside the transaction that saves
+  the expense, under the book's row lock, and the form shows the same deal from
+  the line delivered with the dashboard and with each save's answer. Splits
+  the server deals always come out at the total to the cent (a 33.33 × 3 split
+  used to leave up to a few cents unassigned).
+- **Edits** leave an untouched split alone, cents and turn; only a split that
+  changed is dealt again, against the line as it stands then. Deleting never
+  rewinds the line.
+- **Instalments and recurring expenses** take a turn from the line when each
+  period is created. They used to copy the original split, so the same member
+  got the cent every period. The mode a split was dealt by now travels in
+  `split_json.mode`.
+- **Demo** keeps a line per book in memory.
+- **Migration**: `db/add_remainder_queue.sql`, to run before deploying.
+- The line and the edited row are read with statements Hyperdrive's query
+  cache cannot answer (a write that changes nothing; a read with `now()`).
+
+## 2026-11-24 (b) — UI pass: brand colour, contrast, split form, phones
+
+Follow-up to a UI/UX review that measured every screen against WCAG contrast
+(text 4.5:1, controls 3:1).
+
+- **The brand colour applies now.** daisyUI wrote its own `--color-primary`
+  into the base layer after the `@theme` block, so every `bg-primary` rendered
+  daisyUI's stock violet. The brand blue is restated with higher precedence.
+  New tokens: `primary-text` for links and focus rings on dark surfaces (the
+  brand blue as text is 1.9:1) and `border-field` for input borders (3.2:1; the
+  old `white/20` was 1.6:1).
+- **Contrast sweep.** Small grey text moved to `zinc-400`; one green for money
+  in your favour; the yellow "Gasto" icon is dark on yellow (7.6:1, was
+  1.91:1); filter chips carry a colour dot instead of 8px initials.
+- **Expense form.** An untouched equal split is no longer flagged red:
+  percentages are seeded to add up to exactly 100 and validated on the
+  resulting amounts with the server's rule (stored default splits that miss
+  100 by a rounding residue are completed). Incomplete splits say
+  "Faltan/Sobran $X" and keep Guardar disabled. "Relacionar pago" only offers
+  expenses paid by the selected recipient. The split table sits above the
+  notes, which are collapsed by default; on phones the heading is no longer
+  clipped. Editing opens in the matching split mode (a two-of-three split used
+  to be re-split in thirds).
+- **Payment form** no longer replays the last expense's payer, which could
+  select the same person as payer and as recipient.
+- **Phones.** "Pago"/"Gasto" stay pinned while the list scrolls.
+- **Balance** says what it means under the amount ("Debes $163.33"); the
+  breakdown popover closes on Escape and returns focus.
+- **Pages.** Readable "PRO" badge, a call to action on the free plan, and a
+  link to the demo from login, sign-up, forgot/reset password and pricing.
+- **Copy.** Sentence case in Spanish, one word for a book (libro / book) where
+  it was libro / registro / grupo, no emoji in tour headings.
+- **Accessibility.** Modals take focus, keep Tab inside and return focus;
+  icon-only buttons have names.
+- **Removed** the dot-grid + glow backgrounds and the Pro card glow.
+- Tests: 528 green (37 files).
+
+---
+
 ## 2026-11-24 — Demo: several books + the real sidebar
 
 `/demo` now mounts the real `DashboardShell` in demo mode instead of a

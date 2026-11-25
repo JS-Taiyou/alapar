@@ -144,6 +144,7 @@ export const POST: APIRoute = async (ctx) => {
       recurringGroupId: crypto.randomUUID(),
       notes: data.notes,
       splitJson: data.splitJson,
+      splitMode: data.splitMode,
       creatorId: userId,
       userPaid: data.userPaid,
       relatedTransactionId: data.relatedTransactionId,
@@ -160,8 +161,14 @@ export const POST: APIRoute = async (ctx) => {
 
   // The fresh stamp lets the creating client label its snapshot with the
   // version its own write produced (otherwise it stores the pre-mutation
-  // stamp and forces a redundant refetch on the next sync).
+  // stamp and forces a redundant refetch on the next sync). The book's line
+  // comes back for the same reason: the form predicts the next leftover cent
+  // with it, and no refetch is coming to deliver it.
   const lastModified = await getStamp(registryId);
   void bumpRegistryVersion(tx.registry_id);
-  return Response.json({ ...tx, lastModified });
+  return Response.json({
+    ...tx,
+    lastModified,
+    ...(tx.remainderQueue && { remainderQueue: tx.remainderQueue }),
+  });
 };

@@ -72,6 +72,11 @@ export interface Registry {
   defaultSplit: DefaultSplit | null;
   defaultSplitMemberCount: number | null;
   lastModified: Date | null;
+  /**
+   * The book's line for cents that cannot be divided: front first, and
+   * whoever took the last leftover cent waits at the back.
+   */
+  remainderQueue: string[];
 }
 
 export interface SplitEntry {
@@ -80,8 +85,19 @@ export interface SplitEntry {
   amount: number;
 }
 
+/**
+ * How a split was decided. It travels with the split, so a later period of
+ * the same expense can be dealt the same way against the book's line.
+ */
+export type SplitMode = "auto" | "percentage" | "fixed";
+
 export interface TransactionSplit {
   splits: SplitEntry[];
+  /**
+   * Set by the server on expenses it deals. Absent on rows saved before the
+   * line existed, and on splits sent by a client.
+   */
+  mode?: SplitMode;
 }
 
 export interface RegistryMember {

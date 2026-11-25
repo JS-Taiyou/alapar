@@ -21,7 +21,7 @@ export default function SearchBar({ placeholder = "Buscar...", filterSelector }:
   return (
     <div className="mb-6">
       <div className="relative">
-        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
+        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-400">
           <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
@@ -32,7 +32,7 @@ export default function SearchBar({ placeholder = "Buscar...", filterSelector }:
           </svg>
         </span>
         <input
-          className="w-full bg-surface border-border-custom rounded-custom pl-10 text-white placeholder-zinc-500 focus:ring-primary focus:border-primary py-2.5"
+          className="w-full bg-surface border border-border-field rounded-custom pl-10 text-white placeholder-zinc-400 focus:ring-primary-text focus:border-primary-text py-2.5"
           placeholder={placeholder}
           type="text"
           value={query}

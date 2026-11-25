@@ -132,7 +132,7 @@ export default function BillingActions(props: BillingActionsProps) {
             type="button"
             onClick={handleReactivate}
             disabled={busy}
-            className="text-xs font-semibold text-primary hover:text-primary-light transition-colors disabled:opacity-50"
+            className="text-xs font-semibold text-primary-text hover:text-white transition-colors disabled:opacity-50"
           >
             {t("pricing.reactivate")}
           </button>
@@ -142,7 +142,7 @@ export default function BillingActions(props: BillingActionsProps) {
           type="button"
           onClick={() => setShowCancelModal(true)}
           disabled={busy}
-          className="text-xs text-zinc-500 hover:text-red-400 transition-colors disabled:opacity-50"
+          className="text-xs text-zinc-400 hover:text-red-400 transition-colors disabled:opacity-50"
         >
           {t("pricing.cancel_link")}
         </button>
@@ -152,7 +152,7 @@ export default function BillingActions(props: BillingActionsProps) {
         type="button"
         onClick={handleManage}
         disabled={busy}
-        className="block text-xs text-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-50"
+        className="block text-xs text-zinc-400 hover:text-zinc-300 transition-colors disabled:opacity-50"
       >
         {t("billing.manage")}
       </button>
@@ -162,7 +162,7 @@ export default function BillingActions(props: BillingActionsProps) {
           type="button"
           onClick={() => setShowSwitchModal(true)}
           disabled={busy}
-          className="block text-xs text-zinc-500 hover:text-primary-light transition-colors disabled:opacity-50"
+          className="block text-xs text-zinc-400 hover:text-primary-text transition-colors disabled:opacity-50"
         >
           {targetInterval === "yearly"
             ? t("billing.switch_to_yearly")
@@ -227,7 +227,7 @@ export default function BillingActions(props: BillingActionsProps) {
                 type="button"
                 onClick={handleSwitch}
                 disabled={busy}
-                className="px-6 py-2 text-sm font-semibold text-primary hover:text-primary-light transition-colors disabled:opacity-50"
+                className="px-6 py-2 text-sm font-semibold text-primary-text hover:text-white transition-colors disabled:opacity-50"
               >
                 {busy ? t("common.saving") : t("billing.switch_confirm")}
               </button>

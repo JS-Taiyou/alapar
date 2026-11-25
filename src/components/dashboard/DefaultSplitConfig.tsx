@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { DefaultSplit, User } from "../../lib/types";
 import { initials, sanitizeDecimal } from "../../lib/format";
+import { completePercentages, equalPercentages } from "../../lib/calculations";
 import Modal from "../ui/Modal";
 import ProBadge from "../ui/ProBadge";
 import { t as translate, type Locale } from "../../lib/i18n";
@@ -30,12 +31,12 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
       const userIds = new Set(currentMembers.map((u) => u.id));
       const allPresent = props.defaultSplit.splits.every((s) => userIds.has(s.userId));
       if (allPresent) {
-        return Object.fromEntries(props.defaultSplit.splits.map((s) => [s.userId, s.percentage]));
+        return completePercentages(
+          Object.fromEntries(props.defaultSplit.splits.map((s) => [s.userId, s.percentage])),
+        );
       }
     }
-    return Object.fromEntries(
-      currentMembers.map((u) => [u.id, Math.round((100 / currentMembers.length) * 100) / 100]),
-    );
+    return Object.fromEntries(Object.entries(equalPercentages(currentMembers.map((u) => u.id))));
   };
 
   const [percentages, setPercentages] = useState<Record<string, number>>(initialPercentages);
@@ -59,9 +60,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
 
   function resetToEqual() {
     setPercentages(
-      Object.fromEntries(
-        currentMembers.map((u) => [u.id, Math.round((100 / currentMembers.length) * 100) / 100]),
-      ),
+      Object.fromEntries(Object.entries(equalPercentages(currentMembers.map((u) => u.id)))),
     );
   }
 
@@ -217,7 +216,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                           <div className="flex items-center gap-3">
                             <div
                               className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                              style={{ backgroundColor: `${user.color}30`, color: user.color }}
+                              style={{ backgroundColor: `${user.color}30`, color: "#fff" }}
                             >
                               {userInitials}
                             </div>
@@ -242,7 +241,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                                 autoComplement(user.id);
                               }}
                             />
-                            <span className="ml-1 text-zinc-500">%</span>
+                            <span className="ml-1 text-zinc-400">%</span>
                           </div>
                         </td>
                       </tr>

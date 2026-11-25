@@ -22,11 +22,11 @@ export const en: Record<string, string> = {
   "app.tagline": "The easiest way to split expenses with friends, family, or travel buddies.",
 
   // --- Landing page ---
-  "landing.new_registry": "New group",
-  "landing.new_registry_desc": "Create a new expense group for your next trip or event.",
+  "landing.new_registry": "New book",
+  "landing.new_registry_desc": "Create a new book for your next trip or event.",
   "landing.start": "Get started",
-  "landing.join_registry": "Join a group",
-  "landing.join_registry_desc": "Enter an invite code to join an existing group.",
+  "landing.join_registry": "Join a book",
+  "landing.join_registry_desc": "Enter an invite code to join an existing book.",
   "landing.copyright": "© 2024 A la Par. Transparent finances.",
 
   // --- Auth ---
@@ -179,12 +179,12 @@ export const en: Record<string, string> = {
   "modal.default_payment_desc": "Payment",
 
   // --- Registries ---
-  "registry.new": "New Group",
-  "registry.new_desc": "Create a group to manage shared expenses",
-  "registry.name_label": "Group Name",
+  "registry.new": "New book",
+  "registry.new_desc": "Create a book for the expenses you share",
+  "registry.name_label": "Book name",
   "registry.name_placeholder": "e.g. Roommates",
-  "registry.create": "Create Group",
-  "registry.page_title": "A la Par - New Group",
+  "registry.create": "Create book",
+  "registry.page_title": "A la Par - New book",
 
   // --- Join ---
   "join.not_found": "Invitation not found",
@@ -198,12 +198,12 @@ export const en: Record<string, string> = {
   "join.login_to_join": "Log in to Join",
   "join.create_account": "Create Account",
   "join.joining": "Joining...",
-  "join.join_button": "Join Group",
+  "join.join_button": "Join book",
   "join.code_placeholder": "Code (e.g. K9X2M4B7)",
   "join.page_title": "A la Par - Join {name}",
   "join.not_found_page_title": "A la Par - Invitation not found",
   "join.submit": "Join",
-  "join.error": "Couldn't join the group.",
+  "join.error": "Couldn't join the book.",
 
   // --- Billing / Pro tier ---
   "billing.upgrade": "Upgrade to Pro",
@@ -211,18 +211,18 @@ export const en: Record<string, string> = {
   "billing.grandfathered_badge": "PRO",
   "billing.upgrade_hint_owner": "Unlock unlimited members and templates, plus full history.",
   "billing.group_full":
-    "This group reached the free plan's member limit. The owner can upgrade to Pro to invite more people.",
+    "This book reached the free plan's member limit. The owner can upgrade to Pro to invite more people.",
   "billing.templates_full":
-    "This group reached the free plan's recurring-template limit. The owner can upgrade to Pro to add more.",
+    "This book reached the free plan's recurring-template limit. The owner can upgrade to Pro to add more.",
   "billing.registries_full":
-    "You reached the free plan's limit of 2 groups. Upgrade one to Pro or delete a group to create another.",
+    "You reached the free plan's limit of 2 books. Upgrade one to Pro or delete a book to create another.",
   "billing.history_locked": "Older cuts available in Pro",
   "billing.history_locked_cta": "Unlock full history",
   "billing.monthly": "Monthly",
   "billing.yearly": "Yearly",
   "billing.manage": "Manage subscription",
   "billing.success_title": "Pro activated!",
-  "billing.success_desc": "Your group now has unlimited access. Every member benefits.",
+  "billing.success_desc": "Your book now has unlimited access. Every member benefits.",
   "billing.success_pending_title": "Processing payment…",
   "billing.success_pending_desc":
     "Your payment is being confirmed. This can take a few seconds; Pro will activate automatically.",
@@ -230,24 +230,24 @@ export const en: Record<string, string> = {
   "billing.view_plans": "See plans",
 
   "pricing.title": "Pricing",
-  "pricing.subtitle": "Start free. Upgrade your group when it grows.",
+  "pricing.subtitle": "Start free. Upgrade your book when it grows.",
   "pricing.free_name": "Free",
-  "pricing.free_registries": "Up to {n} owned groups",
-  "pricing.free_members": "Up to {n} members per group",
+  "pricing.free_registries": "Up to {n} owned books",
+  "pricing.free_members": "Up to {n} members per book",
   "pricing.free_templates": "Up to {n} recurring templates",
   "pricing.free_history": "Latest cut in history",
   "pricing.unlimited_core": "Unlimited transactions, payments and cuts from day one",
   "pricing.pro_name": "Pro",
   "pricing.pro_includes": "Everything in the free plan, plus:",
-  "pricing.pro_members": "Unlimited members per group",
+  "pricing.pro_members": "Unlimited members per book",
   "pricing.pro_templates": "Unlimited recurring templates",
   "pricing.pro_history": "Full cut history",
-  "pricing.pro_registries": "Unlimited owned groups",
+  "pricing.pro_registries": "Unlimited owned books",
   "pricing.per_month": "/mo",
   "pricing.per_year": "/yr",
   "pricing.subscribe": "Subscribe",
   "pricing.have_account": "Already have an account? Log in",
-  "pricing.choose_registry": "Choose the group to upgrade:",
+  "pricing.choose_registry": "Choose the book to upgrade:",
   "pricing.active_badge": "Active",
   "pricing.active_until": "Active until {date}",
   "pricing.cancel_scheduled": "Canceled — active until {date}",
@@ -257,16 +257,16 @@ export const en: Record<string, string> = {
   "pricing.cancel_link": "Cancel subscription",
   "pricing.cancel_title": "Cancel subscription",
   "pricing.cancel_body":
-    "Your subscription stays active until {date}. After that, any group without another Pro member goes back to the free plan — nobody loses data, only the limits apply.",
+    "Your subscription stays active until {date}. After that, any book without another Pro member goes back to the free plan — nobody loses data, only the limits apply.",
   "pricing.cancel_confirm": "Yes, cancel",
   "pricing.keep_sub": "Keep subscription",
   "pricing.reactivate": "Reactivate",
-  "pricing.create_first": "Create your first group",
-  "pricing.create_first_hint": "Pro is purchased per group — create yours to get started.",
+  "pricing.create_first": "Create your first book",
+  "pricing.create_first_hint": "Pro is purchased per book — create yours to get started.",
 
   // --- Billing: already-subscribed guard + plan switch ---
   "billing.already_subscribed":
-    "You already have an active subscription — it covers every group you're in. To change plans, use the switch option below.",
+    "You already have an active subscription — it covers every book you're in. To change plans, use the switch option below.",
   "billing.switch_to_yearly": "Switch to yearly",
   "billing.switch_to_monthly": "Switch to monthly",
   "billing.switch_title": "Switch plan?",
@@ -281,48 +281,47 @@ export const en: Record<string, string> = {
   "tour.button_title": "Guided tour",
   "tour.next": "Next →",
   "tour.prev": "← Back",
-  "tour.done": "Done ✓",
-  "tour.menu_title": "🎓 Guided Tour",
+  "tour.done": "Done",
+  "tour.menu_title": "Guided tour",
   "tour.menu_desc": "Learn A la Par's features in a few minutes.",
   "tour.quick_title": "Quick Tour",
   "tour.quick_sub": "The essentials in 6 steps",
   "tour.full_title": "Full Tour",
   "tour.full_sub": "Includes the expense and payment dialogs",
-  "tour.books_title": "📚 Your Books",
+  "tour.books_title": "Your books",
   "tour.books_desc":
     "Each book is its own expense group: home, a trip, your partner. Pick a book to switch between them — the balance and transactions belong to each book alone.",
   // Same step where the menu opens with a swipe (the installed PWA on a phone).
   "tour.books_desc_swipe":
     "Each book is its own expense group: home, a trip, your partner. Swipe right to open your books and pick one — the balance and transactions belong to each book alone.",
-  "tour.balance_title": "💰 Total Balance",
+  "tour.balance_title": "Total balance",
   "tour.balance_desc":
     "This is your net balance. Green = you're owed, red = you owe. Click it for a detailed per-person breakdown.",
-  "tour.search_title": "🔍 Search & Filter",
+  "tour.search_title": "Search & filter",
   "tour.search_desc": "Search transactions by name or filter by person with the buttons above.",
-  "tour.transactions_title": "📋 Transactions",
-  "tour.transactions_desc":
-    "All the expenses and payments in the current registry, sorted by date.",
+  "tour.transactions_title": "Transactions",
+  "tour.transactions_desc": "All the expenses and payments in the current book, sorted by date.",
   "tour.transactions_full_desc":
-    "Every expense and payment in the registry. Each card shows who paid and how it was split.",
-  "tour.add_expense_title": "➕ Add Expense",
+    "Every expense and payment in the book. Each card shows who paid and how it was split.",
+  "tour.add_expense_title": "Add expense",
   "tour.add_expense_desc":
     "Use this button to log an expense. Split it evenly, by percentage, or with fixed amounts.",
   "tour.add_expense_full_desc":
     "Let's open the form to create an expense and see the available options.",
-  "tour.add_payment_title": "💸 Add Payment",
+  "tour.add_payment_title": "Add payment",
   "tour.add_payment_desc": "Use this button to record a payment between people and settle debts.",
-  "tour.edit_title": "✏️ Edit Transactions",
+  "tour.edit_title": "Edit transactions",
   "tour.edit_desc": "Click any transaction to see its details, edit it, or delete it.",
-  "tour.expense_type_title": "🏷️ Expense Type",
+  "tour.expense_type_title": "Expense type",
   "tour.expense_type_desc":
     "Choose the type: One-time (single payment), Installment (paid in parts, e.g. a laptop over months), or Recurring (repeats every period, e.g. rent).",
-  "tour.split_mode_title": "🔀 Split Mode",
+  "tour.split_mode_title": "Split mode",
   "tour.split_mode_desc":
     "Decide how to split the expense: Automatic (equal parts), Percentage (e.g. 60%/40%), or Fixed Amount (specific amounts per person).",
-  "tour.pay_debt_title": "✅ Settle Debt",
+  "tour.pay_debt_title": "Settle debt",
   "tour.pay_debt_desc":
     "When there's an outstanding balance between who pays and who gets paid, this button fills in the exact amount. One click and the payment is ready to save.",
-  "tour.finale_title": "🎉 That's it!",
+  "tour.finale_title": "That's it!",
   "tour.finale_desc":
     "You now know A la Par's main features. Explore the demo freely — all changes are temporary and reset on reload.",
 
@@ -332,6 +331,8 @@ export const en: Record<string, string> = {
   "sidebar.new_registry": "New Book",
   "sidebar.logout": "Log out",
   "sidebar.menu": "Menu",
+  "sidebar.collapse": "Collapse menu",
+  "sidebar.expand": "Expand menu",
   "sidebar.rename": "Rename",
   "sidebar.delete": "Delete",
   "sidebar.default_split": "Default Split",
@@ -345,7 +346,7 @@ export const en: Record<string, string> = {
   "sidebar.invite_share": "Share this code or the link: {url}",
   "sidebar.invite_error": "Error creating invitation",
   "sidebar.new_title": "New Book",
-  "sidebar.new_subtitle": "Create a group to manage shared expenses",
+  "sidebar.new_subtitle": "Create a book for the expenses you share",
   "sidebar.new_placeholder": "e.g. Roommates",
   "sidebar.new_create": "Create",
   "sidebar.delete_confirm": "Delete this book? This action cannot be undone.",
@@ -408,4 +409,22 @@ export const en: Record<string, string> = {
   "history.not_found": "Cut not found",
   "history.back": "Back to history",
   "history.linked": "Linked: {description}",
+  // --- Expense form: split feedback and notes ---
+  "modal.add_note": "Add an optional note",
+  "modal.split_remaining": "Still {amount} to assign",
+  "modal.split_over": "{amount} too much",
+  "modal.split_complete": "Fully split",
+  "modal.split_blocked": "Split the whole amount to save",
+  "modal.link_expenses_scope": "Expenses {name} paid that are still outstanding",
+
+  // --- Balance in words ---
+  "balance.you_owe_total": "You owe {amount}",
+  "balance.owed_total": "You're owed {amount}",
+  "balance.settle": "Settle up",
+
+  // --- Getting started ---
+  "pricing.free_cta": "Start for free",
+  "auth.demo_prefix": "Just want to see how it works?",
+  "common.try_demo": "Try the demo",
+  "not_found.heading": "Page not found",
 };

@@ -11,6 +11,12 @@
   --color-surface-raised: #1f1f26;
   --color-card: #1a1a1a;
   --color-border-custom: #2d2d33;
+  /* Text, links and focus rings on dark surfaces. The brand blue is a fill
+     colour: as text on near-black it measures under 2:1. */
+  --color-primary-text: #7aa7ff;
+  /* Input borders. The old white/20 borders measured 1.6–1.7:1 against the
+     page; this clears the 3:1 minimum on both the page and the card surface. */
+  --color-border-field: #67676f;
   --color-ring: #3b6fe8;
   --radius-custom: 8px;
 
@@ -45,6 +51,15 @@
     --er: 0 84% 60%;
     --bc: 0 0% 95%;
   }
+  /* daisyUI defines --color-primary in this same base layer, and its rule
+     comes after the block above, so it beat the @theme palette and every
+     bg-primary rendered daisyUI's stock violet. The `html` prefix out-ranks
+     its `[data-theme="dark"]` whatever the order. */
+  html[data-theme="dark"] {
+    --color-primary: #093eaa;
+    --color-primary-light: #1e5cd9;
+    --color-primary-dark: #062d7c;
+  }
 }
 
 @layer components {
@@ -60,8 +75,8 @@
     @apply bg-surface border border-white/10 rounded-custom shadow-card;
   }
   .input-surface {
-    @apply bg-background border border-white/20 text-white transition-colors duration-150
-      focus:border-primary focus:ring-2 focus:ring-primary/30;
+    @apply bg-background border border-border-field text-white transition-colors duration-150
+      focus:border-primary-text focus:ring-2 focus:ring-primary-text/30;
   }
 }
 
@@ -210,15 +225,6 @@ select:focus-visible {
 }
 .driver-popover.alapar-popover .driver-popover-arrow {
   border-color: var(--color-surface);
-}
-
-.bg-pattern {
-  background-image: radial-gradient(circle at 2px 2px, rgba(9, 62, 170, 0.15) 1px, transparent 0);
-  background-size: 40px 40px;
-}
-
-.gradient-glow {
-  background: radial-gradient(circle at 50% 50%, rgba(9, 62, 170, 0.2) 0%, rgba(10, 10, 12, 0) 70%);
 }
 
 .group:hover .sidebar-action-btns {

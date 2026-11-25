@@ -10,7 +10,7 @@ import {
   type DashboardState,
   type RegistrySnapshot,
 } from "./dashboard-store";
-import { formatMoney, initials } from "../../lib/format";
+import { formatMoney } from "../../lib/format";
 import { formatDate, formatTime, type Locale, t as translate } from "../../lib/i18n";
 
 interface TransactionListProps {
@@ -38,9 +38,9 @@ function TransactionCardClickable(props: {
     const formattedAmount = formatMoney(tx.originalAmount);
 
     return (
-      <div className="w-full text-left bg-card p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
+      <div className="w-full text-left bg-card p-4 sm:p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
         <div className="flex flex-col min-w-0">
-          <span className="text-lg font-semibold text-white flex items-center gap-2 truncate">
+          <span className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 truncate">
             {tx.description}
             <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 shrink-0">
               {t("tx.badge_adjustment")}
@@ -85,12 +85,12 @@ function TransactionCardClickable(props: {
         <button
           type="button"
           onClick={props.onClick}
-          className={`w-full text-left bg-card p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 ${
+          className={`w-full text-left bg-card p-4 sm:p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 ${
             linkedExpenses.length === 0 ? "rounded-custom" : "rounded-t-custom"
           }`}
         >
           <div className="flex flex-col min-w-0">
-            <span className="text-lg font-semibold text-white flex items-center gap-2 truncate">
+            <span className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 truncate">
               {tx.description}
               <span className="text-xs font-medium px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 shrink-0">
                 {t("tx.badge_payment")}
@@ -135,12 +135,12 @@ function TransactionCardClickable(props: {
                   }, 450);
                 }
               }}
-              className={`w-full text-left bg-slate-800/60 px-5 py-2.5 border-l-4 border-l-indigo-500/40 border border-t-0 border-white/5 flex items-center gap-3 hover:bg-slate-700/60 transition-colors ${
+              className={`w-full text-left bg-slate-800/60 px-4 sm:px-5 py-2.5 border-l-4 border-l-indigo-500/40 border border-t-0 border-white/5 flex items-center gap-3 hover:bg-slate-700/60 transition-colors ${
                 idx === linkedExpenses.length - 1 ? "rounded-b-custom" : ""
               }`}
             >
               <svg
-                className="w-3.5 h-3.5 text-slate-500 shrink-0"
+                className="w-3.5 h-3.5 text-zinc-400 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -171,7 +171,7 @@ function TransactionCardClickable(props: {
                 </p>
               </div>
               <svg
-                className="w-3 h-3 text-slate-500 shrink-0"
+                className="w-3 h-3 text-zinc-400 shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -237,45 +237,45 @@ function TransactionCardClickable(props: {
 
   const isZero = Math.abs(remainingBalance) < 0.005;
   const isPositive = remainingBalance >= 0;
+  const paidByBadge = `text-xs px-1.5 py-0.5 rounded ${
+    isPaidByMe ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-300 text-slate-800 font-bold"
+  }`;
 
   return (
     <button
       type="button"
       onClick={props.onClick}
-      className="w-full text-left bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-card hover:-translate-y-px"
+      className="w-full text-left bg-card p-4 sm:p-5 rounded-custom border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-card hover:-translate-y-px"
     >
       <div className="flex flex-col min-w-0">
-        <span className="text-lg font-semibold text-white truncate">{tx.description}</span>
+        <span className="text-base sm:text-lg font-semibold text-white truncate">
+          {tx.description}
+        </span>
         <div className="text-sm text-zinc-400">
-          <span className="block sm:inline">
-            {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
-            {formatTime(tx.createdAt, props.locale ?? "es")}
-          </span>
-          {tx.paidByUser && (
-            <>
-              <span className="hidden sm:inline">
-                {" • "}
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded ${
-                    isPaidByMe
-                      ? "bg-emerald-500/20 text-emerald-400"
-                      : "bg-slate-300 text-slate-800 font-bold"
-                  }`}
-                >
+          {/* Phones: date and the paid-by chip share one row so the card
+              stays short; a chip that doesn't fit (a long name next to a
+              "15 ene 2024 • 04:30 a.m." date) drops to its own row rather
+              than being cut. From sm up the wrapper is inline again and its
+              children flow as before. */}
+          <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 sm:inline">
+            <span className="shrink-0">
+              {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
+              {formatTime(tx.createdAt, props.locale ?? "es")}
+            </span>
+            {tx.paidByUser && (
+              <>
+                <span className="hidden sm:inline">
+                  {" • "}
+                  <span className={paidByBadge}>
+                    {isPaidByMe ? t("tx.paid_by_you") : tx.paidByUser.name}
+                  </span>
+                </span>
+                <span className={`min-w-0 truncate sm:hidden ${paidByBadge}`}>
                   {isPaidByMe ? t("tx.paid_by_you") : tx.paidByUser.name}
                 </span>
-              </span>
-              <span
-                className={`block sm:hidden text-xs px-1.5 py-0.5 rounded mt-0.5 w-fit ${
-                  isPaidByMe
-                    ? "bg-emerald-500/20 text-emerald-400"
-                    : "bg-slate-300 text-slate-800 font-bold"
-                }`}
-              >
-                {isPaidByMe ? t("tx.paid_by_you") : tx.paidByUser.name}
-              </span>
-            </>
-          )}
+              </>
+            )}
+          </span>
           {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
             <>
               {" • "}
@@ -292,7 +292,7 @@ function TransactionCardClickable(props: {
       <div className="text-right flex flex-col items-end">
         <span
           className={`text-xl font-bold ${
-            isZero ? "text-green-500" : isPositive ? "text-green-500" : "text-red-500"
+            isZero ? "text-zinc-400" : isPositive ? "text-emerald-400" : "text-red-400"
           }`}
         >
           {isZero ? "" : isPositive ? "+" : "-"}${formatMoney(Math.abs(remainingBalance))}
@@ -362,6 +362,7 @@ export default function TransactionList(props: TransactionListProps) {
       entityIds: [...state.entityIds],
       entities: state.entities,
       lastModified: state.lastModified,
+      remainderQueue: state.remainderQueue,
     });
   }, [state, props.isDemo]);
 
@@ -534,7 +535,7 @@ export default function TransactionList(props: TransactionListProps) {
         <div className="text-center max-w-sm space-y-6">
           <div className="bg-white/5 p-6 rounded-full mx-auto w-fit">
             <svg
-              className="h-16 w-16 text-zinc-500"
+              className="h-16 w-16 text-zinc-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -607,6 +608,45 @@ export default function TransactionList(props: TransactionListProps) {
           </h2>
         </div>
 
+        {/* Phones only (the FABs take over from sm): pinned under the header so
+            the actions stay in reach while the list scrolls. It bleeds over
+            main's p-2 gutters (-mx-2 + px-2) so cards don't peek at the sides
+            as they slide underneath. */}
+        <div className="sm:hidden sticky top-0 z-10 -mx-2 px-2 py-2 mb-2 bg-background flex gap-2">
+          <button
+            type="button"
+            onClick={openNewPago}
+            data-tour="add-payment-mobile"
+            className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+            {t("tx.add_payment_mobile")}
+          </button>
+          <button
+            type="button"
+            onClick={openNew}
+            data-tour="add-expense-mobile"
+            className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-yellow-950 font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+            {t("tx.add_expense_mobile")}
+          </button>
+        </div>
+
         {transactions.length > 1 && (
           <div className="space-y-3">
             {new Set(transactions.map((tx) => tx.userPaid)).size > 1 && (
@@ -623,9 +663,8 @@ export default function TransactionList(props: TransactionListProps) {
                   {t("tx.all")}
                 </button>
                 {users.map((user) => {
-                  const userInitials = initials(user.name);
                   // Active state: colored BORDER + white name, NOT a solid
-                  // fill — filling with user.color made the initials avatar
+                  // fill — filling with user.color made the color dot
                   // (same color on same color) invisible.
                   const active = filterUserId === user.id;
                   return (
@@ -643,11 +682,9 @@ export default function TransactionList(props: TransactionListProps) {
                       style={active ? { borderColor: user.color } : undefined}
                     >
                       <div
-                        className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold"
-                        style={{ backgroundColor: `${user.color}30`, color: user.color }}
-                      >
-                        {userInitials}
-                      </div>
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: user.color }}
+                      />
                       {user.name.split(" ")[0]}
                       <ProBadge pro={user.pro ?? null} locale={props.locale} linked={false} />
                     </button>
@@ -656,7 +693,7 @@ export default function TransactionList(props: TransactionListProps) {
               </div>
             )}
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-400">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
@@ -672,13 +709,13 @@ export default function TransactionList(props: TransactionListProps) {
                 placeholder={t("tx.search_placeholder")}
                 value={searchQuery}
                 onInput={(e) => setSearchQuery(e.currentTarget.value)}
-                className="w-full bg-white/5 border border-white/15 rounded-custom pl-10 text-white placeholder-zinc-500 focus:ring-primary focus:border-primary py-2.5"
+                className="w-full bg-white/5 border border-border-field rounded-custom pl-10 text-white placeholder-zinc-400 focus:ring-primary-text focus:border-primary-text py-2.5"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-white"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
@@ -694,46 +731,11 @@ export default function TransactionList(props: TransactionListProps) {
           </div>
         )}
 
-        <div className="sm:hidden flex gap-2">
-          <button
-            type="button"
-            onClick={openNewPago}
-            data-tour="add-payment-mobile"
-            className="flex-1 py-3 bg-green-700 hover:bg-green-800 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-              />
-            </svg>
-            {t("tx.add_payment_mobile")}
-          </button>
-          <button
-            type="button"
-            onClick={openNew}
-            data-tour="add-expense-mobile"
-            className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-base rounded-custom active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-              />
-            </svg>
-            {t("tx.add_expense_mobile")}
-          </button>
-        </div>
-
         {transactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="bg-white/5 p-4 rounded-full mb-4">
               <svg
-                className="h-12 w-12 text-zinc-500"
+                className="h-12 w-12 text-zinc-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -758,7 +760,7 @@ export default function TransactionList(props: TransactionListProps) {
                 setSearchQuery("");
                 setFilterUserId(null);
               }}
-              className="mt-2 text-sm text-primary hover:underline"
+              className="mt-2 text-sm text-primary-text hover:underline"
             >
               {t("tx.clear_filters")}
             </button>
@@ -783,14 +785,18 @@ export default function TransactionList(props: TransactionListProps) {
 
       <div className="hidden sm:flex fixed bottom-8 right-8 z-50 flex-col gap-3">
         <div className="group relative">
-          <span className="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+          <span
+            aria-hidden="true"
+            className="absolute right-full top-1/2 -translate-y-1/2 mr-3 whitespace-nowrap bg-surface text-white text-sm px-3 py-1.5 rounded-custom shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          >
             {t("tx.add_payment_tooltip")}
           </span>
           <button
             type="button"
             onClick={openNewPago}
             data-tour="add-payment"
-            className="w-16 h-16 bg-green-700 text-white rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
+            aria-label={t("tx.add_payment_tooltip")}
+            className="w-16 h-16 bg-emerald-700 text-white rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -810,7 +816,8 @@ export default function TransactionList(props: TransactionListProps) {
             type="button"
             onClick={openNew}
             data-tour="add-expense"
-            className="w-16 h-16 bg-yellow-500 text-white rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
+            aria-label={t("tx.add_expense_tooltip")}
+            className="w-16 h-16 bg-yellow-500 text-yellow-950 rounded-full flex items-center justify-center shadow-raised hover:scale-110 active:scale-95 transition-all"
           >
             <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -836,8 +843,10 @@ export default function TransactionList(props: TransactionListProps) {
         defaultSplit={state.defaultSplit}
         entityIds={state.entityIds}
         transactionPayments={transactionPayments}
+        remainderQueue={state.remainderQueue}
         onRecalculate={recalculate}
         onServerStamp={(stamp) => dispatch({ type: "SET_LAST_MODIFIED", stamp })}
+        onRemainderQueueChange={(queue) => dispatch({ type: "SET_REMAINDER_QUEUE", queue })}
         onTransactionsChange={(next) => dispatch({ type: "SET_TRANSACTIONS", transactions: next })}
         onTransactionPaymentsChange={(next) =>
           dispatch({ type: "SET_TRANSACTION_PAYMENTS", transactionPayments: next })

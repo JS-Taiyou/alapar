@@ -66,11 +66,10 @@ const activeUntilText = userSub?.currentPeriodEnd
 ---
 
 <Base title={`${t("pricing.title")} - A la par`}>
-  <main class="relative min-h-screen flex flex-col items-center p-6 bg-pattern">
+  <main class="relative min-h-screen flex flex-col items-center p-6">
     <div class="absolute top-4 right-4 z-20">
       <LocaleToggle locale={locale} client:load />
     </div>
-    <div class="absolute inset-0 gradient-glow pointer-events-none"></div>
 
     <div class="relative z-10 w-full max-w-4xl mt-12 sm:mt-16">
       <header class="text-center mb-8">
@@ -78,6 +77,12 @@ const activeUntilText = userSub?.currentPeriodEnd
           {t("pricing.title")}
         </h1>
         <p class="text-zinc-400 mt-2">{t("pricing.subtitle")}</p>
+        <p class="text-sm text-zinc-400 mt-3 flex flex-col sm:flex-row items-center justify-center gap-1">
+          <span>{t("auth.demo_prefix")}</span>
+          <a href="/demo" class="text-primary-text hover:underline">
+            {t("common.try_demo")}
+          </a>
+        </p>
       </header>
 
       {/* Interval switcher — SSR links, works without JS */}
@@ -129,15 +134,28 @@ const activeUntilText = userSub?.currentPeriodEnd
             <span class="text-4xl font-bold text-white">$0</span>
           </p>
           <FeatureList items={freeFeatures} />
+
+          {/* Anonymous only — a signed-in visitor is already on this plan. */}
+          {!isAuthed && (
+            <div class="mt-auto pt-8">
+              <a
+                href="/signup"
+                class="block w-full py-3 text-center text-sm font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-custom transition-all active:scale-95"
+              >
+                {t("pricing.free_cta")}
+              </a>
+            </div>
+          )}
         </div>
 
-        {/* Pro tier */}
-        <div class="relative bg-surface border border-primary-light/40 rounded-custom p-6 sm:p-8 flex flex-col shadow-lg shadow-primary/10">
-          <div class="absolute -top-3 left-6">
-            <span class="text-[10px] font-bold tracking-widest bg-primary/20 text-primary-light px-2 py-0.5 rounded-full">
-              {t("billing.pro_badge")}
-            </span>
-          </div>
+        {/* Pro tier — never clip this card (overflow-hidden): the PRO badge
+            sits across the top border. */}
+        <div class="relative bg-surface border border-primary rounded-custom p-6 sm:p-8 flex flex-col">
+          <span
+            class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold uppercase tracking-widest bg-primary text-white px-3 py-1 rounded-full"
+          >
+            {t("billing.pro_badge")}
+          </span>
           <h2 class="text-lg font-bold text-white">
             {t("pricing.pro_name")}
           </h2>
@@ -147,7 +165,7 @@ const activeUntilText = userSub?.currentPeriodEnd
             </span>
             <span class="text-zinc-400">{periodLabel}</span>
           </p>
-          <p class="text-xs text-zinc-500 mb-6">
+          <p class="text-xs text-zinc-400 mb-6">
             {t("pricing.pro_includes")}
           </p>
           <FeatureList items={proFeatures} />

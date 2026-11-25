@@ -14,23 +14,25 @@ import { generateETag } from "@/lib/etag";
 
 export const GET: APIRoute = async (ctx) => {
   const userId = ctx.locals.user?.id;
+  // What a signed-out visitor or a user without a book gets: nothing to show,
+  // and a line nobody has taken a turn from.
+  const empty = {
+    transactions: [],
+    transactionPayments: [],
+    users: [],
+    balance: 0,
+    balanceEntries: [],
+    spawnCandidates: [],
+    defaultSplit: null,
+    entityIds: [],
+    entities: [],
+    currentUserId: null,
+    lastModified: null,
+    remainderQueue: [],
+  };
+
   if (!userId) {
-    return Response.json(
-      {
-        transactions: [],
-        transactionPayments: [],
-        users: [],
-        balance: 0,
-        balanceEntries: [],
-        spawnCandidates: [],
-        defaultSplit: null,
-        entityIds: [],
-        entities: [],
-        currentUserId: null,
-        lastModified: null,
-      },
-      { status: 200 },
-    );
+    return Response.json(empty, { status: 200 });
   }
 
   const requestedId = ctx.url.searchParams.get("registryId");
@@ -40,22 +42,7 @@ export const GET: APIRoute = async (ctx) => {
       : ctx.locals.activeRegistry?.id;
 
   if (!registryId) {
-    return Response.json(
-      {
-        transactions: [],
-        transactionPayments: [],
-        users: [],
-        balance: 0,
-        balanceEntries: [],
-        spawnCandidates: [],
-        defaultSplit: null,
-        entityIds: [],
-        entities: [],
-        currentUserId: null,
-        lastModified: null,
-      },
-      { status: 200 },
-    );
+    return Response.json(empty, { status: 200 });
   }
 
   const isActiveRegistry = registryId === ctx.locals.activeRegistry?.id;
@@ -141,6 +128,9 @@ export const GET: APIRoute = async (ctx) => {
     currentUserId: userId,
     lastModified:
       ctx.locals.registries.find((r) => r.id === registryId)?.lastModified?.toISOString() ?? null,
+    // The book's line for leftover cents, so the form can predict the cent it
+    // will be dealt the same way the server deals it.
+    remainderQueue: ctx.locals.registries.find((r) => r.id === registryId)?.remainderQueue ?? [],
   };
 
   const etag = generateETag(data);

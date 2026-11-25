@@ -49,7 +49,7 @@ export default function LocaleToggle({
           } ${
             locale === l
               ? "bg-primary text-white shadow-sm shadow-primary/40"
-              : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
+              : "text-zinc-400 hover:text-zinc-200 hover:bg-white/5"
           }`}
         >
           {labels[l]}

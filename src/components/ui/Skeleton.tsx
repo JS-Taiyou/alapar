@@ -32,6 +32,8 @@ export function DashboardSkeleton() {
         <div className="flex flex-col gap-2">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-8 w-48" />
+          {/* The "you owe / you're owed" line under the amount. */}
+          <Skeleton className="h-3.5 w-32" />
         </div>
         <div className="flex items-center gap-4 shrink-0">
           <Skeleton className="h-11 w-11 rounded-full" />

@@ -89,6 +89,7 @@ const sidebarProps = await getSidebarServerProps(Astro);
     participants={Astro.locals.participants}
     registryId={registryId ?? ""}
     lastModified={lastModified}
+    remainderQueue={Astro.locals.activeRegistry?.remainderQueue ?? []}
     hasTransactions={transactions.length > 0}
     client:load
   />

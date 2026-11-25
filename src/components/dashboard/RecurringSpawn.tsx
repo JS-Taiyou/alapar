@@ -115,8 +115,9 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
           setCheckedIds(new Set(props.candidates.map((c) => c.id)));
           setShowModal(true);
         }}
-        className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-zinc-300 relative"
+        className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-zinc-300 relative"
         title={t("recurring.recurring")}
+        aria-label={t("recurring.recurring")}
       >
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -209,7 +210,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                       <span
                         className={`text-xs font-medium px-2 py-0.5 rounded ${
                           item.type === "parcialidad"
-                            ? "bg-primary/20 text-primary"
+                            ? "bg-primary/20 text-primary-text"
                             : "bg-emerald-500/20 text-emerald-400"
                         }`}
                       >
@@ -225,7 +226,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
                         item.installmentTotal !== null && (
                           <>
                             <span>&bull;</span>
-                            <span className="text-primary">
+                            <span className="text-primary-text">
                               {item.installmentCurrent}/{item.installmentTotal}
                             </span>
                           </>

@@ -4,6 +4,7 @@ import type {
   DefaultSplit,
   Participant,
   SplitEntry,
+  SplitMode,
   TransactionPayment,
   TransactionSplit,
 } from "../../lib/types";
@@ -12,7 +13,15 @@ import {
   buildEqualSplit,
   buildFixedSplit,
   buildPercentageSplit,
+  checkSplitSum,
+  completePercentages,
   computeDefaultPercentages,
+  equalPercentages,
+  isEvenPercentages,
+  isEqualSplit,
+  percentagesFromAmounts,
+  resolveTransactionSplit,
+  untouchedSplit,
 } from "../../lib/calculations";
 import { formatMoney, initials, sanitizeDecimal, sanitizeInteger } from "../../lib/format";
 import Modal from "../ui/Modal";
@@ -31,6 +40,8 @@ interface TransactionModalProps {
   defaultSplit: DefaultSplit | null;
   entityIds: Set<string>;
   transactionPayments: TransactionPayment[];
+  /** The book's line for leftover cents, front first. The form predicts the server's deal with it. */
+  remainderQueue: string[];
   onRecalculate: () => void;
   /**
    * Receives the registry's fresh `last_modified` returned by mutation
@@ -39,6 +50,8 @@ interface TransactionModalProps {
    * next sync). Called with null when the server reports no stamp.
    */
   onServerStamp?: (stamp: string | null) => void;
+  /** A save that dealt a split reports the book's line as it left it (the demo keeps its own). */
+  onRemainderQueueChange: (queue: string[]) => void;
   /** Replace the transaction list (optimistic write, server merge, rollback). */
   onTransactionsChange: (transactions: EnrichedTransaction[]) => void;
   /** Replace the payment-link list (optimistic write, server merge, rollback). */
@@ -51,8 +64,10 @@ interface TransactionModalProps {
   locale?: Locale;
 }
 
-type SplitMode = "auto" | "percentage" | "fixed";
 type TransactionType = "unico" | "parcialidad" | "recurrente" | "pago" | "ajuste";
+
+/** Money as the rest of the app shows it: two decimals, grouped, `$` on the left. */
+const money = (amount: number) => `$${formatMoney(amount)}`;
 
 interface EligibleTransaction {
   id: string;
@@ -71,6 +86,7 @@ export default function TransactionModal(props: TransactionModalProps) {
   const registryId = props.registryId;
   const defaultSplit = props.defaultSplit;
   const transactionPayments = props.transactionPayments;
+  const userIds = users.map((u) => u.id);
   const t = (key: string, params?: Record<string, string | number>) =>
     translate(props.locale ?? "es", key, params);
 
@@ -79,6 +95,7 @@ export default function TransactionModal(props: TransactionModalProps) {
   const [amountDisplay, setAmountDisplay] = useState("");
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
+  const [notesOpen, setNotesOpen] = useState(false);
   const [expenseType, setExpenseType] = useState<TransactionType>("unico");
   const [installmentCurrent, setInstallmentCurrent] = useState(1);
   const [installmentTotal, setInstallmentTotal] = useState(12);
@@ -89,16 +106,23 @@ export default function TransactionModal(props: TransactionModalProps) {
   const [installmentAmount, setInstallmentAmount] = useState(0);
   const [installmentAmountDisplay, setInstallmentAmountDisplay] = useState("");
   const [splitMode, setSplitMode] = useState<SplitMode>("auto");
-  const [splitSeed] = useState<string>(() => crypto.randomUUID());
+  // The book's line decides every cent that cannot be divided. The server
+  // keeps it; this is the copy its last answer (or the page) delivered.
+  const line = props.remainderQueue;
+  // The split of the expense being edited. getSplits() keeps returning it
+  // verbatim for as long as the form shows it unchanged (see untouchedSplit).
+  const [savedSplit, setSavedSplit] = useState<{ total: number; splits: SplitEntry[] } | null>(
+    null,
+  );
   const [userPaid, setUserPaid] = useState(currentUserId);
   const [paymentRecipient, setPaymentRecipient] = useState<string>(
     () => users.find((u) => u.id !== currentUserId)?.id ?? "",
   );
   const [percentages, setPercentages] = useState<Record<string, number>>(() =>
-    computeDefaultPercentages(users, defaultSplit),
+    computeDefaultPercentages(users, defaultSplit, line),
   );
   const [fixedAmounts, setFixedAmounts] = useState<Record<string, number>>(() =>
-    Object.fromEntries(users.map((u) => [u.id, 0])),
+    fixedAmountsFrom([]),
   );
   const [linkToTransaction, setLinkToTransaction] = useState(false);
   const [selectedRelatedTxId, setSelectedRelatedTxId] = useState<string | null>(null);
@@ -107,6 +131,8 @@ export default function TransactionModal(props: TransactionModalProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const isEditing = props.editingId !== null;
+  // Editing an expense, as opposed to a payment: its split is the saved one.
+  const isEditingExpense = props.editingId !== null && props.modalMode !== "payment";
 
   const hasInitialized = useRef(false);
   // Set when the modal is reopened after a failed submit: the form state
@@ -158,7 +184,20 @@ export default function TransactionModal(props: TransactionModalProps) {
   }, [amount, linkToTransaction]);
 
   function buildDefaultPercentages(): Record<string, number> {
-    return computeDefaultPercentages(users, defaultSplit);
+    return computeDefaultPercentages(users, defaultSplit, line);
+  }
+
+  /** Monto Fijo inputs for every member: each saved share, 0 outside the split. */
+  function fixedAmountsFrom(splits: SplitEntry[]): Record<string, number> {
+    return Object.fromEntries(
+      users.map((u) => [u.id, splits.find((s) => s.userId === u.id)?.amount ?? 0]),
+    );
+  }
+
+  /** Percentages that reproduce a split (even ones while there is no amount). */
+  function percentagesFor(splits: SplitEntry[]): Record<string, number> {
+    const total = Math.abs(amount);
+    return total > 0 ? percentagesFromAmounts(total, splits) : equalPercentages(userIds, line);
   }
 
   function saveLastSplitConfig() {
@@ -210,6 +249,8 @@ export default function TransactionModal(props: TransactionModalProps) {
     setAmountDisplay("");
     setDescription("");
     setNotes("");
+    setNotesOpen(false);
+    setSavedSplit(null);
     setExpenseType("unico");
     setInstallmentCurrent(1);
     setInstallmentTotal(12);
@@ -223,12 +264,20 @@ export default function TransactionModal(props: TransactionModalProps) {
     setRelatedTxSearch("");
     setSelectedExpenseIds([]);
 
-    const lastConfig = loadLastSplitConfig();
+    // The remembered split belongs to expenses. Replaying its payer in a
+    // payment could select the same person as payer and as recipient.
+    const lastConfig = props.modalMode === "payment" ? null : loadLastSplitConfig();
     if (lastConfig) {
       if (lastConfig.splitMode) {
         setSplitMode(lastConfig.splitMode as SplitMode);
       } else setSplitMode("percentage");
-      setPercentages(lastConfig.percentages);
+      // An even split remembered from the last expense is dealt by the line
+      // again: its odd hundredth of a percent has to follow the turn.
+      setPercentages(
+        isEvenPercentages(lastConfig.percentages)
+          ? equalPercentages(userIds, line)
+          : completePercentages(lastConfig.percentages),
+      );
       setUserPaid(lastConfig.userPaid);
     } else {
       setUserPaid(currentUserId);
@@ -239,8 +288,10 @@ export default function TransactionModal(props: TransactionModalProps) {
         setSplitMode("auto");
         setPercentages(buildDefaultPercentages());
       }
-      setFixedAmounts(Object.fromEntries(users.map((u) => [u.id, 0])));
     }
+    // Fixed amounts belong to the expense they were typed for, whatever
+    // mode the next form opens in.
+    setFixedAmounts(fixedAmountsFrom([]));
   }
 
   function populateEdit(tx: EnrichedTransaction) {
@@ -248,6 +299,7 @@ export default function TransactionModal(props: TransactionModalProps) {
     setAmountDisplay(tx.originalAmount.toString());
     setDescription(tx.description);
     setNotes(tx.notes || "");
+    setNotesOpen(!!tx.notes);
     if (tx.type !== "pago") setExpenseType(tx.type);
     setInstallmentCurrent(tx.installmentCurrent ?? 1);
     setInstallmentTotal(tx.installmentTotal ?? 12);
@@ -261,6 +313,7 @@ export default function TransactionModal(props: TransactionModalProps) {
     setUserPaid(tx.userPaid);
 
     if (tx.type === "pago") {
+      setSavedSplit(null);
       const recipientSplit = tx.splitJson.splits[0];
       if (recipientSplit) {
         setPaymentRecipient(recipientSplit.userId);
@@ -281,48 +334,77 @@ export default function TransactionModal(props: TransactionModalProps) {
       }
     } else {
       const splits = tx.splitJson.splits;
-      const total = splits.reduce((s, sp) => s + sp.amount, 0);
-      const hasCustomPercentages = splits.some(
-        (sp) => Math.abs(sp.percentage - 100 / splits.length) >= 0.5,
-      );
-
-      if (hasCustomPercentages) {
-        const allFixed = Math.abs(total - tx.originalAmount) < 0.01;
-        if (!allFixed) {
-          setSplitMode("percentage");
-          setPercentages(Object.fromEntries(splits.map((s) => [s.userId, s.percentage])));
-        } else {
-          setSplitMode("fixed");
-          setFixedAmounts(Object.fromEntries(splits.map((s) => [s.userId, s.amount])));
-        }
-      } else {
+      setSavedSplit({ total: tx.originalAmount, splits });
+      if (isEqualSplit(splits, userIds)) {
         setSplitMode("auto");
+      } else {
+        // Any other saved split opens in Monto Fijo with its real amounts,
+        // members outside it at 0, instead of being re-split evenly.
+        setSplitMode("fixed");
+        setFixedAmounts(fixedAmountsFrom(splits));
       }
     }
   }
 
-  function getSplits(): SplitEntry[] {
+  /**
+   * The split for the form as it stands, dealt the way the server will deal
+   * it (`resolveTransactionSplit`): Auto and Porcentaje in whole cents against
+   * the book's line, Monto Fijo as typed. `line` is the book's line once this
+   * split is saved — what the demo keeps and the server sends back.
+   */
+  function dealSplit(): { splits: SplitEntry[]; line: string[] } {
     const total = Math.abs(amount);
-    const userIds = users.map((u) => u.id);
+    // An edit keeps the saved entries for as long as the form shows them.
+    const saved = savedSplit;
+    if (saved) {
+      const untouched = untouchedSplit(saved, {
+        total,
+        mode: splitMode,
+        userIds,
+        fixedAmounts,
+      });
+      if (untouched) return { splits: untouched, line };
+    }
     if (splitMode === "auto") {
-      return buildEqualSplit(total, userIds, splitSeed).splits;
+      const sent = buildEqualSplit(total, userIds, line).splits;
+      const dealt = resolveTransactionSplit("auto", total, { splits: sent }, line);
+      return { splits: dealt.split.splits, line: dealt.line };
     }
     if (splitMode === "percentage") {
-      return buildPercentageSplit(
+      const sent = buildPercentageSplit(
         total,
         users.map((u) => ({
           userId: u.id,
           percentage: percentages[u.id] ?? 0,
         })),
       ).splits;
+      // A split that leaves part of the expense unassigned is shown as it
+      // falls, so "Faltan…" has a true amount to name. Only one that accounts
+      // for the whole expense is dealt to the cent.
+      if (
+        !checkSplitSum(
+          total,
+          sent.map((s) => s.amount),
+        ).ok
+      )
+        return { splits: sent, line };
+      const dealt = resolveTransactionSplit("percentage", total, { splits: sent }, line);
+      return { splits: dealt.split.splits, line: dealt.line };
     }
-    return buildFixedSplit(
-      total,
-      users.map((u) => ({
-        userId: u.id,
-        amount: fixedAmounts[u.id] ?? 0,
-      })),
-    ).splits;
+    return {
+      splits: buildFixedSplit(
+        total,
+        users.map((u) => ({
+          userId: u.id,
+          amount: fixedAmounts[u.id] ?? 0,
+        })),
+      ).splits,
+      line,
+    };
+  }
+
+  function getSplits(): SplitEntry[] {
+    return dealSplit().splits;
   }
 
   function computeAllocation(
@@ -369,19 +451,10 @@ export default function TransactionModal(props: TransactionModalProps) {
     const sanitized = sanitizeDecimal(raw);
     const newVal = parseFloat(sanitized) || 0;
 
-    if (props.editingId && props.modalMode !== "payment" && Math.abs(newVal - amount) > 0.001) {
-      const currentSplits = getSplits();
-      const total = Math.abs(amount);
-      setPercentages(
-        Object.fromEntries(
-          currentSplits.map((s) => [
-            s.userId,
-            total > 0
-              ? Math.round((s.amount / total) * 10000) / 100
-              : Math.round(10000 / users.length) / 100,
-          ]),
-        ),
-      );
+    // Changing the amount of a saved expense moves it to Porcentaje with the
+    // shares it already has, so the split follows the new total.
+    if (isEditingExpense && Math.abs(newVal - amount) > 0.001) {
+      setPercentages(percentagesFor(getSplits()));
       setSplitMode("percentage");
     }
 
@@ -400,19 +473,8 @@ export default function TransactionModal(props: TransactionModalProps) {
     setInstallmentAmountDisplay(sanitized);
     const total = Math.round(newVal * installmentTotal * 100) / 100;
 
-    if (props.editingId && Math.abs(total - amount) > 0.001) {
-      const currentSplits = getSplits();
-      const currentTotal = Math.abs(amount);
-      setPercentages(
-        Object.fromEntries(
-          currentSplits.map((s) => [
-            s.userId,
-            currentTotal > 0
-              ? Math.round((s.amount / currentTotal) * 10000) / 100
-              : Math.round(10000 / users.length) / 100,
-          ]),
-        ),
-      );
+    if (isEditingExpense && Math.abs(total - amount) > 0.001) {
+      setPercentages(percentagesFor(getSplits()));
       setSplitMode("percentage");
     }
 
@@ -463,17 +525,20 @@ export default function TransactionModal(props: TransactionModalProps) {
 
   function setAutoSplit() {
     setSplitMode("auto");
-    setPercentages(
-      Object.fromEntries(users.map((u) => [u.id, Math.round((100 / users.length) * 100) / 100])),
-    );
+    setPercentages(equalPercentages(userIds, line));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (submitting) return;
+    // Enter in any field submits too, so the guard lives here, not only on
+    // the disabled button.
+    if (submitting || splitBlocked) return;
     setSubmitting(true);
     try {
       let splitJson: TransactionSplit;
+      // Dealt once: the optimistic row, the request and the demo's line all
+      // carry the same split.
+      const dealt = props.modalMode === "payment" ? null : dealSplit();
 
       if (props.modalMode === "payment") {
         splitJson = {
@@ -486,7 +551,7 @@ export default function TransactionModal(props: TransactionModalProps) {
           ],
         };
       } else {
-        splitJson = { splits: getSplits() };
+        splitJson = { splits: dealt!.splits };
       }
 
       const paidByUser = users.find((u) => u.id === userPaid) ?? null;
@@ -575,6 +640,8 @@ export default function TransactionModal(props: TransactionModalProps) {
           }
           props.onRecalculate();
         }
+        // No server to report the line here: the deal above is the save.
+        if (dealt) props.onRemainderQueueChange(dealt.line);
         return;
       }
 
@@ -584,6 +651,8 @@ export default function TransactionModal(props: TransactionModalProps) {
       form.append("originalAmount", optimistic.originalAmount.toString());
       form.append("type", optimistic.type);
       form.append("splitJson", JSON.stringify(splitJson));
+      // Tells the server which splits are its to deal; a payment has no split to deal.
+      if (dealt) form.append("splitMode", splitMode);
       form.append("userPaid", optimistic.userPaid);
       form.append("notes", optimistic.notes);
       form.append("registryId", optimistic.registry_id);
@@ -638,10 +707,14 @@ export default function TransactionModal(props: TransactionModalProps) {
 
       const saved = (await res.json()) as EnrichedTransaction & {
         lastModified?: string | null;
+        remainderQueue?: string[];
       };
-      const { lastModified: serverStamp, ...savedTx } = saved;
+      const { lastModified: serverStamp, remainderQueue, ...savedTx } = saved;
       if (serverStamp !== undefined) {
         props.onServerStamp?.(serverStamp ?? null);
+      }
+      if (remainderQueue) {
+        props.onRemainderQueueChange(remainderQueue);
       }
       const serverPaidBy = users.find((u) => u.id === savedTx.userPaid) ?? null;
       const serverCreatedAt =
@@ -744,9 +817,12 @@ export default function TransactionModal(props: TransactionModalProps) {
     const uid = userPaid;
     const debtMap = new Map<string, { tx: EnrichedTransaction; debt: number }>();
 
+    // A payment goes to one person, so only what that person paid — and the
+    // payer still owes — can settle it.
     for (const tx of transactions) {
       if (tx.type === "pago" || tx.type === "ajuste") continue;
       if (tx.userPaid === uid) continue;
+      if (tx.userPaid !== paymentRecipient) continue;
 
       const userSplit = tx.splitJson.splits.find((s) => s.userId === uid);
       if (!userSplit) continue;
@@ -804,9 +880,32 @@ export default function TransactionModal(props: TransactionModalProps) {
     result.sort((a, b) => a.remainingDebt - b.remainingDebt);
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [transactions, transactionPayments, props.editingId, userPaid, props.locale]);
+  }, [
+    transactions,
+    transactionPayments,
+    props.editingId,
+    userPaid,
+    paymentRecipient,
+    props.locale,
+  ]);
+
+  // A selection can outlive its eligibility — the recipient changed after an
+  // expense was picked, or an edited payment points at one its recipient never
+  // paid. Drop whatever the list no longer offers so nothing unlisted is
+  // ever submitted.
+  useEffect(() => {
+    setSelectedExpenseIds((prev) => {
+      const kept = prev.filter((id) => eligibleTransactions.some((e) => e.id === id));
+      return kept.length === prev.length ? prev : kept;
+    });
+    setSelectedRelatedTxId((prev) =>
+      prev !== null && eligibleTransactions.some((e) => e.id === prev) ? prev : null,
+    );
+  }, [eligibleTransactions]);
 
   const hasEligibleTransactions = eligibleTransactions.length > 0;
+  const paymentRecipientName =
+    users.find((u) => u.id === paymentRecipient)?.name ?? t("modal.unknown_payer");
 
   const filteredEligible = useMemo(() => {
     const list = eligibleTransactions;
@@ -824,7 +923,7 @@ export default function TransactionModal(props: TransactionModalProps) {
 
   const splits = useMemo(
     () => getSplits(),
-    [amount, users, splitMode, splitSeed, percentages, fixedAmounts],
+    [amount, users, splitMode, line, percentages, fixedAmounts, savedSplit],
   ); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPago = props.modalMode === "payment";
@@ -859,10 +958,53 @@ export default function TransactionModal(props: TransactionModalProps) {
       : t("modal.new_expense_subtitle");
 
   const totalSplitAmount = splits.reduce((s, sp) => s + sp.amount, 0);
+  const expenseTotal = Math.abs(amount);
+  // Porcentaje follows the typed percentages, so their sum is the truth. Auto
+  // and Monto Fijo follow the amounts: the total is the share of the expense
+  // they cover (three rows of 33.33% do add up to the whole expense).
   const totalPct =
-    splitMode === "percentage" ? totalPercentage() : splits.reduce((s, sp) => s + sp.percentage, 0);
+    splitMode === "percentage"
+      ? totalPercentage()
+      : expenseTotal > 0
+        ? (totalSplitAmount / expenseTotal) * 100
+        : 0;
+
+  // Only Porcentaje and Monto Fijo can leave an expense short or over; Auto
+  // always accounts for the whole amount. An empty amount keeps its existing
+  // handling.
+  const splitCheck =
+    !isPago && splitMode !== "auto" && expenseTotal > 0
+      ? checkSplitSum(
+          expenseTotal,
+          splits.map((s) => s.amount),
+        )
+      : null;
+  const splitBlocked = splitCheck !== null && !splitCheck.ok;
+  const splitTotalOk = splitCheck === null || splitCheck.ok;
+  /** Live verdict on the split; rendered inside the TOTAL row of each layout. */
+  const splitFeedback = (id: string) =>
+    splitCheck && (
+      <span id={id} role="status" className="font-medium not-italic">
+        <span className={splitCheck.ok ? "text-emerald-400" : "text-red-400"}>
+          {splitCheck.ok
+            ? t("modal.split_complete")
+            : splitCheck.difference > 0
+              ? t("modal.split_remaining", { amount: money(Math.abs(splitCheck.difference)) })
+              : t("modal.split_over", { amount: money(Math.abs(splitCheck.difference)) })}
+        </span>
+        {!splitCheck.ok && <span className="sr-only"> {t("modal.split_blocked")}</span>}
+      </span>
+    );
 
   if (!props.isOpen) return null;
+
+  /** A split-mode segment: full width on phones, natural width beside the heading. */
+  const splitModeClass = (mode: SplitMode) =>
+    `px-1 sm:px-3 py-1.5 text-xs font-semibold whitespace-nowrap rounded-custom transition-colors ${
+      splitMode === mode
+        ? "bg-primary text-white shadow-sm"
+        : "text-zinc-400 hover:text-white hover:bg-white/5"
+    }`;
 
   return (
     <Modal
@@ -898,12 +1040,17 @@ export default function TransactionModal(props: TransactionModalProps) {
               type="button"
               disabled={
                 submitting ||
+                splitBlocked ||
                 (linkToTransaction &&
                   selectedRelatedTxId !== null &&
                   (() => {
                     const stx = selectedRelatedTx;
                     return stx !== null && Math.abs(amount) > stx.remainingDebt + 0.005;
                   })())
+              }
+              title={splitBlocked ? t("modal.split_blocked") : undefined}
+              aria-describedby={
+                splitBlocked ? "split-feedback-desktop split-feedback-mobile" : undefined
               }
               onClick={handleSubmit}
               className={`px-8 py-2 text-sm font-semibold rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
@@ -921,14 +1068,14 @@ export default function TransactionModal(props: TransactionModalProps) {
       <form
         ref={formRef}
         onSubmit={handleSubmit}
-        className="p-4 sm:p-6 space-y-4 sm:space-y-8 overflow-y-auto max-h-[75vh]"
+        className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[75vh]"
       >
         <div className="space-y-2">
           <label className="block text-sm font-medium text-zinc-300" htmlFor="description">
             {t("modal.description")}
           </label>
           <input
-            className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+            className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
             id="description"
             type="text"
             placeholder={
@@ -954,7 +1101,7 @@ export default function TransactionModal(props: TransactionModalProps) {
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
               <input
-                className="block w-full pl-8 pr-4 py-2.5 bg-background border border-white/20 rounded-custom text-white text-lg font-semibold focus:ring-primary focus:border-primary"
+                className="block w-full pl-8 pr-4 py-2.5 bg-background border border-border-field rounded-custom text-white text-lg font-semibold focus:ring-primary-text focus:border-primary-text"
                 id="total-amount"
                 type="text"
                 inputMode="decimal"
@@ -988,7 +1135,7 @@ export default function TransactionModal(props: TransactionModalProps) {
               installmentInputMode === "installment" &&
               installmentTotal > 0 && (
                 <p className="text-xs text-zinc-400 mt-1">
-                  Total: ${formatMoney(Math.abs(amount))} (
+                  Total: {money(Math.abs(amount))} (
                   {t("modal.installment_count", {
                     n: installmentTotal,
                   })}
@@ -1000,9 +1147,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                 type="button"
                 data-tour="pay-debt"
                 onClick={() => {
-                  const formatted = formatMoney(debtToRecipient);
+                  // The field itself stays a plain number, like a typed one.
                   setAmount(debtToRecipient);
-                  setAmountDisplay(formatted);
+                  setAmountDisplay(debtToRecipient.toString());
                 }}
                 className="flex items-center gap-2 mt-1.5 px-3 py-1.5 rounded-custom border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors cursor-pointer group"
               >
@@ -1021,7 +1168,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                 </svg>
                 <span className="text-xs font-medium text-emerald-300">
                   {t("modal.pay_debt", {
-                    amount: formatMoney(debtToRecipient),
+                    amount: money(debtToRecipient),
                   })}
                 </span>
               </button>
@@ -1031,7 +1178,7 @@ export default function TransactionModal(props: TransactionModalProps) {
             <div className="space-y-2">
               <label className="block text-sm font-medium text-zinc-300">{t("modal.type")}</label>
               <div
-                className="flex gap-1 p-1 bg-background border border-white/20 rounded-custom"
+                className="flex gap-1 p-1 bg-background border border-border-field rounded-custom"
                 data-tour="expense-type"
               >
                 {(["unico", "parcialidad", "recurrente"] as TransactionType[]).map((typeVal) => (
@@ -1097,7 +1244,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                 </label>
                 <div className="flex items-center gap-3">
                   <select
-                    className="block w-full px-4 py-2 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+                    className="block w-full px-4 py-2 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
                     value={installmentCurrent}
                     onChange={(e) => setInstallmentCurrent(parseInt(e.currentTarget.value))}
                   >
@@ -1107,9 +1254,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                       </option>
                     ))}
                   </select>
-                  <span className="text-zinc-500">{t("modal.installment_of")}</span>
+                  <span className="text-zinc-400">{t("modal.installment_of")}</span>
                   <input
-                    className="block w-20 px-4 py-2 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+                    className="block w-20 px-4 py-2 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
                     type="text"
                     inputMode="numeric"
                     value={installmentTotalDisplay}
@@ -1136,7 +1283,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                       }
                     }}
                   />
-                  <span className="text-zinc-500">{t("modal.installment_months")}</span>
+                  <span className="text-zinc-400">{t("modal.installment_months")}</span>
                 </div>
               </div>
             </div>
@@ -1150,7 +1297,7 @@ export default function TransactionModal(props: TransactionModalProps) {
             </label>
             <select
               id="payer-select"
-              className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
+              className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
               value={userPaid}
               onChange={(e) => setUserPaid(e.currentTarget.value)}
             >
@@ -1163,20 +1310,6 @@ export default function TransactionModal(props: TransactionModalProps) {
             </select>
           </div>
         )}
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-zinc-300" htmlFor="notes">
-            {t("modal.notes")}
-          </label>
-          <textarea
-            className="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary resize-none"
-            id="notes"
-            rows={2}
-            placeholder={t("modal.notes_placeholder")}
-            value={notes}
-            onInput={(e) => setNotes(e.currentTarget.value)}
-          />
-        </div>
 
         {isPago ? (
           <>
@@ -1213,14 +1346,14 @@ export default function TransactionModal(props: TransactionModalProps) {
                             <div className="flex items-center gap-3">
                               <div
                                 className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                                style={{ backgroundColor: `${user.color}30`, color: user.color }}
+                                style={{ backgroundColor: `${user.color}30` }}
                               >
                                 {userInitials}
                               </div>
                               <span className="text-sm font-medium text-white">
                                 {user.name}
                                 {user.id === currentUserId && (
-                                  <span className="text-zinc-500 ml-1">
+                                  <span className="text-zinc-400 ml-1">
                                     {t("common.you_label")}
                                   </span>
                                 )}
@@ -1233,38 +1366,45 @@ export default function TransactionModal(props: TransactionModalProps) {
                             </div>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
-                              type="radio"
-                              name="pagoPaid"
-                              value={user.id}
-                              checked={userPaid === user.id}
-                              onChange={() => {
-                                setUserPaid(user.id);
-                                if (paymentRecipient === user.id) {
-                                  setPaymentRecipient(
-                                    users.find((u) => u.id !== user.id)?.id ?? "",
-                                  );
-                                }
-                              }}
-                              className="accent-primary"
-                            />
+                            {/* The padded label turns the 20px radio into a 36px target. */}
+                            <label className="inline-flex p-2 -m-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="pagoPaid"
+                                value={user.id}
+                                checked={userPaid === user.id}
+                                onChange={() => {
+                                  setUserPaid(user.id);
+                                  if (paymentRecipient === user.id) {
+                                    setPaymentRecipient(
+                                      users.find((u) => u.id !== user.id)?.id ?? "",
+                                    );
+                                  }
+                                }}
+                                aria-label={`${t("modal.paid_header")}: ${user.name}`}
+                                className="w-5 h-5 accent-primary cursor-pointer"
+                              />
+                            </label>
                           </td>
                           <td className="px-4 py-3 text-center">
-                            <input
-                              type="radio"
-                              name="pagoRecipient"
-                              value={user.id}
-                              checked={paymentRecipient === user.id}
-                              onChange={() => {
-                                setPaymentRecipient(user.id);
-                                if (userPaid === user.id) {
-                                  setUserPaid(
-                                    users.find((u) => u.id !== user.id)?.id ?? currentUserId,
-                                  );
-                                }
-                              }}
-                              className="accent-indigo-400"
-                            />
+                            <label className="inline-flex p-2 -m-2 cursor-pointer">
+                              <input
+                                type="radio"
+                                name="pagoRecipient"
+                                value={user.id}
+                                checked={paymentRecipient === user.id}
+                                onChange={() => {
+                                  setPaymentRecipient(user.id);
+                                  if (userPaid === user.id) {
+                                    setUserPaid(
+                                      users.find((u) => u.id !== user.id)?.id ?? currentUserId,
+                                    );
+                                  }
+                                }}
+                                aria-label={`${t("modal.received_header")}: ${user.name}`}
+                                className="w-5 h-5 accent-indigo-400 cursor-pointer"
+                              />
+                            </label>
                           </td>
                           {users.length > 2 && (
                             <td className="px-4 py-3 text-right">
@@ -1275,15 +1415,15 @@ export default function TransactionModal(props: TransactionModalProps) {
                                     return null;
                                   }
                                   return bd.amount > 0 ? (
-                                    <span className="text-xs font-semibold text-green-400">
+                                    <span className="text-xs font-semibold text-emerald-400">
                                       {t("modal.owes_you", {
-                                        amount: formatMoney(bd.amount),
+                                        amount: money(bd.amount),
                                       })}
                                     </span>
                                   ) : (
                                     <span className="text-xs font-semibold text-red-400">
                                       {t("modal.you_owe_them", {
-                                        amount: formatMoney(Math.abs(bd.amount)),
+                                        amount: money(Math.abs(bd.amount)),
                                       })}
                                     </span>
                                   );
@@ -1305,8 +1445,9 @@ export default function TransactionModal(props: TransactionModalProps) {
                         : null;
                     return (
                       <div key={user.id} className="flex items-center gap-3 px-3 py-3">
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[9px] text-zinc-500 uppercase">
+                        {/* Each column is its own label, so the caption is part of the target. */}
+                        <label className="flex flex-col items-center gap-1 p-2 -m-2 cursor-pointer">
+                          <span className="text-[9px] text-zinc-400 uppercase">
                             {t("modal.paid_header")}
                           </span>
                           <input
@@ -1320,11 +1461,12 @@ export default function TransactionModal(props: TransactionModalProps) {
                                 setPaymentRecipient(users.find((u) => u.id !== user.id)?.id ?? "");
                               }
                             }}
-                            className="accent-primary"
+                            aria-label={`${t("modal.paid_header")}: ${user.name}`}
+                            className="w-5 h-5 accent-primary cursor-pointer"
                           />
-                        </div>
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-[9px] text-zinc-500 uppercase">
+                        </label>
+                        <label className="flex flex-col items-center gap-1 p-2 -m-2 cursor-pointer">
+                          <span className="text-[9px] text-zinc-400 uppercase">
                             {t("modal.received_header")}
                           </span>
                           <input
@@ -1340,21 +1482,22 @@ export default function TransactionModal(props: TransactionModalProps) {
                                 );
                               }
                             }}
-                            className="accent-indigo-400"
+                            aria-label={`${t("modal.received_header")}: ${user.name}`}
+                            className="w-5 h-5 accent-indigo-400 cursor-pointer"
                           />
-                        </div>
+                        </label>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <div
-                              className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                              style={{ backgroundColor: `${user.color}30`, color: user.color }}
+                              className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                              style={{ backgroundColor: `${user.color}30` }}
                             >
                               {userInitials}
                             </div>
                             <span className="text-sm font-medium text-white truncate">
                               {user.name}
                               {user.id === currentUserId && (
-                                <span className="text-zinc-500 ml-1">{t("common.you_label")}</span>
+                                <span className="text-zinc-400 ml-1">{t("common.you_label")}</span>
                               )}
                               {props.entityIds.has(user.id) && (
                                 <span className="text-xs ml-1 px-1 py-0.5 rounded bg-white/10 text-zinc-400">
@@ -1366,15 +1509,15 @@ export default function TransactionModal(props: TransactionModalProps) {
                           {bd && Math.abs(bd.amount) >= 0.01 && (
                             <span
                               className={`text-xs font-semibold ${
-                                bd.amount > 0 ? "text-green-400" : "text-red-400"
+                                bd.amount > 0 ? "text-emerald-400" : "text-red-400"
                               } ml-8`}
                             >
                               {bd.amount > 0
                                 ? t("modal.owes_you", {
-                                    amount: formatMoney(bd.amount),
+                                    amount: money(bd.amount),
                                   })
                                 : t("modal.you_owe_them", {
-                                    amount: formatMoney(Math.abs(bd.amount)),
+                                    amount: money(Math.abs(bd.amount)),
                                   })}
                             </span>
                           )}
@@ -1387,7 +1530,7 @@ export default function TransactionModal(props: TransactionModalProps) {
             </section>
 
             <section className="space-y-3">
-              <label className="flex items-center gap-3 cursor-pointer select-none">
+              <label className="flex items-center gap-3 -my-1.5 py-1.5 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={linkToTransaction}
@@ -1399,7 +1542,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                       setSelectedExpenseIds([]);
                     }
                   }}
-                  className="accent-primary w-4 h-4"
+                  className="w-5 h-5 shrink-0 accent-primary cursor-pointer"
                 />
                 <span className="text-sm font-medium text-zinc-300">
                   {t("modal.link_expenses")}
@@ -1419,7 +1562,7 @@ export default function TransactionModal(props: TransactionModalProps) {
               {linkToTransaction && hasEligibleTransactions && (
                 <div className="space-y-2">
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-500">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-zinc-400">
                       <svg
                         className="h-4 w-4"
                         fill="none"
@@ -1439,13 +1582,13 @@ export default function TransactionModal(props: TransactionModalProps) {
                       placeholder={t("modal.search_expense")}
                       value={relatedTxSearch}
                       onInput={(e) => setRelatedTxSearch(e.currentTarget.value)}
-                      className="w-full bg-background border-white/20 rounded-custom pl-9 pr-8 text-white text-sm placeholder-zinc-500 focus:ring-primary focus:border-primary py-2"
+                      className="w-full bg-background border border-border-field rounded-custom pl-9 pr-8 text-white text-sm placeholder-zinc-400 focus:ring-primary-text focus:border-primary-text py-2"
                     />
                     {relatedTxSearch && (
                       <button
                         type="button"
                         onClick={() => setRelatedTxSearch("")}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-500 hover:text-white"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-white"
                       >
                         <svg
                           className="w-3.5 h-3.5"
@@ -1463,6 +1606,10 @@ export default function TransactionModal(props: TransactionModalProps) {
                       </button>
                     )}
                   </div>
+
+                  <p className="text-xs text-zinc-400">
+                    {t("modal.link_expenses_scope", { name: paymentRecipientName })}
+                  </p>
 
                   <div className="max-h-60 overflow-y-auto custom-scrollbar space-y-1.5 border border-white/5 rounded-custom p-2 bg-background">
                     {filteredEligible.length === 0 ? (
@@ -1543,7 +1690,7 @@ export default function TransactionModal(props: TransactionModalProps) {
                         return (
                           <div className="border border-white/10 rounded-custom p-3 bg-white/5 space-y-2">
                             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                              Distribución
+                              {t("modal.allocation_section")}
                             </p>
                             {alloc.map((a, idx) => {
                               const exp = eligibleTransactions.find((e) => e.id === a.expenseId);
@@ -1581,8 +1728,8 @@ export default function TransactionModal(props: TransactionModalProps) {
                                       {isFull
                                         ? t("modal.allocation_fully_covered")
                                         : t("modal.allocation_partial", {
-                                            covered: formatMoney(a.amount),
-                                            total: formatMoney(exp!.remainingDebt),
+                                            covered: money(a.amount),
+                                            total: money(exp!.remainingDebt),
                                           })}
                                     </span>
                                     {!isFull && (
@@ -1619,48 +1766,38 @@ export default function TransactionModal(props: TransactionModalProps) {
           </>
         ) : (
           <section className="space-y-3 sm:space-y-4">
-            <div className="flex justify-between items-center">
+            {/* Phones: heading on its own line above a full-width segmented
+                control, so nothing is squeezed or wrapped. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
               <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">
                 {t("modal.split_section")}
               </h3>
-              <div className="flex gap-2" data-tour="split-mode">
-                <button
-                  type="button"
-                  onClick={setAutoSplit}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
-                    splitMode === "auto"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  }`}
-                >
+              <div className="grid grid-cols-3 gap-1 sm:flex sm:gap-2" data-tour="split-mode">
+                <button type="button" onClick={setAutoSplit} className={splitModeClass("auto")}>
                   {t("modal.split_auto")}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
-                    if (defaultSplit) {
-                      setSplitMode("percentage");
+                    // An edit keeps its own shares when switching representation.
+                    if (isEditingExpense) {
+                      setPercentages(percentagesFor(getSplits()));
+                    } else if (defaultSplit) {
                       setPercentages(buildDefaultPercentages());
-                    } else {
-                      setSplitMode("percentage");
                     }
+                    setSplitMode("percentage");
                   }}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
-                    splitMode === "percentage"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  }`}
+                  className={splitModeClass("percentage")}
                 >
                   {t("modal.split_percentage")}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSplitMode("fixed")}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded transition-colors ${
-                    splitMode === "fixed"
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
-                  }`}
+                  onClick={() => {
+                    if (isEditingExpense) setFixedAmounts(fixedAmountsFrom(getSplits()));
+                    setSplitMode("fixed");
+                  }}
+                  className={splitModeClass("fixed")}
                 >
                   {t("modal.split_fixed")}
                 </button>
@@ -1692,14 +1829,14 @@ export default function TransactionModal(props: TransactionModalProps) {
                           <div className="flex items-center gap-3">
                             <div
                               className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                              style={{ backgroundColor: `${user.color}30`, color: user.color }}
+                              style={{ backgroundColor: `${user.color}30` }}
                             >
                               {userInitials}
                             </div>
                             <span className="text-sm font-medium text-white">
                               {user.name}
                               {user.id === currentUserId && (
-                                <span className="text-zinc-500 ml-1">{t("common.you_label")}</span>
+                                <span className="text-zinc-400 ml-1">{t("common.you_label")}</span>
                               )}
                               {props.entityIds.has(user.id) && (
                                 <span className="text-xs ml-1 px-1.5 py-0.5 rounded bg-white/10 text-zinc-400">
@@ -1713,9 +1850,10 @@ export default function TransactionModal(props: TransactionModalProps) {
                           <div className="flex items-center justify-end">
                             {splitMode === "percentage" ? (
                               <input
-                                className="w-20 px-2 py-1 bg-background border border-white/20 rounded text-right text-sm font-medium text-white focus:ring-primary focus:border-primary"
+                                className="w-20 px-2 py-1 bg-background border border-border-field rounded text-right text-sm font-medium text-white focus:ring-primary-text focus:border-primary-text"
                                 type="text"
                                 inputMode="decimal"
+                                aria-label={`% ${user.name}`}
                                 value={percentages[user.id] ?? 0}
                                 onInput={(e) => {
                                   const sanitized = sanitizeDecimal(e.currentTarget.value);
@@ -1725,32 +1863,35 @@ export default function TransactionModal(props: TransactionModalProps) {
                               />
                             ) : (
                               <span className="text-sm text-zinc-400">
-                                {split?.percentage.toFixed(0) ?? 0}
+                                {split?.percentage.toFixed(2) ?? "0.00"}
                               </span>
                             )}
-                            <span className="ml-1 text-zinc-500">%</span>
+                            <span className="ml-1 text-zinc-400">%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end">
                             {splitMode === "fixed" ? (
-                              <input
-                                className="w-28 px-2 py-1 bg-background border border-white/20 rounded text-right text-sm font-medium text-white focus:ring-primary focus:border-primary"
-                                type="text"
-                                inputMode="decimal"
-                                value={fixedAmounts[user.id] ?? 0}
-                                onInput={(e) => {
-                                  const sanitized = sanitizeDecimal(e.currentTarget.value);
-                                  e.currentTarget.value = sanitized;
-                                  updateFixedAmount(user.id, sanitized);
-                                }}
-                              />
+                              <>
+                                <span className="mr-1 text-zinc-400">$</span>
+                                <input
+                                  className="w-28 px-2 py-1 bg-background border border-border-field rounded text-right text-sm font-medium text-white focus:ring-primary-text focus:border-primary-text"
+                                  type="text"
+                                  inputMode="decimal"
+                                  aria-label={`${t("modal.amount_header")} ${user.name}`}
+                                  value={fixedAmounts[user.id] ?? 0}
+                                  onInput={(e) => {
+                                    const sanitized = sanitizeDecimal(e.currentTarget.value);
+                                    e.currentTarget.value = sanitized;
+                                    updateFixedAmount(user.id, sanitized);
+                                  }}
+                                />
+                              </>
                             ) : (
                               <span className="text-sm text-white">
-                                {split?.amount.toFixed(2) ?? "0.00"}
+                                {money(split?.amount ?? 0)}
                               </span>
                             )}
-                            {splitMode === "fixed" && <span className="ml-1 text-zinc-500">$</span>}
                           </div>
                         </td>
                       </tr>
@@ -1760,127 +1901,159 @@ export default function TransactionModal(props: TransactionModalProps) {
                 <tfoot className="bg-white/5">
                   <tr>
                     <td className="px-4 py-2 text-xs font-bold text-zinc-400 italic">
-                      {t("modal.total_header")}
+                      <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                        <span>{t("modal.total_header")}</span>
+                        {splitFeedback("split-feedback-desktop")}
+                      </span>
                     </td>
                     <td
                       className={`px-4 py-2 text-right text-xs font-bold ${
-                        Math.abs(totalPct - 100) < 0.01 ? "text-white" : "text-red-400"
+                        splitTotalOk ? "text-white" : "text-red-400"
                       }`}
                     >
-                      {totalPct.toFixed(0)}%
+                      {totalPct.toFixed(2)}%
                     </td>
                     <td
                       className={`px-4 py-2 text-right text-xs font-bold ${
-                        Math.abs(totalSplitAmount - Math.abs(amount)) < 0.01
-                          ? "text-white"
-                          : "text-red-400"
+                        splitTotalOk ? "text-white" : "text-red-400"
                       }`}
                     >
-                      ${totalSplitAmount.toFixed(2)}
+                      {money(totalSplitAmount)}
                     </td>
                   </tr>
                 </tfoot>
               </table>
 
+              {/* Phones: one line per member. What is set on top (the amount, or
+                  the input of the active mode), what it amounts to underneath. */}
               <div className="md:hidden divide-y divide-border-custom">
                 {users.map((user) => {
                   const split = splits.find((s) => s.userId === user.id);
-                  const userInitials = initials(user.name);
+                  const splitAmount = split?.amount ?? 0;
+                  const splitPercentage = `${split?.percentage.toFixed(2) ?? "0.00"}%`;
                   return (
-                    <div key={user.id} className="flex items-start gap-3 px-3 py-3">
-                      <div className="flex-1 min-w-0 space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
-                            style={{ backgroundColor: `${user.color}30`, color: user.color }}
-                          >
-                            {userInitials}
-                          </div>
-                          <span className="text-sm font-medium text-white truncate">
-                            {user.name}
-                            {user.id === currentUserId && (
-                              <span className="text-zinc-500 ml-1">{t("common.you_label")}</span>
-                            )}
-                            {props.entityIds.has(user.id) && (
-                              <span className="text-xs ml-1 px-1 py-0.5 rounded bg-white/10 text-zinc-400">
-                                {t("common.tercero_badge")}
-                              </span>
-                            )}
-                          </span>
+                    <div key={user.id} className="flex items-center gap-2 px-3 py-2">
+                      <div
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                        style={{ backgroundColor: `${user.color}30` }}
+                      >
+                        {initials(user.name)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span
+                          className="block truncate text-sm font-medium text-white"
+                          title={user.name}
+                        >
+                          {user.name}
+                          {user.id === currentUserId && (
+                            <span className="text-zinc-400 ml-1">{t("common.you_label")}</span>
+                          )}
+                          {props.entityIds.has(user.id) && (
+                            <span className="text-xs ml-1 px-1 py-0.5 rounded bg-white/10 text-zinc-400">
+                              {t("common.tercero_badge")}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="flex items-center justify-end gap-1 text-sm">
+                          {splitMode === "fixed" && <span className="text-zinc-400">$</span>}
+                          {splitMode === "auto" ? (
+                            <span className="font-medium text-white">{money(splitAmount)}</span>
+                          ) : (
+                            <input
+                              className={`${splitMode === "fixed" ? "w-20" : "w-16"} px-2 py-1 bg-background border border-border-field rounded text-right text-sm font-medium text-white focus:ring-primary-text focus:border-primary-text`}
+                              type="text"
+                              inputMode="decimal"
+                              aria-label={`${splitMode === "fixed" ? t("modal.amount_header") : "%"} ${user.name}`}
+                              value={
+                                splitMode === "fixed"
+                                  ? (fixedAmounts[user.id] ?? 0)
+                                  : (percentages[user.id] ?? 0)
+                              }
+                              onInput={(e) => {
+                                const sanitized = sanitizeDecimal(e.currentTarget.value);
+                                e.currentTarget.value = sanitized;
+                                if (splitMode === "fixed") updateFixedAmount(user.id, sanitized);
+                                else updatePercentage(user.id, sanitized);
+                              }}
+                            />
+                          )}
+                          {splitMode === "percentage" && <span className="text-zinc-400">%</span>}
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <div className="flex items-center">
-                            {splitMode === "percentage" ? (
-                              <input
-                                className="w-16 px-2 py-1 bg-background border border-white/20 rounded text-right text-sm font-medium text-white focus:ring-primary focus:border-primary"
-                                type="text"
-                                inputMode="decimal"
-                                value={percentages[user.id] ?? 0}
-                                onInput={(e) => {
-                                  const sanitized = sanitizeDecimal(e.currentTarget.value);
-                                  e.currentTarget.value = sanitized;
-                                  updatePercentage(user.id, sanitized);
-                                }}
-                              />
-                            ) : (
-                              <span className="text-zinc-400">
-                                {split?.percentage.toFixed(0) ?? 0}
-                              </span>
-                            )}
-                            <span className="ml-0.5 text-zinc-500 text-xs">%</span>
-                          </div>
-                          <div className="flex items-center">
-                            {splitMode === "fixed" ? (
-                              <input
-                                className="w-24 px-2 py-1 bg-background border border-white/20 rounded text-right text-sm font-medium text-white focus:ring-primary focus:border-primary"
-                                type="text"
-                                inputMode="decimal"
-                                value={fixedAmounts[user.id] ?? 0}
-                                onInput={(e) => {
-                                  const sanitized = sanitizeDecimal(e.currentTarget.value);
-                                  e.currentTarget.value = sanitized;
-                                  updateFixedAmount(user.id, sanitized);
-                                }}
-                              />
-                            ) : (
-                              <span className="text-white">${(split?.amount ?? 0).toFixed(2)}</span>
-                            )}
-                            {splitMode === "fixed" && (
-                              <span className="ml-0.5 text-zinc-500 text-xs">$</span>
-                            )}
-                          </div>
+                        <div className="text-xs text-zinc-400">
+                          {splitMode === "percentage" ? money(splitAmount) : splitPercentage}
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                <div className="flex items-center justify-between px-3 py-2 bg-white/5">
-                  <span className="text-xs font-bold text-zinc-400 italic">
-                    {t("modal.total_header")}
-                  </span>
-                  <div className="flex items-center gap-4">
-                    <span
-                      className={`text-xs font-bold ${
-                        Math.abs(totalPct - 100) < 0.01 ? "text-white" : "text-red-400"
-                      }`}
-                    >
-                      {totalPct.toFixed(0)}%
+                <div className="px-3 py-2 bg-white/5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-zinc-400 italic">
+                      {t("modal.total_header")}
                     </span>
-                    <span
-                      className={`text-xs font-bold ${
-                        Math.abs(totalSplitAmount - Math.abs(amount)) < 0.01
-                          ? "text-white"
-                          : "text-red-400"
-                      }`}
-                    >
-                      ${totalSplitAmount.toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`text-xs font-bold ${
+                          splitTotalOk ? "text-white" : "text-red-400"
+                        }`}
+                      >
+                        {totalPct.toFixed(2)}%
+                      </span>
+                      <span
+                        className={`text-xs font-bold ${
+                          splitTotalOk ? "text-white" : "text-red-400"
+                        }`}
+                      >
+                        {money(totalSplitAmount)}
+                      </span>
+                    </div>
                   </div>
+                  {splitCheck && (
+                    <div className="mt-0.5 text-right text-xs">
+                      {splitFeedback("split-feedback-mobile")}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </section>
         )}
+
+        {/* Optional, so it stays out of the way until asked for (or until the
+            transaction already has a note). */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setNotesOpen(!notesOpen)}
+            aria-expanded={notesOpen}
+            aria-controls="notes"
+            className="-my-1.5 flex items-center gap-1.5 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <svg
+              className={`h-3.5 w-3.5 shrink-0 transition-transform ${notesOpen ? "rotate-90" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M9 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" />
+            </svg>
+            {notesOpen || notes ? t("modal.notes") : t("modal.add_note")}
+          </button>
+          {notesOpen && (
+            <textarea
+              className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text resize-none"
+              id="notes"
+              aria-label={t("modal.notes")}
+              rows={2}
+              placeholder={t("modal.notes_placeholder")}
+              value={notes}
+              onInput={(e) => setNotes(e.currentTarget.value)}
+            />
+          )}
+        </div>
       </form>
     </Modal>
   );

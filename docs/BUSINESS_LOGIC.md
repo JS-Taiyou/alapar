@@ -20,15 +20,52 @@ transactions, exercises, and invitations all belong to one registry.
 
 Users choose how to divide each expense:
 
-1. **Auto** — Equal split among all members. Remainder cents go to the first
-   user in the list.
+1. **Auto** — Equal split among all members. A cent that cannot be divided is
+   dealt by the book's line (below).
 2. **Percentage** — Each user gets a custom percentage. Sum must equal 100%.
-   Amounts are calculated.
+   Amounts are calculated, then dealt to whole cents by the book's line.
 3. **Fixed** — Each user gets a custom amount. Sum must equal total. Percentages
-   are derived.
+   are derived. Amounts are kept as typed.
 
 For 2-user registries, editing one user's value auto-complements the other
 (e.g., enter 30% → other becomes 70%).
+
+### Leftover cents (`lib/splits.ts`, `resolveTransactionSplit`)
+
+A cent cannot be divided, and the app never keeps fractions of one. **Auto**
+and **Porcentaje** shares are dealt by the server, inside the transaction that
+saves the expense, against a line each book keeps (`registries.remainder_queue`):
+
+1. Every share is rounded down. The cents left over go to the largest
+   remainders, one each.
+2. A tie — an even split, 50/50 — is settled by the line: whoever is first
+   takes the cent. The line only holds members who have taken one, so a member
+   who never has goes before any of them.
+3. Whoever gained a cent that way takes a turn and moves to the back (so does
+   whoever gave one back when the floors add up to too much). Among n members,
+   whoever took a cent waits exactly n − 1 turns, in an order the book keeps
+   for good.
+4. In **Porcentaje**, the member holding the odd hundredth of an even split
+   (33.34 among 33.33s) takes a turn too, even on an amount where every share
+   is exact: that hundredth is $0.15 more of a $1,500 expense.
+
+$10.11 at 50/50 is 5.06 / 5.05, then 5.05 / 5.06 the next time. $10.01 among
+three leaves two cents, so two members take one each and every member carries
+a cent in two expenses out of three.
+
+The form shows the same deal the server will make, from the line delivered with
+the dashboard and with every save's answer; the server's split is the one that
+is saved. **Monto Fijo** is the user's own cents and is never dealt.
+
+- **Edits**: a split left alone keeps its cents and its turn. Only a split that
+  changed is dealt again, against the line as it stands then.
+- **Deleting** an expense never rewinds the line.
+- **Instalments and recurring expenses** take a turn from the line when each
+  period is created, with the split that expense has at that moment — not a
+  turn of their own series, so a split that changes in between is simply dealt
+  as it stands.
+- **Old rows** carry no mode. An even split among them is dealt as Auto, the
+  way the form opens it; anything else is copied as it stands.
 
 ### Server-side validation (`lib/transaction-validation.ts`)
 
@@ -42,7 +79,9 @@ balances trustworthy (whatever passes here is persisted and summed verbatim into
   (`installmentCurrent` ≤ `installmentTotal`)
 - For expenses, split amounts must sum to the transaction total within a small
   rounding tolerance (scales with participant count — the client's
-  percentage/fixed builders round each share independently)
+  percentage/fixed builders round each share independently). A split the
+  server deals then comes out at the total to the cent.
+- `splitMode`, when sent, is one of `auto`, `percentage`, `fixed`
 - Linked payment allocations may not exceed the pago's amount
 - Payer and every split `userId` must be participants of the target registry,
   and every referenced transaction must live in that same registry
@@ -50,7 +89,9 @@ balances trustworthy (whatever passes here is persisted and summed verbatim into
 **Write integrity**: transaction INSERT + linked payments + balance deltas, the
 update equivalent, registry creation, invitation joins, and batch cloning all
 run inside `withTransaction` (`lib/db.ts`) — a failure mid-sequence rolls the
-whole unit back instead of leaving balances drifted from transactions.
+whole unit back instead of leaving balances drifted from transactions. The
+book's line is held under a row lock for the whole unit, so two saves racing
+each other cannot hand the same turn to two people.
 
 ---
 

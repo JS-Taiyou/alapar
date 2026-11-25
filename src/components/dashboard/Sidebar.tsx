@@ -101,7 +101,7 @@ export function MobileMenuButton(props: {
       onClick={props.onClick}
       className={`${
         props.inHeader
-          ? "md:hidden shrink-0 p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+          ? "md:hidden shrink-0 p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
           : "md:hidden fixed bottom-20 left-4 z-40 w-12 h-12 bg-surface border border-border-custom rounded-full text-white shadow-lg flex items-center justify-center hover:bg-white/10 active:scale-95 transition-all"
       } ${props.hidden ? "hidden" : ""}`}
     >
@@ -510,6 +510,7 @@ export default function Sidebar(props: SidebarProps) {
           defaultSplit: null,
           defaultSplitMemberCount: null,
           lastModified: null,
+          remainderQueue: [],
         },
       ]);
       setShowNewRegistry(false);
@@ -532,6 +533,7 @@ export default function Sidebar(props: SidebarProps) {
         defaultSplit: null,
         defaultSplitMemberCount: null,
         lastModified: null,
+        remainderQueue: [],
       },
     ]);
 
@@ -568,6 +570,7 @@ export default function Sidebar(props: SidebarProps) {
           entityIds: [],
           entities: [],
           lastModified: null,
+          remainderQueue: [],
         })
         .catch(() => {});
     } catch {
@@ -602,6 +605,7 @@ export default function Sidebar(props: SidebarProps) {
         </div>
         <button
           type="button"
+          aria-label={t(collapsed ? "sidebar.expand" : "sidebar.collapse")}
           onClick={() => {
             if (globalThis.innerWidth < 768) {
               setMobileOpen(false);
@@ -647,7 +651,7 @@ export default function Sidebar(props: SidebarProps) {
         }`}
       >
         <h3
-          className={`px-2 text-xs font-bold text-zinc-500 uppercase tracking-widest mb-4 whitespace-nowrap transition-opacity duration-200 ${
+          className={`px-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4 whitespace-nowrap transition-opacity duration-200 ${
             collapsed && !mobileOpen ? "opacity-0 h-0" : "opacity-100"
           }`}
         >
@@ -678,7 +682,7 @@ export default function Sidebar(props: SidebarProps) {
                     value={renameValue}
                     onInput={(e) => setRenameValue(e.currentTarget.value)}
                     onBlur={() => confirmRename(r.id)}
-                    className={`flex-1 min-w-0 bg-white/5 border border-white/10 rounded text-sm font-medium text-white p-1 px-2 focus:outline-none focus:ring-1 focus:ring-white/20 ${
+                    className={`flex-1 min-w-0 bg-white/5 border border-border-field rounded text-sm font-medium text-white p-1 px-2 focus:outline-none focus:ring-1 focus:ring-primary-text ${
                       collapsed && !mobileOpen ? "opacity-0 w-0 p-0" : ""
                     }`}
                     autoFocus
@@ -705,7 +709,7 @@ export default function Sidebar(props: SidebarProps) {
                     collapsed && !mobileOpen ? "justify-center p-2.5" : "gap-3 px-3 py-2.5"
                   } ${
                     isPending
-                      ? "bg-primary/10 border border-primary/30 text-primary"
+                      ? "bg-primary/10 border border-primary/30 text-primary-text"
                       : collapsed && !mobileOpen
                         ? r.id === activeRegistryId
                           ? ""
@@ -755,7 +759,7 @@ export default function Sidebar(props: SidebarProps) {
                     {r.name}
                     {isPending && (
                       <svg
-                        className="w-3.5 h-3.5 ml-2 animate-spin text-primary shrink-0"
+                        className="w-3.5 h-3.5 ml-2 animate-spin text-primary-text shrink-0"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -790,6 +794,7 @@ export default function Sidebar(props: SidebarProps) {
                         }}
                         className="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors"
                         title={t("sidebar.rename")}
+                        aria-label={t("sidebar.rename")}
                       >
                         <svg
                           className="w-4.5 h-4.5"
@@ -815,6 +820,7 @@ export default function Sidebar(props: SidebarProps) {
                         }}
                         className="p-2 hover:bg-white/10 rounded text-zinc-400 hover:text-white transition-colors text-sm font-bold"
                         title={t("sidebar.default_split")}
+                        aria-label={t("sidebar.default_split")}
                       >
                         %
                       </button>
@@ -828,6 +834,7 @@ export default function Sidebar(props: SidebarProps) {
                         }}
                         className="p-2 hover:bg-red-500/20 rounded text-zinc-400 hover:text-red-400 transition-colors"
                         title={t("sidebar.delete")}
+                        aria-label={t("sidebar.delete")}
                       >
                         <svg
                           className="w-4.5 h-4.5"
@@ -913,6 +920,7 @@ export default function Sidebar(props: SidebarProps) {
               onClick={() => setEntitiesOpen(true)}
               className="w-full flex items-center justify-center p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-custom text-white"
               title={t("sidebar.third_parties")}
+              aria-label={t("sidebar.third_parties")}
             >
               <svg
                 className="w-5 h-5 shrink-0"
@@ -1033,6 +1041,7 @@ export default function Sidebar(props: SidebarProps) {
           <span className="text-lg font-bold text-white">{t("sidebar.menu")}</span>
           <button
             type="button"
+            aria-label={t("common.close")}
             onClick={() => setMobileOpen(false)}
             className="p-2 hover:bg-white/5 rounded-custom text-zinc-400"
           >
@@ -1088,8 +1097,9 @@ export default function Sidebar(props: SidebarProps) {
                     <button
                       type="button"
                       onClick={copyCode}
-                      className="p-2 hover:bg-white/10 rounded-custom text-primary transition-colors"
+                      className="p-2 hover:bg-white/10 rounded-custom text-primary-text transition-colors"
                       title={t("sidebar.invite_copy")}
+                      aria-label={t("sidebar.invite_copy")}
                     >
                       <svg
                         className="w-5 h-5"
@@ -1110,9 +1120,10 @@ export default function Sidebar(props: SidebarProps) {
                     <p className="text-xs text-emerald-400 mt-1">{t("sidebar.invite_copied")}</p>
                   )}
                 </div>
-                <p className="text-xs text-zinc-500 text-center">
-                  Comparte este código o el enlace: {globalThis.location.origin}/join/
-                  {inviteCode}
+                <p className="text-xs text-zinc-400 text-center">
+                  {t("sidebar.invite_share", {
+                    url: `${globalThis.location.origin}/join/${inviteCode}`,
+                  })}
                 </p>
               </div>
             )}
@@ -1159,7 +1170,7 @@ export default function Sidebar(props: SidebarProps) {
               value={newRegistryName}
               onInput={(e) => setNewRegistryName(e.currentTarget.value)}
               placeholder={t("sidebar.new_placeholder")}
-              className="block w-full px-4 py-2.5 bg-background border border-border-custom rounded-custom text-white focus:ring-primary focus:border-primary"
+              className="block w-full px-4 py-2.5 bg-background border border-border-field rounded-custom text-white focus:ring-primary-text focus:border-primary-text"
               autoFocus
             />
           </form>

@@ -52,6 +52,7 @@ export default function DemoApp(props: DemoAppProps) {
       participants={first.snapshot.users}
       registryId={first.registry.id}
       lastModified={first.snapshot.lastModified}
+      remainderQueue={first.snapshot.remainderQueue}
       hasTransactions={first.snapshot.transactions.length > 0}
     >
       <DemoTour locale={locale} />

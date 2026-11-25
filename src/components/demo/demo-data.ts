@@ -74,6 +74,7 @@ export interface DemoSnapshot extends RegistrySnapshot {
   entityIds: string[];
   entities: Entity[];
   lastModified: string | null;
+  remainderQueue: string[];
 }
 
 /**
@@ -146,6 +147,7 @@ export function buildDemoData(): { user: User; books: DemoBook[] } {
         defaultSplit: r.defaultSplit,
         defaultSplitMemberCount: null,
         lastModified: lastActivity,
+        remainderQueue: [],
       },
       ownerId: r.ownerId,
       users,
@@ -162,6 +164,9 @@ export function buildDemoData(): { user: User; books: DemoBook[] } {
         entityIds: [],
         entities: [],
         lastModified: lastActivity?.toISOString() ?? null,
+        // None of the seed expenses leaves a cent over, so nobody has taken a
+        // turn yet: the first one a visitor adds starts the book's line.
+        remainderQueue: [],
       },
     };
   });

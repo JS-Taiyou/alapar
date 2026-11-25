@@ -103,10 +103,10 @@ export default function AuthCallback(props: AuthCallbackProps) {
         {error}
       </div>
       <details className="mb-6">
-        <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-400 transition-colors">
+        <summary className="text-xs text-zinc-400 cursor-pointer hover:text-zinc-300 transition-colors">
           {t("auth_callback.technical_details")}
         </summary>
-        <pre className="text-xs text-zinc-500 bg-background mt-2 p-3 rounded-custom overflow-auto text-left whitespace-pre-wrap break-all">
+        <pre className="text-xs text-zinc-400 bg-background mt-2 p-3 rounded-custom overflow-auto text-left whitespace-pre-wrap break-all">
           {debug}
         </pre>
       </details>
@@ -119,7 +119,7 @@ export default function AuthCallback(props: AuthCallbackProps) {
     </>
   ) : (
     <div className="flex flex-col items-center gap-4 py-4">
-      <svg className="w-10 h-10 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+      <svg className="w-10 h-10 text-primary-text animate-spin" fill="none" viewBox="0 0 24 24">
         <circle
           className="opacity-25"
           cx="12"

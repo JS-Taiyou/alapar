@@ -124,6 +124,8 @@ export interface CachedRegistryData {
   entityIds: string[];
   entities: { id: string; name: string; color: string }[];
   lastModified: string | null;
+  /** Absent on snapshots cached before the book's line existed. */
+  remainderQueue?: string[];
   cachedAt: number;
 }
 

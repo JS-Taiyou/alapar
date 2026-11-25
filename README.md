@@ -63,9 +63,11 @@ direct payments between members.
 - **Money math in integer cents** — the split engine and persisted balance
   deltas use exact integer-cents arithmetic, and the API validates that split
   shares sum to the transaction total before anything is stored.
-- **Deterministic remainder distribution** — when a split doesn't divide evenly,
-  leftover cents are assigned reproducibly (seeded by a per-transaction UUID),
-  so balances are auditable and fair in aggregate.
+- **A line for leftover cents** — a cent that cannot be divided is dealt by the
+  server against a line each book keeps: whole cents only, largest remainders
+  first, ties to whoever is first in line, and whoever took a cent goes to the
+  back. Among n members everyone waits n − 1 turns, in an order that never
+  changes; instalments take their turn from the same line.
 - **Exact balance persistence** — per-user deltas are stored as `NUMERIC(12,2)`
   in a `transaction_balances` table and summed via exact SQL arithmetic,
   eliminating the 1-2 cent discrepancies that accumulate with float-based

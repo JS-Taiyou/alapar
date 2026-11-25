@@ -53,6 +53,8 @@ interface DashboardShellProps {
   participants: Participant[];
   registryId: string;
   lastModified: string | null;
+  /** The book's line for leftover cents, as the server keeps it. */
+  remainderQueue: string[];
   hasTransactions: boolean;
   /**
    * Demo mode (/demo): books come from `demoSnapshots` and every write stays
@@ -107,6 +109,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             entityIds: [],
             entities: [],
             lastModified: null,
+            remainderQueue: [],
           },
       });
       return;
@@ -135,6 +138,7 @@ export default function DashboardShell(props: DashboardShellProps) {
         entityIds: cached.entityIds ?? [],
         entities: cached.entities,
         lastModified: cached.lastModified,
+        remainderQueue: cached.remainderQueue ?? [],
       });
 
       validateCacheInBackground(id, cached.lastModified, gen);
@@ -309,8 +313,9 @@ export default function DashboardShell(props: DashboardShellProps) {
                     // No history or cut to offer here — a way back to the site instead.
                     <a
                       href="/"
-                      className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+                      className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
                       title={t(props.locale, "shell.home_title")}
+                      aria-label={t(props.locale, "shell.home_title")}
                     >
                       <svg
                         className="w-6 h-6"
@@ -329,8 +334,9 @@ export default function DashboardShell(props: DashboardShellProps) {
                   ) : (
                     <a
                       href="/dashboard/history"
-                      className="p-3 bg-card hover:bg-white/5 transition-colors rounded-custom text-gray-300"
+                      className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
                       title={t(props.locale, "shell.history_title")}
+                      aria-label={t(props.locale, "shell.history_title")}
                     >
                       <svg
                         className="w-6 h-6"
@@ -384,6 +390,7 @@ function initialReducerArg(props: DashboardShellProps): DashboardState {
     defaultSplit: props.defaultSplit,
     spawnCandidates: props.spawnCandidates,
     lastModified: props.lastModified,
+    remainderQueue: props.remainderQueue,
     entityIds: new Set(props.entities.map((e) => e.id)),
     entities: props.entities,
   };
@@ -404,5 +411,6 @@ function snapshotOf(state: DashboardState): RegistrySnapshot {
     entityIds: [...state.entityIds],
     entities: state.entities,
     lastModified: state.lastModified,
+    remainderQueue: state.remainderQueue,
   };
 }

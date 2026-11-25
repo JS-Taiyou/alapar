@@ -11,8 +11,10 @@ import type {
   Exercise,
   Participant,
   Registry,
+  SplitMode,
   Transaction,
   TransactionPayment,
+  TransactionSplit,
   User,
 } from "./types";
 import {
@@ -20,6 +22,9 @@ import {
   buildFixedSplit,
   buildPercentageSplit,
   calculateBalance as calcBalancePure,
+  isEqualSplit,
+  resolveTransactionSplit,
+  sameSplitCents,
   calculateFullPairwiseBalances as calcFullPairwisePure,
   calculatePairwiseBreakdown as calcPairwiseBreakdownPure,
 } from "./calculations";
@@ -31,6 +36,7 @@ import {
   rowToTransactionPayment,
   rowToUser,
 } from "./rows";
+import { parseRemainderQueue } from "./rows";
 import { filterSpawnCandidates, generateInviteCode } from "./invite";
 import { buildBatchPlaceholders, buildTransactionUpdateSets } from "./sql-builders";
 import { computeDeltas } from "./balances";
@@ -337,12 +343,105 @@ export async function deleteTransactionPaymentsForPago(
   await q("DELETE FROM transaction_payments WHERE pago_id = $1", [pagoId]);
 }
 
+/** A transaction as its write returns it, with the book's line when the write dealt a split against it. */
+export type DealtTransaction = Transaction & { remainderQueue?: string[] };
+
+const isExpense = (type: Transaction["type"]) => type !== "pago" && type !== "ajuste";
+
+/** A stored `split_json` as the app's type, or null when the column holds anything else. */
+function parseSplit(value: unknown): TransactionSplit | null {
+  const split = typeof value === "string" ? JSON.parse(value) : value;
+  return split && typeof split === "object" && Array.isArray((split as TransactionSplit).splits)
+    ? (split as TransactionSplit)
+    : null;
+}
+
+/** A book's line under lock: `line` is what dealing moves, `save` writes it back. */
+interface HeldLine {
+  line: string[];
+  save: () => Promise<void>;
+}
+
+/**
+ * Hold a book's line for the rest of the transaction: two saves racing each
+ * other must not hand the same turn to two people. Runs on the executor of
+ * the write it belongs to, so the split and the line commit or roll back
+ * together.
+ *
+ * The line is read with an UPDATE that changes nothing. In production,
+ * Hyperdrive sits in front of Postgres: it caches read-only results, keeps
+ * them after a write, and does not say whether a locking read is spared. A
+ * write is never served from that cache, and an UPDATE takes the row lock
+ * this needs anyway.
+ */
+async function holdLine(q: QueryFn, registryId: string): Promise<HeldLine> {
+  const lock = await q(
+    "UPDATE registries SET remainder_queue = remainder_queue WHERE id = $1 RETURNING remainder_queue",
+    [registryId],
+  );
+  const asStored = JSON.stringify(parseRemainderQueue(lock.rows[0]?.remainder_queue));
+  const held: HeldLine = {
+    line: parseRemainderQueue(lock.rows[0]?.remainder_queue),
+    save: async () => {
+      const line = JSON.stringify(held.line);
+      if (line === asStored) return;
+      await q("UPDATE registries SET remainder_queue = $2::jsonb WHERE id = $1", [
+        registryId,
+        line,
+      ]);
+    },
+  };
+  return held;
+}
+
+/** Deal one split against a held line. `save` once every split of the write is dealt. */
+function deal(
+  held: HeldLine,
+  mode: SplitMode | undefined,
+  total: number,
+  split: TransactionSplit,
+): TransactionSplit {
+  const dealt = resolveTransactionSplit(mode, total, split, held.line);
+  held.line = dealt.line;
+  return dealt.split;
+}
+
+/**
+ * Deal each clone against its book's line, one after another in the order
+ * given. A period created now takes the turn that is next on the line its
+ * book keeps for every expense — not a turn of its own series — so an
+ * expense whose split changed in between is dealt with the split it has now.
+ * Returns the split to save for each clone.
+ */
+async function dealClones(q: QueryFn, clones: readonly Transaction[]): Promise<TransactionSplit[]> {
+  // Monto Fijo, and anything without a mode, is the user's own cents: copied
+  // as it stands, and never so much as a lock on the line.
+  const dealt = clones.filter((clone) => {
+    const mode = cloneSplitMode(clone);
+    return mode !== undefined && mode !== "fixed";
+  });
+  // Several books in one batch are held in id order, so two batches spanning
+  // the same books never wait on each other.
+  const held = new Map<string, HeldLine>();
+  for (const registryId of [...new Set(dealt.map((clone) => clone.registry_id))].sort()) {
+    held.set(registryId, await holdLine(q, registryId));
+  }
+  const splits = clones.map((clone) => {
+    const line = held.get(clone.registry_id);
+    return line
+      ? deal(line, cloneSplitMode(clone), clone.originalAmount, clone.splitJson)
+      : clone.splitJson;
+  });
+  for (const line of held.values()) await line.save();
+  return splits;
+}
+
 export async function createTransaction(
-  data: Omit<Transaction, "id" | "createdAt">,
+  data: Omit<Transaction, "id" | "createdAt"> & { splitMode?: SplitMode },
   userId: string,
   transactionPaymentEntries?: { expenseId: string; amount: number }[],
   q?: QueryFn,
-): Promise<Transaction | null> {
+): Promise<DealtTransaction | null> {
   const member = await isMemberOfRegistry(userId, data.registry_id);
   if (!member) return null;
   const recurringGroupId = data.recurringGroupId ?? crypto.randomUUID();
@@ -350,7 +449,17 @@ export async function createTransaction(
   // after the INSERT must not leave a transaction whose balances never got
   // persisted (the deltas table is what balances are summed from). When an
   // outer transaction's executor is passed, join it instead of opening one.
-  const insert = async (executor: QueryFn): Promise<Transaction> => {
+  const insert = async (executor: QueryFn): Promise<DealtTransaction> => {
+    // The line goes first: it is the row every write to this book ends up
+    // locking (the stamp trigger), so no later step can wait on it out of turn.
+    let splitJson = data.splitJson;
+    let remainderQueue: string[] | undefined;
+    if (data.splitMode && isExpense(data.type)) {
+      const held = await holdLine(executor, data.registry_id);
+      splitJson = deal(held, data.splitMode, data.originalAmount, splitJson);
+      await held.save();
+      remainderQueue = held.line;
+    }
     const result = await executor(
       `INSERT INTO transactions (registry_id, description, amount, original_amount, type, exercise_id, installment_current, installment_total, recurring_disabled, recurring_group_id, notes, split_json, creator_id, user_paid, related_transaction_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *`,
@@ -366,7 +475,7 @@ export async function createTransaction(
         data.recurringDisabled ?? false,
         recurringGroupId,
         data.notes,
-        JSON.stringify(data.splitJson),
+        JSON.stringify(splitJson),
         data.creatorId,
         data.userPaid,
         data.relatedTransactionId ?? null,
@@ -378,7 +487,7 @@ export async function createTransaction(
     }
     await writeTransactionBalances(tx, executor);
     await touchRegistryStamp(tx.registry_id, executor);
-    return tx;
+    return remainderQueue ? { ...tx, remainderQueue } : tx;
   };
   if (q) return await insert(q);
   return await withTransaction(insert);
@@ -386,15 +495,58 @@ export async function createTransaction(
 
 export async function updateTransaction(
   id: string,
-  data: Partial<Transaction>,
+  data: Partial<Transaction> & { splitMode?: SplitMode },
   userId: string,
   transactionPaymentEntries?: { expenseId: string; amount: number }[],
-): Promise<Transaction | undefined> {
-  const { sets, values } = buildTransactionUpdateSets(data);
-  if (sets.length === 0) return getTransactionById(id);
+): Promise<DealtTransaction | undefined> {
+  if (buildTransactionUpdateSets(data).sets.length === 0) return getTransactionById(id);
   // The UPDATE, the payment rows and the recomputed deltas are one unit:
   // partially applying them leaves balances drifted from the transaction.
   return await withTransaction(async (q) => {
+    // A split the user left alone keeps the cents it was saved with: a
+    // description edit must not hand the extra cent to someone else. Only a
+    // split that changed is dealt again, against the line as it stands now.
+    let remainderQueue: string[] | undefined;
+    if (data.splitJson && data.splitMode) {
+      // The row being edited, then its book's line — the order every write
+      // here takes (the row first, the book's stamp last), so none can
+      // deadlock. Hyperdrive, in front of production Postgres, answers
+      // read-only queries from a cache that no write clears, and leaves alone
+      // queries with a STABLE function in them: hence `now()`, which is
+      // always true.
+      const current = await q(
+        `SELECT registry_id, type, original_amount, split_json FROM transactions WHERE id = $1 AND now() IS NOT NULL AND registry_id IN (SELECT rm.registry_id FROM registry_members rm WHERE rm.user_id = $2 AND rm.registry_id = transactions.registry_id) FOR UPDATE`,
+        [id, userId],
+      );
+      if (current.rows.length === 0) return undefined;
+      const stored = current.rows[0];
+      const saved = parseSplit(stored.split_json);
+
+      if (saved && isExpense(data.type ?? (stored.type as Transaction["type"]))) {
+        if (sameSplitCents(data.splitJson.splits, saved.splits)) {
+          // Saved again as it was, mode included: that is what later periods
+          // of this expense are dealt by. The form reads any even-looking
+          // split as Auto, so its word is only taken for a row older than the
+          // modes.
+          data = { ...data, splitJson: saved.mode ? saved : { ...saved, mode: data.splitMode } };
+        } else {
+          const held = await holdLine(q, stored.registry_id as string);
+          data = {
+            ...data,
+            splitJson: deal(
+              held,
+              data.splitMode,
+              data.originalAmount ?? Number(stored.original_amount),
+              data.splitJson,
+            ),
+          };
+          await held.save();
+          remainderQueue = held.line;
+        }
+      }
+    }
+
+    const { sets, values } = buildTransactionUpdateSets(data);
     const idx = values.length + 1;
     values.push(id);
     values.push(userId);
@@ -428,7 +580,7 @@ export async function updateTransaction(
       await writeTransactionBalances(updated, q);
     }
     await touchRegistryStamp(updated.registry_id, q);
-    return updated;
+    return remainderQueue ? { ...updated, remainderQueue } : updated;
   });
 }
 
@@ -643,6 +795,24 @@ export async function getSpawnCandidates(registryId: string): Promise<Transactio
   return filterSpawnCandidates(all);
 }
 
+/**
+ * How a later period of `source` is dealt. An expense the server dealt
+ * carries its mode; an older even split is Auto by the app's own reading of
+ * it (the form opens it in Auto); anything else is the user's own cents and
+ * is copied as it stands.
+ */
+function cloneSplitMode(source: Transaction): SplitMode | undefined {
+  return (
+    source.splitJson.mode ??
+    (isEqualSplit(
+      source.splitJson.splits,
+      source.splitJson.splits.map((s) => s.userId),
+    )
+      ? "auto"
+      : undefined)
+  );
+}
+
 export async function cloneTransactionForNextPeriod(
   sourceId: string,
   installmentOffset: number = 1,
@@ -651,6 +821,7 @@ export async function cloneTransactionForNextPeriod(
   if (!source) throw new Error(`Transaction ${sourceId} not found`);
   const recurringGroupId = source.recurringGroupId ?? crypto.randomUUID();
   return await withTransaction(async (q) => {
+    const [splitJson] = await dealClones(q, [source]);
     const result = await q(
       `INSERT INTO transactions (registry_id, description, amount, original_amount, type, exercise_id, installment_current, installment_total, recurring_disabled, recurring_group_id, notes, split_json, creator_id, user_paid)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *`,
@@ -668,7 +839,7 @@ export async function cloneTransactionForNextPeriod(
         false,
         recurringGroupId,
         source.notes,
-        JSON.stringify(source.splitJson),
+        JSON.stringify(splitJson),
         source.creatorId,
         source.userPaid,
       ],
@@ -697,54 +868,63 @@ export async function batchCloneTransactions(
   );
   const sources = new Map(result.rows.map(rowToTransaction).map((t) => [t.id, t]));
 
-  const rows: unknown[][] = [];
+  // One entry per row to insert, in the order the client asked for them:
+  // that is the order the books' lines hand out their turns.
+  const clones: { source: Transaction; installment: number | null }[] = [];
   for (const item of items) {
     const source = sources.get(item.id);
     if (!source) continue;
     const quantity = source.type === "parcialidad" ? item.quantity : 1;
     for (let i = 1; i <= quantity; i++) {
-      const recurringGroupId = source.recurringGroupId ?? crypto.randomUUID();
-      rows.push([
-        source.registry_id,
-        source.description,
-        source.amount,
-        source.originalAmount,
-        source.type,
-        null,
-        source.type === "parcialidad" && source.installmentCurrent !== null
-          ? source.installmentCurrent + i
-          : null,
-        source.type === "parcialidad" ? source.installmentTotal : null,
-        false,
-        recurringGroupId,
-        source.notes,
-        JSON.stringify(source.splitJson),
-        source.creatorId,
-        source.userPaid,
-      ]);
+      clones.push({
+        source,
+        installment:
+          source.type === "parcialidad" && source.installmentCurrent !== null
+            ? source.installmentCurrent + i
+            : null,
+      });
     }
   }
 
-  if (rows.length === 0) return [];
+  if (clones.length === 0) return [];
 
   const cols = 14;
-  const placeholders = buildBatchPlaceholders(rows.length, cols);
-  const flatValues = rows.flat();
+  const placeholders = buildBatchPlaceholders(clones.length, cols);
 
   const cloned = await withTransaction(async (q) => {
+    const splitJsons = await dealClones(
+      q,
+      clones.map((clone) => clone.source),
+    );
+    const rows = clones.map(({ source, installment }, i) => [
+      source.registry_id,
+      source.description,
+      source.amount,
+      source.originalAmount,
+      source.type,
+      null,
+      installment,
+      source.type === "parcialidad" ? source.installmentTotal : null,
+      false,
+      source.recurringGroupId ?? crypto.randomUUID(),
+      source.notes,
+      JSON.stringify(splitJsons[i]),
+      source.creatorId,
+      source.userPaid,
+    ]);
     const insertResult = await q(
       `INSERT INTO transactions (registry_id, description, amount, original_amount, type, exercise_id, installment_current, installment_total, recurring_disabled, recurring_group_id, notes, split_json, creator_id, user_paid) VALUES ${placeholders} RETURNING *`,
-      flatValues,
+      rows.flat(),
     );
-    const rows = insertResult.rows.map(rowToTransaction);
+    const inserted = insertResult.rows.map(rowToTransaction);
     // One batched INSERT for all cloned transactions' deltas — cloning a
     // large batch must not mean one balance query per row against the pool.
-    await writeTransactionBalancesBatch(rows, q);
+    await writeTransactionBalancesBatch(inserted, q);
     // A batch may span several of the user's registries — stamp each once.
-    for (const registryId of new Set(rows.map((r) => r.registry_id))) {
+    for (const registryId of new Set(inserted.map((r) => r.registry_id))) {
       await touchRegistryStamp(registryId, q);
     }
-    return rows;
+    return inserted;
   });
   return cloned;
 }

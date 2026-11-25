@@ -139,7 +139,7 @@ alapar-fresh/
 │   ├── i18n.ts + locales/     # es/en message catalogs, resolveLocale, t()
 │   ├── routing.ts             # needsFullState, isPublicPath, routeGuard (pure)
 │   ├── sql-builders.ts        # buildBatchPlaceholders, buildTransactionUpdateSets
-│   ├── splits.ts              # Integer-cents split arithmetic (toCents, splitCents)
+│   ├── splits.ts              # Integer-cents arithmetic + the book's line (resolveCents)
 │   ├── format.ts              # formatMoney, initials + input sanitizers
 │   ├── etag.ts                # generateETag
 │   └── types.ts               # TypeScript interfaces
@@ -152,6 +152,7 @@ alapar-fresh/
 │   ├── schema.sql             # Full PostgreSQL schema
 │   ├── seed.sql               # Seed data
 │   ├── add_registry_last_modified.sql
+│   ├── add_remainder_queue.sql      # The book's line for leftover cents
 │   ├── add_related_transaction_id.sql
 │   ├── add_transaction_payments.sql
 │   ├── add_push_subscriptions.sql
@@ -384,11 +385,14 @@ The `userId` can be either a `users.id` or an entity ID from
 
 ## Split Modes
 
-| Mode         | Behavior                                                         |
-| ------------ | ---------------------------------------------------------------- |
-| `auto`       | Equal division among all users, remainder assigned to first user |
-| `percentage` | User-defined percentages, amounts calculated from total          |
-| `fixed`      | User-defined amounts, percentages derived from total             |
+| Mode         | Behavior                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------- |
+| `auto`       | Equal division among all users; leftover cents dealt by the book's line                             |
+| `percentage` | User-defined percentages, amounts calculated from total and dealt to whole cents by the book's line |
+| `fixed`      | User-defined amounts, percentages derived from total; kept as typed                                 |
+
+The line each book keeps for leftover cents, and the rules it is dealt by, are
+in [Business logic](BUSINESS_LOGIC.md#leftover-cents-libsplitsts-resolvetransactionsplit).
 
 ## Transaction Types
 

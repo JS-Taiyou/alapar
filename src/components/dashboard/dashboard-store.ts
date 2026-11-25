@@ -28,6 +28,8 @@ export interface DashboardState {
   defaultSplit: DefaultSplit | null;
   spawnCandidates: SpawnCandidate[];
   lastModified: string | null;
+  /** The book's line for leftover cents: front first, whoever took the last one is last. */
+  remainderQueue: string[];
   entityIds: Set<string>;
   entities: Entity[];
 }
@@ -52,6 +54,7 @@ export interface RegistrySnapshot {
   entityIds?: string[];
   entities?: Entity[];
   lastModified?: string | null;
+  remainderQueue?: string[];
 }
 
 export type DashboardAction =
@@ -64,7 +67,8 @@ export type DashboardAction =
   | { type: "REBALANCE" }
   | { type: "SET_ENTITIES"; entities: Entity[] }
   | { type: "SET_ENTITY_IDS"; entityIds: Set<string> }
-  | { type: "SET_LAST_MODIFIED"; stamp: string | null };
+  | { type: "SET_LAST_MODIFIED"; stamp: string | null }
+  | { type: "SET_REMAINDER_QUEUE"; queue: string[] };
 
 function dedupById<T extends { id: string }>(items: T[]): T[] {
   const seen = new Set<string>();
@@ -129,6 +133,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
       if (snap.defaultSplit !== undefined) next.defaultSplit = snap.defaultSplit;
       if (snap.spawnCandidates !== undefined) next.spawnCandidates = snap.spawnCandidates;
       if (snap.lastModified !== undefined) next.lastModified = snap.lastModified;
+      if (snap.remainderQueue) next.remainderQueue = snap.remainderQueue;
       if (snap.entityIds) next.entityIds = new Set(snap.entityIds);
       if (snap.entities) next.entities = snap.entities;
       return next;
@@ -197,5 +202,11 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
 
     case "SET_LAST_MODIFIED":
       return { ...state, lastModified: action.stamp };
+
+    // A save that dealt a split reports the book's line as it left it. No
+    // refetch follows a write of one's own (its stamp is already current), so
+    // this is what keeps the form's next prediction true.
+    case "SET_REMAINDER_QUEUE":
+      return { ...state, remainderQueue: action.queue };
   }
 }

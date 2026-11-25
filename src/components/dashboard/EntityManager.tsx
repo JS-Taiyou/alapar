@@ -217,7 +217,7 @@ export default function EntityManager(props: EntityManagerProps) {
 
             <div className="flex gap-2">
               <input
-                className="flex-1 px-2 py-1 bg-transparent border border-white/20 rounded text-white text-sm focus:ring-primary"
+                className="flex-1 px-2 py-1 bg-transparent border border-border-field rounded text-white text-sm focus:ring-primary-text focus:border-primary-text"
                 type="text"
                 placeholder={t("entities.name_placeholder")}
                 value={newName}
@@ -235,6 +235,8 @@ export default function EntityManager(props: EntityManagerProps) {
                     key={c}
                     type="button"
                     onClick={() => setNewColor(c)}
+                    aria-label={c}
+                    aria-pressed={newColor === c}
                     className={`w-6 h-6 rounded-full border-2 ${
                       newColor === c ? "border-white" : "border-transparent"
                     }`}
@@ -269,6 +271,8 @@ export default function EntityManager(props: EntityManagerProps) {
                               key={c}
                               type="button"
                               onClick={() => setEditColor(c)}
+                              aria-label={c}
+                              aria-pressed={editColor === c}
                               className={`w-5 h-5 rounded-full border-2 ${
                                 editColor === c ? "border-white" : "border-transparent"
                               }`}
@@ -277,7 +281,7 @@ export default function EntityManager(props: EntityManagerProps) {
                           ))}
                         </div>
                         <input
-                          className="flex-1 px-2 py-1 bg-transparent border border-white/20 rounded text-white text-sm focus:ring-primary"
+                          className="flex-1 px-2 py-1 bg-transparent border border-border-field rounded text-white text-sm focus:ring-primary-text focus:border-primary-text"
                           type="text"
                           value={editName}
                           onInput={(e) => setEditName(e.currentTarget.value)}
@@ -288,23 +292,23 @@ export default function EntityManager(props: EntityManagerProps) {
                         <button
                           type="button"
                           onClick={handleUpdate}
-                          className="text-xs font-semibold text-primary hover:text-primary-light"
+                          className="text-xs font-semibold text-primary-text hover:text-white"
                         >
-                          OK
+                          {t("common.save")}
                         </button>
                         <button
                           type="button"
                           onClick={() => setEditingId(null)}
                           className="text-xs text-zinc-400 hover:text-white"
                         >
-                          X
+                          {t("common.cancel")}
                         </button>
                       </>
                     ) : (
                       <>
                         <div
                           className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                          style={{ backgroundColor: `${entity.color}30`, color: entity.color }}
+                          style={{ backgroundColor: `${entity.color}30`, color: "#fff" }}
                         >
                           {initials(entity.name)}
                         </div>
@@ -315,6 +319,7 @@ export default function EntityManager(props: EntityManagerProps) {
                         <button
                           type="button"
                           onClick={() => startEdit(entity)}
+                          aria-label={t("sidebar.rename")}
                           className="text-zinc-400 hover:text-white transition-colors"
                         >
                           <svg
@@ -335,6 +340,7 @@ export default function EntityManager(props: EntityManagerProps) {
                           <button
                             type="button"
                             onClick={() => handleDelete(entity.id)}
+                            aria-label={t("common.delete")}
                             className="text-zinc-400 hover:text-red-400 transition-colors"
                           >
                             <svg

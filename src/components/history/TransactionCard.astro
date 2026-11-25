@@ -51,7 +51,7 @@ const t = (key: string, params?: Record<string, string | number>) =>
               {tx.description}
               <span class={`text-xs font-medium px-2 py-0.5 rounded ${badgeBg}`}>{badgeText}</span>
             </span>
-            <span class="text-sm text-gray-500">
+            <span class="text-sm text-zinc-400">
               {formatDate(tx.createdAt, Astro.props.locale ?? "es")} &bull;{" "}
               {formatTime(tx.createdAt, Astro.props.locale ?? "es")}
               {label && (
@@ -92,7 +92,7 @@ const t = (key: string, params?: Record<string, string | number>) =>
         <div class="bg-card p-5 rounded-custom border border-white/5 flex justify-between items-center">
           <div class="flex flex-col">
             <span class="text-lg font-semibold text-white">{tx.description}</span>
-            <span class="text-sm text-gray-500">
+            <span class="text-sm text-zinc-400">
               {formatDate(tx.createdAt, Astro.props.locale ?? "es")} &bull;{" "}
               {formatTime(tx.createdAt, Astro.props.locale ?? "es")}
               {paidByUser && (
@@ -125,10 +125,10 @@ const t = (key: string, params?: Record<string, string | number>) =>
             </span>
           </div>
           <div class="text-right flex flex-col items-end">
-            <span class={`text-xl font-bold ${isPositive ? "text-green-500" : "text-red-500"}`}>
+            <span class={`text-xl font-bold ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
               {isPositive ? "+" : "-"} ${formatMoney(Math.abs(personalBalance))}
             </span>
-            <span class="text-xs text-slate-500">
+            <span class="text-xs text-zinc-400">
               {t("tx.of_total", {
                 total: formatMoney(perInstallmentTotal),
               })}

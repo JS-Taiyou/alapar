@@ -21,14 +21,14 @@ export default function JoinCodeForm(props: JoinCodeFormProps) {
       <input
         type="text"
         placeholder={t("join.code_placeholder")}
-        className="flex-1 px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white text-sm uppercase focus:ring-emerald-500 focus:border-emerald-500"
+        className="flex-1 px-4 py-2.5 bg-background border border-border-field rounded-custom text-white text-sm uppercase focus:ring-emerald-500 focus:border-emerald-500"
         maxLength={8}
         value={code}
         onInput={(e) => setCode(e.currentTarget.value)}
       />
       <button
         type="submit"
-        className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-custom transition-all text-sm"
+        className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-custom transition-all text-sm"
       >
         {t("join.submit")}
       </button>

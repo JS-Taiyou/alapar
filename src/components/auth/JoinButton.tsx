@@ -57,7 +57,7 @@ export default function JoinButton(props: JoinButtonProps) {
           {showPlansLink && (
             <a
               href="/pricing"
-              className="inline-block mt-2 text-sm font-semibold text-primary hover:text-primary-light transition-colors"
+              className="inline-block mt-2 text-sm font-semibold text-primary-text hover:underline"
             >
               {t("billing.view_plans")} →
             </a>
