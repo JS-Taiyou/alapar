@@ -114,7 +114,7 @@ export const en: Record<string, string> = {
   "tx.notification_body": "New transaction",
   "tx.badge_payment": "Payment",
   "tx.badge_adjustment": "Pending balance",
-  "tx.badge_installment": "{current}/{total}",
+  "tx.badge_installment": "{current} of {total}",
   "tx.single_user_title": "It's lonely here",
   "tx.single_user_desc": "Make sure to invite other users or create a third-party",
   "tx.tercero_tooltip":

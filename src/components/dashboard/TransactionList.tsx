@@ -21,21 +21,33 @@ interface TransactionListProps {
 }
 
 /**
- * A card's kind, as a label stitched onto its top-right edge. It used to sit
- * at the end of the title row, which is a `truncate` flex container: the
- * description can't shrink and the badge couldn't either, so a long one
- * pushed the badge under the row's overflow and it was clipped ("Pen…").
+ * A label stitched into one of the card's edges, right-aligned.
  *
- * A card-coloured tab with only the text coloured: the card's top border runs
- * behind it, so the label reads as cut into the edge. It rises 9px above the
- * card, inside the list's 12px gap between cards.
+ * A card-coloured tab with only the text coloured: the card's border runs
+ * behind it, so the label reads as cut into the edge.
+ *
+ * - top: the card's kind. It rises 9px above the card, inside the list's
+ *   12px gap between cards. It used to sit at the end of the title row, a
+ *   `truncate` flex container: the description can't shrink and the badge
+ *   couldn't either, so a long one pushed it under the overflow ("Pen…").
+ * - bottom: where an instalment stands. Flush with the card — it must not
+ *   hang below it, or it would meet the next card's top label in that gap.
  */
-function TypeLabel(props: { tone: "amber" | "indigo"; children: ReactNode }) {
+function EdgeLabel(props: {
+  edge: "top" | "bottom";
+  tone: "amber" | "indigo" | "sky";
+  children: ReactNode;
+}) {
+  const tone = {
+    amber: "text-amber-300",
+    indigo: "text-indigo-300",
+    sky: "text-sky-300",
+  }[props.tone];
   return (
     <span
-      className={`pointer-events-none absolute -top-2.5 right-3 rounded-t px-2 text-[10px] font-semibold uppercase tracking-wide leading-4 bg-card ${
-        props.tone === "amber" ? "text-amber-300" : "text-indigo-300"
-      }`}
+      className={`pointer-events-none absolute right-3 px-2 text-[10px] font-semibold uppercase tracking-wide leading-4 rounded-t bg-card ${
+        props.edge === "top" ? "-top-2.5" : "-bottom-px"
+      } ${tone}`}
     >
       {props.children}
     </span>
@@ -61,7 +73,9 @@ function TransactionCardClickable(props: {
 
     return (
       <div className="relative w-full text-left bg-card p-4 sm:p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
-        <TypeLabel tone="amber">{t("tx.badge_adjustment")}</TypeLabel>
+        <EdgeLabel edge="top" tone="amber">
+          {t("tx.badge_adjustment")}
+        </EdgeLabel>
         <div className="flex flex-col min-w-0">
           <span className="text-base sm:text-lg font-semibold text-white truncate">
             {tx.description}
@@ -109,7 +123,9 @@ function TransactionCardClickable(props: {
             linkedExpenses.length === 0 ? "rounded-custom" : "rounded-t-custom"
           }`}
         >
-          <TypeLabel tone="indigo">{t("tx.badge_payment")}</TypeLabel>
+          <EdgeLabel edge="top" tone="indigo">
+            {t("tx.badge_payment")}
+          </EdgeLabel>
           <div className="flex flex-col min-w-0">
             <span className="text-base sm:text-lg font-semibold text-white truncate">
               {tx.description}
@@ -263,8 +279,16 @@ function TransactionCardClickable(props: {
     <button
       type="button"
       onClick={props.onClick}
-      className="w-full text-left bg-card p-4 sm:p-5 rounded-custom border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-card hover:-translate-y-px"
+      className="relative w-full text-left bg-card p-4 sm:p-5 rounded-custom border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 hover:shadow-card hover:-translate-y-px"
     >
+      {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
+        <EdgeLabel edge="bottom" tone="sky">
+          {t("tx.badge_installment", {
+            current: tx.installmentCurrent,
+            total: tx.installmentTotal,
+          })}
+        </EdgeLabel>
+      )}
       <div className="flex flex-col min-w-0">
         <span className="text-base sm:text-lg font-semibold text-white truncate">
           {tx.description}
@@ -294,17 +318,6 @@ function TransactionCardClickable(props: {
               </>
             )}
           </span>
-          {tx.type === "parcialidad" && tx.installmentCurrent && tx.installmentTotal && (
-            <>
-              {" • "}
-              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-400">
-                {t("tx.badge_installment", {
-                  current: tx.installmentCurrent,
-                  total: tx.installmentTotal,
-                })}
-              </span>
-            </>
-          )}
         </div>
       </div>
       <div className="text-right flex flex-col items-end">

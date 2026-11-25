@@ -120,7 +120,7 @@ export const es: Record<string, string> = {
   "tx.notification_body": "Nueva transacción",
   "tx.badge_payment": "Pago",
   "tx.badge_adjustment": "Saldo pendiente",
-  "tx.badge_installment": "{current}/{total}",
+  "tx.badge_installment": "{current} de {total}",
   "tx.single_user_title": "Está muy solo aquí",
   "tx.single_user_desc": "Asegúrate de invitar otros usuarios o crear un tercero",
   "tx.tercero_tooltip":

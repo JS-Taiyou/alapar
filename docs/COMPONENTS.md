@@ -104,7 +104,7 @@ Renders a single transaction as a card. Handles three distinct display modes:
 - For installments: divides `originalAmount` and split amounts by
   `installmentTotal`
 - Shows "Tú pagaste" or payer's name
-- Shows installment progress (e.g., "3/12") for parcialidad type
+- Shows installment progress (e.g., "3 de 12") for parcialidad type
 - Shows "de $total" subtitle under the balance
 
 **Styling**: Card background, subtle white border, hover scale effect.
