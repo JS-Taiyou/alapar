@@ -625,11 +625,15 @@ export default function TransactionList(props: TransactionListProps) {
 
   return (
     <>
+      {/* No top padding on phones: a stuck element stops at the scroller's
+          content edge, so with p-2 the action bar parked 8px below the header
+          and cards peeked through that strip. The first row carries the
+          padding instead. */}
       <main
-        className="flex-1 overflow-y-auto custom-scrollbar p-2 sm:p-6 space-y-4 relative"
+        className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-2 sm:p-6 space-y-4 relative"
         data-tour="transaction-list"
       >
-        <div className="flex justify-between items-center mb-2">
+        <div className="flex justify-between items-center mb-2 pt-2 sm:pt-0">
           <h2 className="text-lg font-semibold text-zinc-200">
             {filterUserId
               ? t("tx.current_period_filtered", {
@@ -641,7 +645,7 @@ export default function TransactionList(props: TransactionListProps) {
 
         {/* Phones only (the FABs take over from sm): pinned under the header so
             the actions stay in reach while the list scrolls. It bleeds over
-            main's p-2 gutters (-mx-2 + px-2) so cards don't peek at the sides
+            main's px-2 gutters (-mx-2 + px-2) so cards don't peek at the sides
             as they slide underneath. */}
         <div className="sm:hidden sticky top-0 z-10 -mx-2 px-2 py-2 mb-2 bg-background flex gap-2">
           <button
@@ -811,7 +815,10 @@ export default function TransactionList(props: TransactionListProps) {
             </div>
           ))
         )}
-        <div className="h-12" />
+        {/* Room to scroll the last card clear of the FABs: they stand 172px
+            tall from the bottom edge, and this leaves the card's bottom edge
+            28px above them. Phones have no FABs (the bar above), only air. */}
+        <div className="h-12 sm:h-40" />
       </main>
 
       <div className="hidden sm:flex fixed bottom-8 right-8 z-50 flex-col gap-3">
