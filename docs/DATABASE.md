@@ -352,8 +352,6 @@ Migrations must be run in order:
 2. **`add_*.sql`** — Incremental feature migrations:
    - `add_push_subscriptions.sql` — Web Push subscriptions table (+ its own RLS
      block)
-   - `add_related_transaction_id.sql` — `related_transaction_id` column on
-     `transactions`
    - `add_registry_last_modified.sql` — `last_modified` column, the
      `update_registry_last_modified()` function and its trigger
    - `add_remainder_queue.sql` — `registries.remainder_queue`, the line each
@@ -368,26 +366,18 @@ Migrations must be run in order:
 4. **`tighten_rls.sql`** — Idempotent hardening follow-up. **Existing projects
    that already applied the files above run this next** (fresh setups just run
    the whole chain). See [Row-Level Security](#row-level-security) below
-5. **`enable_realtime.sql`** — Codifies
-   `ALTER PUBLICATION supabase_realtime ADD TABLE transactions` (idempotent)
-6. **`add_billing.sql`** — Pro-tier billing: `registries.plan` column
+5. **`add_billing.sql`** — Pro-tier billing: `registries.plan` column
    (`free`|`pro`|`grandfathered`, existing rows grandfathered) and the
    `registry_subscriptions` mirror table (server-only, zero RLS policies).
    **Must run before deploying billing code.**
-7. **`add_subscription_cancel_flag.sql`** — Adds
+6. **`add_subscription_cancel_flag.sql`** — Adds
    `registry_subscriptions.cancel_at_period_end` (in-app cancel scheduling).
-8. **`migrate_billing_to_per_user.sql`** — Re-keys `registry_subscriptions` from
+7. **`migrate_billing_to_per_user.sql`** — Re-keys `registry_subscriptions` from
    registry_id to user_id (per-user model): backfills the owner, dedupes
    multiple subs per user (OPS: cancel the extras in Polar), swaps the PK.
-9. **`drop_allowed_emails.sql`** — Drops the registration allowlist (the app
-   went public; signup is open). **Must run AFTER deploying the code that stops
-   reading it** — the previously deployed code JOINs the table on every
-   authenticated request. No-op on fresh installs (schema.sql no longer creates
-   the table).
 
 Run order: `schema.sql` → `add_*.sql` → `enable_rls.sql` → `tighten_rls.sql` →
-`enable_realtime.sql` → `add_billing.sql` → `drop_allowed_emails.sql` (the last
-one deploy-gated as noted).
+`add_billing.sql`.
 
 ---
 

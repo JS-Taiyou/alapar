@@ -153,15 +153,12 @@ alapar-fresh/
 │   ├── seed.sql               # Seed data
 │   ├── add_registry_last_modified.sql
 │   ├── add_remainder_queue.sql      # The book's line for leftover cents
-│   ├── add_related_transaction_id.sql
 │   ├── add_transaction_payments.sql
 │   ├── add_push_subscriptions.sql
 │   ├── add_transaction_balances.sql  # Per-user balance deltas table + backfill
 │   ├── add_billing.sql        # registries.plan + registry_subscriptions
-│   ├── drop_allowed_emails.sql      # Open-signup cleanup
 │   ├── enable_rls.sql         # Row-Level Security policies (re-runnable)
-│   ├── tighten_rls.sql        # RLS hardening follow-up (idempotent)
-│   └── enable_realtime.sql    # Publishes `transactions` via supabase_realtime
+│   └── tighten_rls.sql        # RLS hardening follow-up (idempotent)
 ├── data/demo.json             # Static demo seed (3 books, 6 people, 19 transactions)
 ├── deno.json                  # Deno config (imports, tasks, compiler options)
 ├── deno.check.jsonc           # Type-check-only config (real npm types)
@@ -237,7 +234,7 @@ deno task check   # fmt + lint + type-check + tests
 
 - **Open signup**: any authenticated Supabase account (Google OAuth or email +
   password) gets a `users` profile on first visit — the registration allowlist
-  was removed when the app went public (`db/drop_allowed_emails.sql`)
+  was removed when the app went public
 - **Role-based access**: Registry membership tracked in `registry_members` with
   `owner` or `member` roles
 - **Owner-only actions**: Creating/revoking invitations, configuring default
@@ -324,8 +321,7 @@ lives in an `HttpOnly` cookie, so `lib/realtime.ts` fetches it from
 `/api/auth/token` when subscribing (and again, with backoff, when a channel
 error suggests expiry). The realtime Supabase client runs with
 `persistSession: false`; RLS policies on `transactions` gate what each
-subscriber receives (see `db/enable_realtime.sql` — only `transactions` is
-published).
+subscriber receives.
 
 ### Server State (`utils.ts:State`)
 
