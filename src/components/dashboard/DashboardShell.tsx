@@ -303,56 +303,63 @@ export default function DashboardShell(props: DashboardShellProps) {
                 ) : (
                   balance
                 )}
-                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                  <RecurringSpawn
-                    candidates={state.spawnCandidates}
-                    registryId={state.registryId}
-                    locale={props.locale}
-                  />
-                  {props.isDemo ? (
-                    // No history or cut to offer here — a way back to the site instead.
-                    <a
-                      href="/"
-                      className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
-                      title={t(props.locale, "shell.home_title")}
-                      aria-label={t(props.locale, "shell.home_title")}
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                {/* Phones: the icon buttons stack above "Cortar" so the balance
+                    keeps its width (one row left it ~130px with the recurring
+                    button present, and a 4-figure amount was cut off). From sm
+                    up all three share one row as before. DOM order — and so
+                    the tab order — is unchanged. */}
+                <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4 shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4">
+                    <RecurringSpawn
+                      candidates={state.spawnCandidates}
+                      registryId={state.registryId}
+                      locale={props.locale}
+                    />
+                    {props.isDemo ? (
+                      // No history or cut to offer here — a way back to the site instead.
+                      <a
+                        href="/"
+                        className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
+                        title={t(props.locale, "shell.home_title")}
+                        aria-label={t(props.locale, "shell.home_title")}
                       >
-                        <path
-                          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                        />
-                      </svg>
-                    </a>
-                  ) : (
-                    <a
-                      href="/dashboard/history"
-                      className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
-                      title={t(props.locale, "shell.history_title")}
-                      aria-label={t(props.locale, "shell.history_title")}
-                    >
-                      <svg
-                        className="w-6 h-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </a>
+                    ) : (
+                      <a
+                        href="/dashboard/history"
+                        className="p-3 bg-white/10 hover:bg-white/15 border border-white/15 transition-colors rounded-custom text-gray-300"
+                        title={t(props.locale, "shell.history_title")}
+                        aria-label={t(props.locale, "shell.history_title")}
                       >
-                        <path
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                        />
-                      </svg>
-                    </a>
-                  )}
+                        <svg
+                          className="w-6 h-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                          />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                   <CortarButton
                     hasTransactions={props.hasTransactions}
                     registryId={state.registryId}

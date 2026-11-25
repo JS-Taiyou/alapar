@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch } from "react";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode } from "react";
 import type { EnrichedTransaction, Participant, TransactionPayment } from "../../lib/types";
 import ProBadge from "../ui/ProBadge";
 
@@ -20,6 +20,28 @@ interface TransactionListProps {
   locale?: Locale;
 }
 
+/**
+ * A card's kind, as a label stitched onto its top-right edge. It used to sit
+ * at the end of the title row, which is a `truncate` flex container: the
+ * description can't shrink and the badge couldn't either, so a long one
+ * pushed the badge under the row's overflow and it was clipped ("Pen…").
+ *
+ * A card-coloured tab with only the text coloured: the card's top border runs
+ * behind it, so the label reads as cut into the edge. It rises 9px above the
+ * card, inside the list's 12px gap between cards.
+ */
+function TypeLabel(props: { tone: "amber" | "indigo"; children: ReactNode }) {
+  return (
+    <span
+      className={`pointer-events-none absolute -top-2.5 right-3 rounded-t px-2 text-[10px] font-semibold uppercase tracking-wide leading-4 bg-card ${
+        props.tone === "amber" ? "text-amber-300" : "text-indigo-300"
+      }`}
+    >
+      {props.children}
+    </span>
+  );
+}
+
 function TransactionCardClickable(props: {
   tx: EnrichedTransaction;
   users: Participant[];
@@ -38,13 +60,11 @@ function TransactionCardClickable(props: {
     const formattedAmount = formatMoney(tx.originalAmount);
 
     return (
-      <div className="w-full text-left bg-card p-4 sm:p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
+      <div className="relative w-full text-left bg-card p-4 sm:p-5 rounded-custom border-l-4 border-l-amber-500 border border-white/5 flex justify-between items-center">
+        <TypeLabel tone="amber">{t("tx.badge_adjustment")}</TypeLabel>
         <div className="flex flex-col min-w-0">
-          <span className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 truncate">
+          <span className="text-base sm:text-lg font-semibold text-white truncate">
             {tx.description}
-            <span className="text-xs font-medium px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 shrink-0">
-              {t("tx.badge_adjustment")}
-            </span>
           </span>
           <span className="text-sm text-zinc-400">
             {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
@@ -85,16 +105,14 @@ function TransactionCardClickable(props: {
         <button
           type="button"
           onClick={props.onClick}
-          className={`w-full text-left bg-card p-4 sm:p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 ${
+          className={`relative w-full text-left bg-card p-4 sm:p-5 border-l-4 border-l-indigo-500 border border-white/5 flex justify-between items-center transition-all duration-200 active:scale-[0.98] hover:bg-white/[0.03] hover:border-white/10 ${
             linkedExpenses.length === 0 ? "rounded-custom" : "rounded-t-custom"
           }`}
         >
+          <TypeLabel tone="indigo">{t("tx.badge_payment")}</TypeLabel>
           <div className="flex flex-col min-w-0">
-            <span className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 truncate">
+            <span className="text-base sm:text-lg font-semibold text-white truncate">
               {tx.description}
-              <span className="text-xs font-medium px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 shrink-0">
-                {t("tx.badge_payment")}
-              </span>
             </span>
             <span className="text-sm text-zinc-400">
               {formatDate(tx.createdAt, props.locale ?? "es")} &bull;{" "}
