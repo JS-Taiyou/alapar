@@ -190,6 +190,7 @@ export const es: Record<string, string> = {
   "registry.name_label": "Nombre del Registro",
   "registry.name_placeholder": "Ej: Compañeros de piso",
   "registry.create": "Crear Registro",
+  "registry.page_title": "A la par - Nuevo Registro",
 
   // --- Join ---
   "join.not_found": "Invitación no encontrada",
@@ -205,6 +206,10 @@ export const es: Record<string, string> = {
   "join.joining": "Uniéndote...",
   "join.join_button": "Unirme al Registro",
   "join.code_placeholder": "Código (ej: K9X2M4B7)",
+  "join.page_title": "A la par - Unirse a {name}",
+  "join.not_found_page_title": "A la par - Invitación no encontrada",
+  "join.submit": "Unirme",
+  "join.error": "Error al unirse",
 
   // --- Billing / Pro tier ---
   "billing.upgrade": "Mejorar a Pro",
@@ -384,4 +389,33 @@ export const es: Record<string, string> = {
   "cortar.error_conn": "Error de conexión al cortar el ejercicio.",
   "shell.history_title": "Histórico",
   "shell.home_title": "Inicio",
+
+  // --- Default split ---
+  "default_split.subtitle": "Porcentajes predefinidos para nuevos gastos",
+  "default_split.member_header": "MIEMBRO",
+  "default_split.clear": "Eliminar Default",
+  "default_split.reset": "Restablecer a equitativo",
+  "default_split.saved": "Guardado exitosamente",
+  "default_split.error_total": "Los porcentajes suman {total}%, deben sumar 100%",
+  "default_split.error_save": "Error al guardar",
+
+  // --- Histórico de cortes ---
+  "history.page_title": "A la par - Histórico de Cortes",
+  "history.title": "Histórico de Cortes",
+  "history.subtitle": "Consulta cierres de meses anteriores",
+  "history.search_placeholder": "Buscar corte por mes o año...",
+  "history.empty_title": "No hay cortes registrados",
+  "history.empty_desc": "Cuando realices un cierre de gastos aparecerán aquí.",
+  "history.footer_note": "* Los cortes incluyen liquidaciones definitivas y facturas archivadas.",
+  "history.cut_label": "Corte",
+  "history.cut_page_title": "A la par - Corte {monthYear}",
+  "history.expenses_one": "1 Gasto",
+  "history.expenses_other": "{n} Gastos",
+  "history.movements_one": "1 movimiento",
+  "history.movements_other": "{n} movimientos",
+  "history.total_label": "Total:",
+  "history.not_found_page_title": "A la par - No encontrado",
+  "history.not_found": "Corte no encontrado",
+  "history.back": "Volver al histórico",
+  "history.linked": "Vinculado: {description}",
 };

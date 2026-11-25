@@ -3,7 +3,7 @@ import type { DefaultSplit, User } from "../../lib/types";
 import { initials, sanitizeDecimal } from "../../lib/format";
 import Modal from "../ui/Modal";
 import ProBadge from "../ui/ProBadge";
-import type { Locale } from "../../lib/i18n";
+import { t as translate, type Locale } from "../../lib/i18n";
 
 interface DefaultSplitConfigProps {
   registryId: string;
@@ -20,6 +20,8 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const t = (key: string, params?: Record<string, string | number>) =>
+    translate(props.locale ?? "es", key, params);
 
   const currentMembers = props.users;
 
@@ -70,7 +72,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
 
     const total = totalPercentage();
     if (Math.abs(total - 100) >= 0.01) {
-      setError(`Los porcentajes suman ${total.toFixed(1)}%, deben sumar 100%`);
+      setError(t("default_split.error_total", { total: total.toFixed(1) }));
       setLoading(false);
       return;
     }
@@ -93,10 +95,10 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
         }, 800);
       } else {
         const data = await res.json();
-        setError(data.error || "Error al guardar");
+        setError(data.error || t("default_split.error_save"));
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
     }
     setLoading(false);
   }
@@ -115,7 +117,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
         globalThis.location.reload();
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
     }
     setLoading(false);
   }
@@ -146,15 +148,16 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
               strokeWidth="2"
             />
           </svg>
-          <span>División Default</span>
+          <span>{t("sidebar.default_split")}</span>
         </button>
       )}
 
       {isOpen && (
         <Modal
           onClose={closeModal}
-          title="División Default"
-          subtitle="Porcentajes predefinidos para nuevos gastos"
+          closeLabel={t("common.close")}
+          title={t("sidebar.default_split")}
+          subtitle={t("default_split.subtitle")}
           footer={
             <>
               <div>
@@ -165,7 +168,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                     disabled={loading}
                     className="px-4 py-2 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
                   >
-                    Eliminar Default
+                    {t("default_split.clear")}
                   </button>
                 )}
               </div>
@@ -175,7 +178,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                   onClick={closeModal}
                   className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
                 >
-                  Cancelar
+                  {t("common.cancel")}
                 </button>
                 <button
                   type="button"
@@ -183,7 +186,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                   disabled={loading || !isValid}
                   className="px-8 py-2 text-sm font-semibold bg-primary hover:bg-primary-light text-white rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
                 >
-                  {loading ? "Guardando..." : "Guardar"}
+                  {loading ? t("common.saving") : t("common.save")}
                 </button>
               </div>
             </>
@@ -191,13 +194,15 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
         >
           <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
             {error && <p className="text-sm text-red-300">{error}</p>}
-            {success && <p className="text-sm text-emerald-300">Guardado exitosamente</p>}
+            {success && <p className="text-sm text-emerald-300">{t("default_split.saved")}</p>}
 
             <div className="border border-white/10 rounded-custom overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-white/5">
                   <tr>
-                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400">MIEMBRO</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-zinc-400">
+                      {t("default_split.member_header")}
+                    </th>
                     <th className="px-4 py-3 text-xs font-semibold text-zinc-400 w-32 text-right">
                       %
                     </th>
@@ -246,7 +251,9 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
                 </tbody>
                 <tfoot className="bg-white/5">
                   <tr>
-                    <td className="px-4 py-2 text-xs font-bold text-zinc-400 italic">TOTAL</td>
+                    <td className="px-4 py-2 text-xs font-bold text-zinc-400 italic">
+                      {t("modal.total_header")}
+                    </td>
                     <td
                       className={`px-4 py-2 text-right text-xs font-bold ${
                         isValid ? "text-white" : "text-red-400"
@@ -264,7 +271,7 @@ export default function DefaultSplitConfig(props: DefaultSplitConfigProps) {
               onClick={resetToEqual}
               className="text-xs text-zinc-400 hover:text-white transition-colors"
             >
-              Restablecer a equitativo
+              {t("default_split.reset")}
             </button>
           </div>
         </Modal>

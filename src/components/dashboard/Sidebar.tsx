@@ -1052,6 +1052,7 @@ export default function Sidebar(props: SidebarProps) {
       {showInvite && (
         <Modal
           onClose={closeInviteModal}
+          closeLabel={t("common.close")}
           title={t("sidebar.invite_title")}
           subtitle={t("sidebar.invite_subtitle")}
           footer={
@@ -1061,7 +1062,7 @@ export default function Sidebar(props: SidebarProps) {
                 onClick={closeInviteModal}
                 className="px-6 py-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
               >
-                Cerrar
+                {t("common.close")}
               </button>
             </div>
           }
@@ -1123,6 +1124,7 @@ export default function Sidebar(props: SidebarProps) {
       {showNewRegistry && (
         <Modal
           onClose={() => setShowNewRegistry(false)}
+          closeLabel={t("common.close")}
           title={t("sidebar.new_title")}
           subtitle={t("sidebar.new_subtitle")}
           footer={

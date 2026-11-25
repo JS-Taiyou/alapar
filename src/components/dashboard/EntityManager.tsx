@@ -194,6 +194,7 @@ export default function EntityManager(props: EntityManagerProps) {
             close();
             setEditingId(null);
           }}
+          closeLabel={t("common.close")}
           title={t("entities.title")}
           subtitle={t("entities.subtitle")}
           footer={

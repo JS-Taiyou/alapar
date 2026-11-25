@@ -16,10 +16,10 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   /**
-   * Accessible label for the × button. Defaults to Spanish ("Cerrar") to
-   * match the pre-i18n callers; localized callers pass t(locale, "common.close").
+   * Accessible label for the × button: pass t(locale, "common.close"). It is
+   * required on purpose — a default would ship in one language only.
    */
-  closeLabel?: string;
+  closeLabel: string;
 }
 
 /**
@@ -77,7 +77,7 @@ export default function Modal(props: ModalProps) {
           <button
             type="button"
             onClick={props.onClose}
-            aria-label={props.closeLabel ?? "Cerrar"}
+            aria-label={props.closeLabel}
             className="text-zinc-400 hover:text-white transition-colors shrink-0"
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

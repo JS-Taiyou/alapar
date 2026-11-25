@@ -4,16 +4,15 @@ import SidebarIsland from "@/components/dashboard/SidebarIsland.astro";
 import ExerciseCard from "@/components/history/ExerciseCard.astro";
 import PaywallCard from "@/components/history/PaywallCard.astro";
 import SearchBar from "@/components/dashboard/SearchBar";
-import {
-  getExercises,
-  getMonthNameEs,
-  getTransactionsByExercise,
-} from "@/lib/store";
+import { getExercises, getTransactionsByExercise } from "@/lib/store";
+import { formatCalendarDate, t as translate } from "@/lib/i18n";
 import { getRegistryPlan } from "@/lib/entitlements";
 import type { Exercise } from "@/lib/types";
 
 const registryId = Astro.locals.activeRegistry?.id;
 const locale = Astro.locals.locale;
+const t = (key: string, params?: Record<string, string | number>) =>
+  translate(locale, key, params);
 
 let exercises: Exercise[] = [];
 let grouped: Record<number, Exercise[]> = {};
@@ -90,7 +89,7 @@ if (registryId) {
 }
 ---
 
-<Dashboard title="A la par - Histórico de Cortes">
+<Dashboard title={t("history.page_title")}>
   <div class="flex h-screen overflow-hidden">
     <SidebarIsland />
     <main class="flex-1 overflow-y-auto custom-scrollbar">
@@ -117,10 +116,10 @@ if (registryId) {
           </a>
           <div>
             <h1 class="text-2xl font-bold tracking-tight">
-              Histórico de Cortes
+              {t("history.title")}
             </h1>
             <p class="text-zinc-400 text-sm">
-              Consulta cierres de meses anteriores
+              {t("history.subtitle")}
             </p>
           </div>
         </div>
@@ -128,7 +127,7 @@ if (registryId) {
       </header>
 
       <SearchBar
-        placeholder="Buscar corte por mes o año..."
+        placeholder={t("history.search_placeholder")}
         filterSelector="[data-exercise-card]"
         client:load
       />
@@ -149,9 +148,11 @@ if (registryId) {
             {grouped[year].map((ex) => (
               <ExerciseCard
                 exercise={ex}
-                monthName={getMonthNameEs(ex.endDate).toUpperCase()
+                monthName={formatCalendarDate(ex.endDate, locale, { month: "short" })
+                  .toUpperCase()
                   .substring(0, 3)}
                 personalTotal={personalTotals.get(ex.id)}
+                locale={locale}
               />
             ))}
           </div>
@@ -176,18 +177,17 @@ if (registryId) {
             </svg>
           </div>
           <h3 class="text-lg font-medium text-zinc-300">
-            No hay cortes registrados
+            {t("history.empty_title")}
           </h3>
           <p class="text-zinc-400 mt-2 max-w-xs mx-auto">
-            Cuando realices un cierre de gastos aparecerán aquí.
+            {t("history.empty_desc")}
           </p>
         </div>
       )}
 
       <footer class="mt-12 text-center border-t border-white/10 pt-6">
         <p class="text-zinc-500 text-xs italic">
-          * Los cortes incluyen liquidaciones definitivas y facturas
-          archivadas.
+          {t("history.footer_note")}
         </p>
       </footer>
     </div>

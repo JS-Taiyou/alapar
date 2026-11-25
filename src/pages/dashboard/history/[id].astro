@@ -8,6 +8,7 @@ import {
 } from "@/lib/store";
 import type { Participant, Transaction } from "@/lib/types";
 import { formatMoney } from "@/lib/format";
+import { formatCalendarDate, t as translate } from "@/lib/i18n";
 
 interface EnrichedTransaction extends Transaction {
   paidByUser: Participant | null;
@@ -40,6 +41,8 @@ if (exercise) {
 const currentUser = Astro.locals.user;
 const currentRegistryUserId = currentUser ? currentUser.id : "";
 const locale = Astro.locals.locale;
+const t = (key: string, params?: Record<string, string | number>) =>
+  translate(locale, key, params);
 
 const personalTotal = transactions.reduce((sum, tx) => {
   if (tx.type === "pago" || tx.type === "ajuste") {
@@ -67,26 +70,14 @@ const personalTotal = transactions.reduce((sum, tx) => {
   return sum + personalBalance;
 }, 0);
 
-const monthNames = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
+// A cut's end date is a calendar date: format it without shifting time zones.
+const monthYear = exercise
+  ? formatCalendarDate(exercise.endDate, locale, { month: "long", year: "numeric" })
+  : "";
 
 const title = exercise
-  ? `A la par - Corte ${monthNames[exercise.endDate.getMonth()]} ${
-    exercise.endDate.getFullYear()
-  }`
-  : "A la par - No encontrado";
+  ? t("history.cut_page_title", { monthYear })
+  : t("history.not_found_page_title");
 ---
 
 <Dashboard title={title}>
@@ -97,10 +88,10 @@ const title = exercise
       <div class="flex-1 flex items-center justify-center">
         <div class="text-center">
           <h1 class="text-2xl font-bold text-white mb-2">
-            Corte no encontrado
+            {t("history.not_found")}
           </h1>
           <a href="/dashboard/history" class="text-primary hover:underline">
-            Volver al histórico
+            {t("history.back")}
           </a>
         </div>
       </div>
@@ -129,11 +120,13 @@ const title = exercise
             </a>
             <div>
               <h1 class="text-2xl font-bold tracking-tight">
-                Corte {monthNames[exercise.endDate.getMonth()]}{" "}
-                {exercise.endDate.getFullYear()}
+                {t("history.cut_label")} {monthYear}
               </h1>
               <p class="text-slate-400 text-sm">
-                {exercise.transactionCount} movimientos &bull; Total:{" "}
+                {exercise.transactionCount === 1
+                  ? t("history.movements_one")
+                  : t("history.movements_other", { n: exercise.transactionCount })}{" "}
+                &bull; {t("history.total_label")}{" "}
                 {personalTotal >= 0 ? "+" : "-"}${formatMoney(
                   Math.abs(personalTotal),
                 )}

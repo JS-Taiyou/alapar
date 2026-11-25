@@ -63,7 +63,7 @@ const t = (key: string, params?: Record<string, string | number>) =>
               {relatedDescription && (
                 <>
                   {" "}
-                  &bull; <span class="text-slate-400">Vinculado: {relatedDescription}</span>
+                  &bull; <span class="text-slate-400">{t("history.linked", { description: relatedDescription })}</span>
                 </>
               )}
             </span>

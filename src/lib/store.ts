@@ -118,21 +118,6 @@ export async function touchRegistryStamp(registryId: string, q: QueryFn = query)
   await q("UPDATE registries SET last_modified = NOW() WHERE id = $1", [registryId]);
 }
 
-const MONTHS_ES = [
-  "Ene",
-  "Feb",
-  "Mar",
-  "Abr",
-  "May",
-  "Jun",
-  "Jul",
-  "Ago",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dic",
-];
-
 export async function getUserBySupabaseId(supabaseAuthId: string): Promise<User | null> {
   const result = await query("SELECT * FROM users WHERE supabase_auth_id = $1", [supabaseAuthId]);
   if (result.rows.length === 0) return null;
@@ -643,10 +628,6 @@ export async function getBalanceFromDeltas(userId: string, registryId: string): 
     [userId, registryId],
   );
   return parseFloat(result.rows[0].balance as string);
-}
-
-export function getMonthNameEs(date: Date): string {
-  return MONTHS_ES[date.getMonth()];
 }
 
 export async function getSpawnCandidates(registryId: string): Promise<Transaction[]> {

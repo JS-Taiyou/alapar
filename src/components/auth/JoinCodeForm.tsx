@@ -1,7 +1,13 @@
 import { useState } from "react";
+import { t as translate, type Locale } from "../../lib/i18n";
 
-export default function JoinCodeForm() {
+interface JoinCodeFormProps {
+  locale?: Locale;
+}
+
+export default function JoinCodeForm(props: JoinCodeFormProps) {
   const [code, setCode] = useState("");
+  const t = (key: string) => translate(props.locale ?? "es", key);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -14,7 +20,7 @@ export default function JoinCodeForm() {
     <form onSubmit={handleSubmit} className="flex gap-2">
       <input
         type="text"
-        placeholder="Código (ej: K9X2M4B7)"
+        placeholder={t("join.code_placeholder")}
         className="flex-1 px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white text-sm uppercase focus:ring-emerald-500 focus:border-emerald-500"
         maxLength={8}
         value={code}
@@ -24,7 +30,7 @@ export default function JoinCodeForm() {
         type="submit"
         className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold rounded-custom transition-all text-sm"
       >
-        Unirme
+        {t("join.submit")}
       </button>
     </form>
   );

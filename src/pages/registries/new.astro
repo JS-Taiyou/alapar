@@ -1,9 +1,13 @@
 ---
 import Base from "@/layouts/Base.astro";
 import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
+import { t as translate } from "@/lib/i18n";
+
+const locale = Astro.locals.locale;
+const t = (key: string) => translate(locale, key);
 ---
 
-<Base title="A la par - Nuevo Registro">
+<Base title={t("registry.page_title")}>
   <AuthCardLayout>
     <div class="text-center mb-8">
       <div class="inline-flex items-center justify-center p-3 bg-primary rounded-custom mb-4">
@@ -21,9 +25,9 @@ import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
           ></path>
         </svg>
       </div>
-      <h1 class="text-2xl font-bold text-white">Nuevo Registro</h1>
+      <h1 class="text-2xl font-bold text-white">{t("registry.new")}</h1>
       <p class="text-zinc-400 text-sm mt-2">
-        Crea un grupo para gestionar gastos compartidos
+        {t("registry.new_desc")}
       </p>
     </div>
     <form action="/api/registries" method="POST" class="space-y-5">
@@ -32,14 +36,14 @@ import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
           class="block text-sm font-medium text-zinc-300 mb-1.5"
           for="name"
         >
-          Nombre del Registro
+          {t("registry.name_label")}
         </label>
         <input
           class="block w-full px-4 py-2.5 bg-background border border-white/20 rounded-custom text-white focus:ring-primary focus:border-primary"
           id="name"
           name="name"
           type="text"
-          placeholder="Ej: Compañeros de piso"
+          placeholder={t("registry.name_placeholder")}
           required
         />
       </div>
@@ -47,13 +51,13 @@ import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
         type="submit"
         class="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all shadow-lg active:scale-95"
       >
-        Crear Registro
+        {t("registry.create")}
       </button>
       <a
         href="/"
         class="block text-center text-sm text-zinc-400 hover:text-white transition-colors"
       >
-        Cancelar
+        {t("common.cancel")}
       </a>
     </form>
   </AuthCardLayout>

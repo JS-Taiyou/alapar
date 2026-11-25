@@ -184,6 +184,7 @@ export const en: Record<string, string> = {
   "registry.name_label": "Group Name",
   "registry.name_placeholder": "e.g. Roommates",
   "registry.create": "Create Group",
+  "registry.page_title": "A la Par - New Group",
 
   // --- Join ---
   "join.not_found": "Invitation not found",
@@ -199,6 +200,10 @@ export const en: Record<string, string> = {
   "join.joining": "Joining...",
   "join.join_button": "Join Group",
   "join.code_placeholder": "Code (e.g. K9X2M4B7)",
+  "join.page_title": "A la Par - Join {name}",
+  "join.not_found_page_title": "A la Par - Invitation not found",
+  "join.submit": "Join",
+  "join.error": "Couldn't join the group.",
 
   // --- Billing / Pro tier ---
   "billing.upgrade": "Upgrade to Pro",
@@ -374,4 +379,33 @@ export const en: Record<string, string> = {
   "cortar.error_conn": "Connection error while settling the period.",
   "shell.history_title": "History",
   "shell.home_title": "Home",
+
+  // --- Default split ---
+  "default_split.subtitle": "Preset percentages for new expenses",
+  "default_split.member_header": "MEMBER",
+  "default_split.clear": "Remove default",
+  "default_split.reset": "Reset to equal",
+  "default_split.saved": "Saved",
+  "default_split.error_total": "Percentages add up to {total}%; they must add up to 100%",
+  "default_split.error_save": "Couldn't save",
+
+  // --- History (cuts) ---
+  "history.page_title": "A la Par - Cut History",
+  "history.title": "Cut History",
+  "history.subtitle": "Review cuts from previous months",
+  "history.search_placeholder": "Search cuts by month or year...",
+  "history.empty_title": "No cuts yet",
+  "history.empty_desc": "Cuts you settle will show up here.",
+  "history.footer_note": "* Cuts include final settlements and archived bills.",
+  "history.cut_label": "Cut",
+  "history.cut_page_title": "A la Par - Cut {monthYear}",
+  "history.expenses_one": "1 expense",
+  "history.expenses_other": "{n} expenses",
+  "history.movements_one": "1 transaction",
+  "history.movements_other": "{n} transactions",
+  "history.total_label": "Total:",
+  "history.not_found_page_title": "A la Par - Not found",
+  "history.not_found": "Cut not found",
+  "history.back": "Back to history",
+  "history.linked": "Linked: {description}",
 };

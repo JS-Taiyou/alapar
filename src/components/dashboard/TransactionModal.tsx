@@ -867,6 +867,7 @@ export default function TransactionModal(props: TransactionModalProps) {
   return (
     <Modal
       onClose={props.onClose}
+      closeLabel={t("common.close")}
       title={modalTitle}
       subtitle={modalSubtitle}
       widthClass="max-w-2xl"

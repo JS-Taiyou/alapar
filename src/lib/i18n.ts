@@ -92,6 +92,20 @@ export function formatTime(date: Date | string, locale: Locale): string {
   });
 }
 
+/**
+ * Format a date-only value, such as a cut's end date. Unlike formatDate this
+ * does not pin the display time zone: the value has no meaningful time of
+ * day, and shifting it would move it to the previous day.
+ */
+export function formatCalendarDate(
+  date: Date | string,
+  locale: Locale,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString(DATE_LOCALE[locale], options);
+}
+
 /** Format a month + year for exercise/corte headings. */
 export function formatMonthYear(date: Date | string, locale: Locale): string {
   const d = typeof date === "string" ? new Date(date) : date;

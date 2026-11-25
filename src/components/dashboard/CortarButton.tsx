@@ -62,6 +62,7 @@ export default function CortarButton(props: CortarButtonProps) {
       {showModal && (
         <Modal
           onClose={() => setShowModal(false)}
+          closeLabel={t("common.close")}
           title={t("cortar.title")}
           subtitle={t("cortar.subtitle")}
           footer={

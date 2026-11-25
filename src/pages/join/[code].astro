@@ -3,11 +3,14 @@ import Base from "@/layouts/Base.astro";
 import AuthCardLayout from "@/components/auth/AuthCardLayout.astro";
 import JoinButton from "@/components/auth/JoinButton";
 import { getInvitationByCode } from "@/lib/store";
+import { t as translate } from "@/lib/i18n";
 
 const code = Astro.params.code!;
 const invitation = await getInvitationByCode(code);
 const isLoggedIn = Astro.locals.user !== null;
 const locale = Astro.locals.locale;
+const t = (key: string, params?: Record<string, string | number>) =>
+  translate(locale, key, params);
 
 const inv = invitation;
 const isExpired = inv?.expiresAt ? inv.expiresAt < new Date() : false;
@@ -18,8 +21,15 @@ const isMaxed = inv
 const isInvalid = isExpired || isRevoked || isMaxed;
 
 const pageTitle = inv
-  ? `A la par - Unirse a ${inv.registryName}`
-  : "A la par - Invitación no encontrada";
+  ? t("join.page_title", { name: inv.registryName })
+  : t("join.not_found_page_title");
+
+// The code comes from the URL: escape it before it goes into the translated
+// sentence as HTML.
+const escapedCode = code.replace(
+  /[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!,
+);
 ---
 
 <Base title={pageTitle}>
@@ -42,17 +52,19 @@ const pageTitle = inv
           </svg>
         </div>
         <h1 class="text-2xl font-bold text-white mb-2">
-          Invitación no encontrada
+          {t("join.not_found")}
         </h1>
-        <p class="text-slate-400 mb-6">
-          El código <span class="font-mono text-white">{code}</span>{" "}
-          no es válido o ha expirado.
-        </p>
+        <p
+          class="text-slate-400 mb-6"
+          set:html={t("join.not_found_desc", {
+            code: `<span class="font-mono text-white">${escapedCode}</span>`,
+          })}
+        />
         <a
           href="/"
           class="inline-block px-6 py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all"
         >
-          Ir al inicio
+          {t("join.go_home")}
         </a>
       </AuthCardLayout>
     )
@@ -74,18 +86,18 @@ const pageTitle = inv
           </svg>
         </div>
         <h1 class="text-2xl font-bold text-white mb-2">
-          Unirse a {inv.registryName}
+          {t("join.join_registry", { name: inv.registryName })}
         </h1>
         <p class="text-slate-400 mb-6">
-          Has sido invitado a un grupo de gastos compartidos.
+          {t("join.invited_desc")}
         </p>
 
         {isInvalid
           ? (
             <div class="text-sm text-red-400 bg-red-400/10 border border-red-400/20 rounded-custom px-4 py-3">
-              {isExpired && "Esta invitación ha expirado."}
-              {isRevoked && "Esta invitación ha sido revocada."}
-              {isMaxed && "Esta invitación ha alcanzado el máximo de usos."}
+              {isExpired && t("join.expired")}
+              {isRevoked && t("join.revoked")}
+              {isMaxed && t("join.max_uses")}
             </div>
           )
           : isLoggedIn
@@ -96,13 +108,13 @@ const pageTitle = inv
                 href={`/login?redirect=/join/${inv.code}`}
                 class="block w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all shadow-lg"
               >
-                Iniciar Sesión para Unirme
+                {t("join.login_to_join")}
               </a>
               <a
                 href={`/signup?redirect=/join/${inv.code}`}
                 class="block w-full py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold rounded-custom transition-all"
               >
-                Crear Cuenta
+                {t("join.create_account")}
               </a>
             </div>
           )}

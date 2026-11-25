@@ -26,14 +26,14 @@ export default function JoinButton(props: JoinButtonProps) {
       if (data.registryId) {
         globalThis.location.href = "/dashboard";
       } else {
-        setError(data.error || "Error al unirse");
+        setError(data.error || t("join.error"));
         // 402 = the group hit its free-plan member cap; offer the pricing
         // page (the OWNER upgrades — the joiner can share the link).
         setShowPlansLink(res.status === 402);
         setLoading(false);
       }
     } catch {
-      setError("Error de conexión");
+      setError(t("common.error_connection"));
       setShowPlansLink(false);
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function JoinButton(props: JoinButtonProps) {
         disabled={loading}
         className="w-full py-3 bg-primary hover:bg-primary-light text-white font-semibold rounded-custom transition-all shadow-lg active:scale-95 disabled:opacity-50"
       >
-        {loading ? "Uniéndote..." : "Unirme al Registro"}
+        {loading ? t("join.joining") : t("join.join_button")}
       </button>
       {error && (
         <div className="mt-4">

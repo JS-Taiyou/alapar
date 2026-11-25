@@ -108,7 +108,7 @@ const t = (key: string) => translate(locale, key);
         <p class="text-zinc-400 mb-4">
           {t("landing.join_registry_desc")}
         </p>
-        <JoinCodeForm client:load />
+        <JoinCodeForm locale={locale} client:load />
       </div>
     </div>
     <footer class="absolute bottom-8 text-zinc-500 text-sm">

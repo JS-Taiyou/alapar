@@ -136,6 +136,7 @@ export default function RecurringSpawn(props: RecurringSpawnProps) {
       {showModal && (
         <Modal
           onClose={() => setShowModal(false)}
+          closeLabel={t("common.close")}
           title={t("recurring.title")}
           subtitle={t("recurring.subtitle")}
           widthClass="max-w-lg"

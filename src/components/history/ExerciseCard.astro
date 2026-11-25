@@ -1,14 +1,19 @@
 ---
 import { formatMoney } from "@/lib/format";
+import { formatCalendarDate, t as translate, type Locale } from "@/lib/i18n";
 import type { Exercise } from "@/lib/types";
 
 interface Props {
   exercise: Exercise;
   monthName: string;
   personalTotal?: number;
+  locale?: Locale;
 }
 
 const { exercise, monthName, personalTotal } = Astro.props;
+const locale = Astro.props.locale ?? "es";
+const t = (key: string, params?: Record<string, string | number>) =>
+  translate(locale, key, params);
 
 const totalDisplay =
   personalTotal !== undefined
@@ -27,11 +32,15 @@ const totalDisplay =
     </div>
     <div>
       <p class="font-medium text-zinc-100 leading-tight">
-        Corte {exercise.endDate.toLocaleDateString("es-MX", { month: "long", year: "numeric" })}
+        {t("history.cut_label")}{" "}
+        {formatCalendarDate(exercise.endDate, locale, { month: "long", year: "numeric" })}
       </p>
       <p class="text-xs text-zinc-400">
-        {exercise.transactionCount} Gastos &bull; Total: {totalDisplay} &bull;
-        {exercise.endDate.toLocaleDateString("es-MX", {
+        {exercise.transactionCount === 1
+          ? t("history.expenses_one")
+          : t("history.expenses_other", { n: exercise.transactionCount })}{" "}
+        &bull; {t("history.total_label")} {totalDisplay} &bull;
+        {formatCalendarDate(exercise.endDate, locale, {
           day: "numeric",
           month: "short",
           year: "numeric",
